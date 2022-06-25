@@ -1,5 +1,5 @@
 # EnergyGym
-gym environnement to simulate energy usage in a tertiairy building
+gym environnement to simulate the energetic behaviour of a tertiairy building
 
 ## requirements
 
