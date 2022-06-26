@@ -1,5 +1,5 @@
 # EnergyGym
-gym environnement to simulate the energetic behaviour of a tertiairy building
+environnement gym [openAI](https://github.com/openai/gym) pour simuler le comportement énergétique d'un bâtiment tertiaire
 
 ## requirements
 
@@ -10,12 +10,42 @@ pip3 install gym
 pip3 install PyFina
 pip3 install --upgrade tensorflow
 ```
-pour utiliser tensorboard :
+
+## basicplay
 
 ```
-tensorboard --logdir=TensorBoard
+python3 basicplay.py
+```
+
+paramètre |  description
+--|--
+agent_type | random = décision aléatoire<br>deterministic = argmax<br>stochastic = softmax
+random_ts | True = joue jusqu'à 200 épisodes<br>False = joue un seul épisode sur le timestamp 1609104740
+mode | vacancy = joue des périodes de non-occupation<br>week = joue une semaine type
+model | le nom d'une des configurations de [conf.py](conf.py)
+stepbystep | True = joue en mode pas à pas
+
+## play
+
+possibilité de faire jouer à l'environnement sa politique optimale et de produire des statistiques
 
 ```
+./play.py play
+```
+paramètre |  description
+--|--
+t_ext | numéro du flux de température extérieure = 1
+model | le nom d'une des configurations de [conf.py](conf.py)
+powerlimit | coefficient multiplicatif de la puissance max.
+tc | température de consigne
+n | **nombre d'épisodes à jouer**<br>0 = joue une série d'épisodes prédéfinis
+optimalpolicy | **politique optimale que l'environnement déterministe va jouer**<br>intermittence = succession de périodes d'occupation et de non-occupation<br>occupation_permanente = bâtiment occupé en permanence - cf hopital
+hystpath | nom d'un agent de type hystérésis, à fournir si on veut utiliser un agent pour gérer les périodes de non-occupation et un hystéréris pour gérer les périodes de présence du personnel : `./play.py --hystpath=agents/hys20.h5 play`
+holiday | nombre de jours fériés à intégrer dans les replay
+silent | True = production de statistiques<br>False = affiche les épisodes à l'écran 
+k | coefficient énergétique, utilisé dans le calcul de la récompense
+
+
 <details id=1>
   <summary><h2>A propos du modèle d'environnement</h2></summary>
   
@@ -41,4 +71,3 @@ tensorboard --logdir=TensorBoard
   
   
 </details>
-  
