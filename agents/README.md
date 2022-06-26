@@ -16,3 +16,10 @@ agent entrainé à gérer seulement les périodes de non-occupation du bâtiment
 
 ![](images/reward_240520222037.png)
 
+graphiques produits avec tensorboard
+
+pour utiliser tensorboard :
+
+```
+tensorboard --logdir=TensorBoard
+```
