@@ -12,7 +12,7 @@ import click
 interval = 1800
 # nombre d'intervalles sur lequel la simulation sera menée
 wsize = 1 + 8*24*3600//interval
-dir = "/var/opt/emoncms/phpfina"
+dir = "datas"
 import numpy as np
 schedule = np.array([ [7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1] ])
 Cw = 1162.5 #Wh/m3/K
