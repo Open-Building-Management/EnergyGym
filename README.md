@@ -31,7 +31,9 @@ stepbystep | True = joue en mode pas à pas
 
 ## play
 
-possibilité de faire jouer à l'environnement sa politique optimale et de produire des statistiques
+possibilité :
+- de faire jouer simultanément l'agent et la politique optimale de l'environnement,
+- de produire des statistiques
 
 ```
 ./play.py play
