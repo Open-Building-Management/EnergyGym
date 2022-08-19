@@ -8,9 +8,9 @@ MAX_EPISODES = 900
 modelRC = {"R": 2.54061406e-04, "C": 9.01650468e+08}
 
 import numpy as np
-import tensorflow as tf
+#import tensorflow as tf
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
+#from matplotlib.patches import Rectangle
 import random
 import signal
 import time
@@ -26,7 +26,7 @@ def R1C1(step, R, C, Qc, Text, Tint, cte=None):
     Text et Qc sont des vecteurs de taille 2 contenant les valeurs à t et t+step
     """
     if cte is None:
-        cte = exp(-step/(R*C))
+        cte = math.exp(-step/(R*C))
     delta = cte * ( Qc[0] / C + Text[0] / (R*C) ) + Qc[0] / C + Text[1] / (R*C)
     x = Tint * cte + step * 0.5 * delta
     return x
@@ -61,7 +61,7 @@ def getConfig(agent):
     outSize = outlayer.get_config()['units']
     try:
         inSize = inlayer.get_config()["batch_input_shape"][1]
-    except Exception as e:
+    except Exception :
         print("no input layer")
         inSize = 4
     print("network input size {} output size {}".format(inSize, outSize))
@@ -182,7 +182,7 @@ class Environnement:
 
         retourne le tenseur de données sources complété par le scénario de chauffage et la température intérieure simulée
         """
-        return datas
+        pass
 
 class Evaluate:
     """
@@ -344,7 +344,7 @@ class Evaluate:
             plt.plot(xr, adatas[:,2], color="black", label="TintAgent")
             plt.legend(loc='upper left')
 
-            ax2 = ax1.twinx()
+            ax1.twinx()
             plt.ylabel("Temp. extérieure °C")
             plt.plot(xr, mdatas[:,1], color="blue", label="Text")
             plt.legend(loc='upper right')
@@ -387,7 +387,7 @@ class Evaluate:
             plt.ylabel("°C")
             plt.plot(xr, mdatas[:,3], label="consigne")
             plt.legend(loc='upper left')
-            ax8 = ax7.twinx()
+            ax7.twinx()
             plt.ylabel("nb steps > cgt occ.")
             plt.plot(xr, mdatas[:,4],'o', markersize=1, color="red")
 
@@ -401,7 +401,7 @@ class Evaluate:
 
         à définir dans la classe fille
         """
-        return 0
+        pass
 
     def run(self, silent=False, Tint=None):
         """
@@ -449,17 +449,17 @@ class Evaluate:
             plt.plot(self._stats[:,5], color="red", label='température moyenne occupation modèle')
             plt.legend()
 
-            ax2 = plt.subplot(412, sharex=ax1)
+            plt.subplot(412, sharex=ax1)
             plt.plot(self._stats[:,2], color="blue", label="nombre heures > {}°C agent".format(self._env._Tc + self._env._hh))
             plt.plot(self._stats[:,6], color="red", label="nombre heures > {}°C modèle".format(self._env._Tc + self._env._hh))
             plt.legend()
 
-            ax3 = plt.subplot(413, sharex=ax1)
+            plt.subplot(413, sharex=ax1)
             plt.plot(self._stats[:,3], color="blue", label="nombre heures < {}°C agent".format(self._env._Tc - self._env._hh))
             plt.plot(self._stats[:,7], color="red", label="nombre heures < {}°C modèle".format(self._env._Tc - self._env._hh))
             plt.legend()
 
-            ax4 = plt.subplot(414, sharex=ax1)
+            plt.subplot(414, sharex=ax1)
             plt.plot(self._stats[:,9], color="blue", label="récompense cumulée agent")
             plt.plot(self._stats[:,10], color="red", label="récompense cumulée modèle")
             plt.legend()
