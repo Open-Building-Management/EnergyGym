@@ -32,8 +32,8 @@ stepbystep | True = joue en mode pas à pas
 ## play
 
 possibilité :
-- de faire jouer simultanément l'agent et la politique optimale de l'environnement,
-- de produire des statistiques
+  - de faire jouer simultanément l'agent et la politique optimale de l'environnement,
+  - de produire des statistiques
 
 ```
 ./play.py play
@@ -51,13 +51,12 @@ holiday | nombre de jours fériés à intégrer dans les replay
 silent | True = production de statistiques ou de snapshots<br>False = affiche les épisodes à l'écran 
 k | coefficient énergétique, utilisé dans le calcul de la récompense
 
-
 <details id=1>
   <summary><h2>A propos du modèle d'environnement</h2></summary>
   
   L'environnement est représenté sous la forme d'un modèle électrique équivalent simple à deux paramètres : 
-  - une résistance R en K/W qui représente l'isolation du bâtiment
-  - une capacité C en J/K qui représente l'inertie du bâtiment 
+    - une résistance R en K/W qui représente l'isolation du bâtiment
+    - une capacité C en J/K qui représente l'inertie du bâtiment 
   
   [Pour en savoir plus](https://github.com/Open-Building-Management/RCmodel/blob/main/RCmodel.ipynb)
   
@@ -74,6 +73,5 @@ k | coefficient énergétique, utilisé dans le calcul de la récompense
   
   ### comportement sous météo hivernale froide
   ![](images/RC_sim2_48h.png)
-  
-  
+
 </details>
