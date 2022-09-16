@@ -1,7 +1,8 @@
 # EnergyGym
 environnement gym [openAI](https://github.com/openai/gym) pour simuler le comportement énergétique d'un bâtiment tertiaire
 
-[le_jeu_du_chauffage_en_mode_random.webm](images/le_jeu_du_chauffage_en_mode_random.webm)
+[le_jeu_du_chauffage_en_mode_random.webm](https://user-images.githubusercontent.com/24553739/190570843-7f1c81fc-90a3-436d-9e51-2086e0282a43.webm)
+
 
 ## requirements
 
