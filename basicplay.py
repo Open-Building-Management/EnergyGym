@@ -57,11 +57,11 @@ def stats(bat):
         print("{}% d\'énergie économisée".format(peko))
     print("***********************************************************")
 
-def _sigint_handler(signal, frame):
+def _sig_handler(signum, frame):
     """
     Réception du signal de fermeture
     """
-    print("signal de fermeture reçu")
+    print(f'signal de fermeture ({signum}) reçu')
     exit(0)
 
 # on importe les configurations existantes de modèles depuis le fichier conf
@@ -95,8 +95,8 @@ def main(agent_type, random_ts, mode, model, stepbystep):
 
     ts = None if random_ts else 1609104740
     nbepisodes = 200 if random_ts else 1
-    signal.signal(signal.SIGINT, _sigint_handler)
-    signal.signal(signal.SIGTERM, _sigint_handler)
+    signal.signal(signal.SIGINT, _sig_handler)
+    signal.signal(signal.SIGTERM, _sig_handler)
     for episode in range(nbepisodes):
         state = bat.reset(ts = ts)
         rewardTot = 0
