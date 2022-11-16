@@ -1,28 +1,22 @@
-import numpy as np
-
+"""tiùe management"""
 from datetime import datetime
-import time
-#from dateutil import tz
 from datetime import timezone
 from datetime import timedelta
 from datetime import tzinfo
+import time
 import random
+import numpy as np
 
-"""
-timezone
-"""
-#UTC=tz.gettz('UTC')
-UTC=timezone.utc
-#CET=tz.gettz('Europe/Paris')
-#LOCTZ = tz.gettz('Europe/Paris')
+# timezone
+UTC = timezone.utc
 # cf https://docs.python.org/fr/3.6/library/datetime.html#datetime.tzinfo
 # chercher datetime.tzinfo dans https://docs.python.org/3/library/datetime.html
 
 ZERO = timedelta(0)
 HOUR = timedelta(hours=1)
 SECOND = timedelta(seconds=1)
-#print(ZERO)
-#print(SECOND)
+# print(ZERO)
+# print(SECOND)
 
 STDOFFSET = timedelta(seconds = -time.timezone)
 if time.daylight:
@@ -56,14 +50,12 @@ class LocalTimezone(tzinfo):
     def utcoffset(self, dt):
         if self._isdst(dt):
             return DSTOFFSET
-        else:
-            return STDOFFSET
+        return STDOFFSET
 
     def dst(self, dt):
         if self._isdst(dt):
             return DSTDIFF
-        else:
-            return ZERO
+        return ZERO
 
     def tzname(self, dt):
         return time.tzname[self._isdst(dt)]
@@ -86,7 +78,8 @@ fixed working hours each day except saturday and sunday
 
 start at 8 and stop at 17
 """
-classic=np.array([ [8,17], [8,17], [8,17], [8,17], [8,17], [-1,-1], [-1,-1] ])
+classic = np.array([ [8,17], [8,17], [8,17], [8,17], [8,17], [-1,-1], [-1,-1] ])
+
 
 def tsToTuple(ts, tz=LOCTZ):
     """
@@ -95,9 +88,10 @@ def tsToTuple(ts, tz=LOCTZ):
 
     return date tuple tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec, tm_wday, tm_yday, tm_isdst
     """
-    _time=datetime.fromtimestamp(ts, tz)
-    _tuple=_time.timetuple()
-    return(_tuple)
+    _time = datetime.fromtimestamp(ts, tz)
+    _tuple = _time.timetuple()
+    return _tuple
+
 
 def tsToHuman(ts, fmt="%Y-%m-%d %H:%M:%S:%z", tz=LOCTZ):
     """
@@ -105,35 +99,37 @@ def tsToHuman(ts, fmt="%Y-%m-%d %H:%M:%S:%z", tz=LOCTZ):
     """
     return datetime.fromtimestamp(ts, tz).strftime(fmt)
 
-def inPeriod(d,m,ps,pe):
+
+def in_period(d_m, m_y, p_s, p_e):
     """
-    ps : period start as "dd-mm"
-    pe : period end
-    d : day number in the month
-    m : month number
+    p_s : period start as "dd-mm"
+    p_e : period end
+    d_m : day number in the month
+    m_y : month number in the year
     return boolean : True if day-month in period, False otherwise
     """
-    inperiod = False
-    ps = ps.split("-")
-    pe = pe.split("-")
+    result = False
+    p_s = p_s.split("-")
+    p_e = p_e.split("-")
     # si moins d'un mois
-    if int(ps[1]) == int(pe[1]):
-        if m == int(ps[1]):
-            if d >= int(ps[0]) and d <= int(pe[0]):
-                inperiod = True
+    if int(p_s[1]) == int(p_e[1]):
+        if m_y == int(p_s[1]):
+            if int(p_s[0]) <= d_m <= int(p_e[0]):
+                result = True
     # si plus d'un mois, 3 cas de figure
     else:
-        if m == int(ps[1]) and d >= int(ps[0]):
-            inperiod = True
-        if m == int(pe[1]) and d <= int(pe[0]):
-            inperiod = True
-        if m > int(ps[1]) and m < int(pe[1]):
-            inperiod = True
-    return inperiod
+        if m_y == int(p_s[1]) and d_m >= int(p_s[0]):
+            result = True
+        if m_y == int(p_e[1]) and d_m <= int(p_e[0]):
+            result = True
+        if int(p_s[1]) < m_y < int(p_e[1]):
+            result = True
+    return result
+
 
 def biosAgenda(nbpts, step, start, offs, schedule=classic):
     """
-    un agenda de présence avec prise en compte de jours fériés, voire de périodes de confinement
+    un agenda plus abouti avec prise en compte de jours fériés, voire de périodes de confinement
     ```
     offs =  {
         "2019-offs": [ "01-01", "22-04", "01-05", "08-05", "30-05", "31-05", "10-06", "15-08", "16-08", "01-11", "11-11", ["23-12","25-12"] ],
@@ -142,58 +138,60 @@ def biosAgenda(nbpts, step, start, offs, schedule=classic):
         }
     ```
     """
-    time = start
+    _time = start
     agenda = np.zeros(nbpts)
     weekend = []
     for i in range(schedule.shape[0]):
         if -1 in schedule[i]:
             weekend.append(i)
     #print(weekend)
-    for i in range(0,nbpts):
-        tpl = tsToTuple(time)
-        y = tpl.tm_year
-        d = tpl.tm_mday
-        m = tpl.tm_mon
-        wd = tpl.tm_wday
-        h = tpl.tm_hour
-        horaires = schedule[wd]
+    for i in range(0, nbpts):
+        tpl = tsToTuple(_time)
+        year = tpl.tm_year
+        d_m = tpl.tm_mday
+        m_y = tpl.tm_mon
+        d_w = tpl.tm_wday
+        hour = tpl.tm_hour
+        horaires = schedule[d_w]
         # valeur par défaut
         work = 1
         # on applique les jours off s'ils existent
-        key = "{}-offs".format(y)
+        key = f'{year}-offs'
         if key in offs :
-          for element in offs[key]:
-            if isinstance(element,list):
-                if inPeriod(d,m,element[0],element[1]):
-                    work = 0
-            else:
-                off = element.split("-")
-                if m == int(off[1]) and d == int(off[0]):
-                    work = 0
+            for element in offs[key]:
+                if isinstance(element, list):
+                    if in_period(d_m, m_y, element[0], element[1]):
+                        work = 0
+                else:
+                    off = element.split("-")
+                    if m_y == int(off[1]) and d_m == int(off[0]):
+                        work = 0
         # on applique l'agenda hebdo
-        if wd in weekend:
+        if d_w in weekend:
             work = 0
-        if h not in range(horaires[0], horaires[1]):
+        if hour not in range(horaires[0], horaires[1]):
             work = 0
         agenda[i] = work
-        time+=step
+        _time += step
     return agenda
 
-def getLevelDuration(agenda, i):
+
+def get_level_duration(agenda, i):
     """
     return the supposed duration of the level in number of steps
 
     a level = period during which we can see no change in the agenda
     """
     j=i
-    while(agenda[j]==agenda[j+1]):
+    while agenda[j] == agenda[j+1]:
         if j < agenda.shape[0]-2:
-            j+=1
+            j += 1
         else:
             break
-    return j+1-i
+    return j + 1 - i
 
-def getRandomStart(start, end, month_min, month_max, year=None):
+
+def get_random_start(start, end, month_min, month_max, year=None):
     """
     tire aléatoirement un timestamp dans un intervalle
     s'assure que le mois du timestamp convient à la saison que l'on veut étudier (hiver, été)
@@ -201,9 +199,9 @@ def getRandomStart(start, end, month_min, month_max, year=None):
     while True:
         randomts = random.randrange(start, end)
         tpl = tsToTuple(randomts)
-        if tpl.tm_mon <= month_max or tpl.tm_mon >=month_min:
+        if tpl.tm_mon <= month_max or tpl.tm_mon >= month_min:
             if year is None:
                 break
-            elif tpl.tm_year == year:
+            if tpl.tm_year == year:
                 break
     return randomts

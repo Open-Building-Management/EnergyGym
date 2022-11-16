@@ -7,7 +7,7 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
-from .planning import getRandomStart, getLevelDuration
+from .planning import get_random_start, get_level_duration
 
 # modèle par défault de type R1C1 obtenues par EDW avec les données de Marc Bloch
 #modelRC = {"R": 2.54061406e-04, "C": 9.01650468e+08}
@@ -40,7 +40,7 @@ def covering(Tmin, Tmax, Tc, hh, ts, wsize, interval, occupation, xr=None):
     zonesOcc = []
     for i in changes:
         if i < wsize-1:
-            l = getLevelDuration(occupation, i+1)
+            l = get_level_duration(occupation, i+1)
             Tmax = max(Tc+hh,Tmax)
             Tmin = min(Tc-hh,Tmin)
             h = Tmax - Tmin
@@ -107,7 +107,7 @@ class Vacancy(gym.Env):
             tse = self._tse
             end = tse - self._wsize * self._interval - 4*24*3600
             # on tire un timestamp avant fin mai OU après début octobre
-            ts = getRandomStart(start, end, 10, 5)
+            ts = get_random_start(start, end, 10, 5)
         self.i = 0
         self._pos = (ts - self._tss) // self._interval
         self._tsvrai = self._tss + self._pos * self._interval
@@ -252,7 +252,7 @@ class Building(Vacancy):
     def updateNonPhysParams(self):
         Tc = self._agenda[self._pos+self.i] * self._Tc
         occupation = self._agenda[self._pos+self.i:self._pos+self.i+self._wsize+4*24*3600//self._interval]
-        nbh = getLevelDuration(occupation, 0) * self._interval / 3600
+        nbh = get_level_duration(occupation, 0) * self._interval / 3600
         return Tc, nbh
 
     def reward(self, action):

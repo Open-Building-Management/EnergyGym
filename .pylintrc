@@ -1,0 +1,11 @@
+[MESSAGES CONTROL]
+
+disable=line-too-long
+
+max-nested-blocks=10
+max-statements=100
+max-branches=35
+max-locals=25
+
+good-names=i,j,dt,tt,ts,tz,
+           biosAgenda,tsToTuple,tsToHuman

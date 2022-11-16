@@ -17,7 +17,7 @@ import time
 import copy
 import math
 
-from .planning import tsToHuman, getRandomStart, getLevelDuration
+from .planning import tsToHuman, get_random_start, get_level_duration
 from .HeatGym import covering
 
 def R1C1(step, R, C, Qc, Text, Tint, cte=None):
@@ -111,7 +111,7 @@ class Environnement:
             end = tse - self._wsize * self._interval - 4*24*3600
             #print(tsToHuman(start),tsToHuman(end))
             # on tire un timestamp avant fin mai OU après début octobre
-            ts = getRandomStart(start, end, 10, 5)
+            ts = get_random_start(start, end, 10, 5)
         self._pos = (ts - self._tss) // self._interval
         self._tsvrai = self._tss + self._pos * self._interval
 
@@ -149,7 +149,7 @@ class Environnement:
         datas[:,1] = self._Text[self._pos:self._pos+self._wsize]
         occupation = self._agenda[self._pos:self._pos+self._wsize+4*24*3600//self._interval]
         for i in range(self._wsize):
-            datas[i,4] = getLevelDuration(occupation, i) * self._interval / 3600
+            datas[i,4] = get_level_duration(occupation, i) * self._interval / 3600
         # consigne
         datas[:,3] = self._Tc * occupation[0:self._wsize]
         print("condition initiale : Text {:.2f} Tint {:.2f}".format(datas[0,1],datas[0,2]))
