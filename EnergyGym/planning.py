@@ -1,4 +1,4 @@
-"""tiùe management"""
+"""time management"""
 from datetime import datetime
 from datetime import timezone
 from datetime import timedelta
