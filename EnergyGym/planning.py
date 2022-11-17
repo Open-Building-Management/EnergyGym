@@ -18,9 +18,9 @@ SECOND = timedelta(seconds=1)
 # print(ZERO)
 # print(SECOND)
 
-STDOFFSET = timedelta(seconds = -time.timezone)
+STDOFFSET = timedelta(seconds=-time.timezone)
 if time.daylight:
-    DSTOFFSET = timedelta(seconds = -time.altzone)
+    DSTOFFSET = timedelta(seconds=-time.altzone)
 else:
     DSTOFFSET = STDOFFSET
 
@@ -68,6 +68,7 @@ class LocalTimezone(tzinfo):
         tt = time.localtime(stamp)
         return tt.tm_isdst > 0
 
+
 LOCTZ = LocalTimezone()
 
 
@@ -78,7 +79,7 @@ fixed working hours each day except saturday and sunday
 
 start at 8 and stop at 17
 """
-classic = np.array([ [8,17], [8,17], [8,17], [8,17], [8,17], [-1,-1], [-1,-1] ])
+CLASSIC = np.array([[8, 17], [8, 17], [8, 17], [8, 17], [8, 17], [-1, -1], [-1, -1]])
 
 
 def tsToTuple(ts, tz=LOCTZ):
@@ -127,7 +128,7 @@ def in_period(d_m, m_y, p_s, p_e):
     return result
 
 
-def biosAgenda(nbpts, step, start, offs, schedule=classic):
+def biosAgenda(nbpts, step, start, offs, schedule=CLASSIC):
     """
     un agenda plus abouti avec prise en compte de jours fériés, voire de périodes de confinement
     ```
@@ -182,7 +183,7 @@ def get_level_duration(agenda, i):
 
     a level = period during which we can see no change in the agenda
     """
-    j=i
+    j = i
     while agenda[j] == agenda[j+1]:
         if j < agenda.shape[0]-2:
             j += 1
