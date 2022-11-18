@@ -18,7 +18,7 @@ import copy
 import math
 
 from .planning import tsToHuman, get_random_start, get_level_duration
-from .HeatGym import covering
+from .heatgym import covering
 
 def R1C1(step, R, C, Qc, Text, Tint, cte=None):
     """
@@ -69,11 +69,15 @@ def getConfig(agent):
 
 class Environnement:
     """
-    stocke les données décrivant l'environnement et offre des méthodes pour le caractériser
+    stocke les données décrivant l'environnement
+    et offre des méthodes pour le caractériser
 
-    - Text : objet PyFina, vecteur numpy de température extérieure échantillonné selon le pas de discrétisation (interval)
-    - agenda : vecteur numpy de l'agenda d'occupation échantillonné selon le même pas de discrétisation que Text et de même taille que Text
-    - wsize : nombre d'intervalles constituant un épisode, l'épisode étant la métrique de base utilisé pour les entrainements et les replays.
+    - Text : objet PyFina, vecteur numpy de température extérieure
+             échantillonné selon le pas de discrétisation (interval)
+    - agenda : vecteur numpy de l'agenda d'occupation échantillonné selon
+             le même pas de discrétisation que Text et de même taille que Text
+    - wsize : nombre d'intervalles constituant un épisode, l'épisode étant
+              la métrique de base utilisé pour les entrainements et les replays.
     - Tc : température de consigne / confort temperature set point (°C)
     - hh : demi-intervalle (en °C) pour le contrôle hysteresys
     - model : paramètres du modèle d'environnement - exemple : R=2e-4, C=2e8
@@ -88,11 +92,11 @@ class Environnement:
         self._max_power = max_power
         self._Tc = Tc
         self._hh = hh
-        print("environnement initialisé avec Tc={}, hh={}".format(self._Tc, self._hh))
-        self._model = modelRC
+        print(f'environnement initialisé avec Tc={self._Tc}, hh={self._hh}')
+        self.model = modelRC
         if model:
-            self._model = model
-        self._cte = math.exp(-self._interval/(self._model["R"]*self._model["C"]))
+            self.model = model
+        self._cte = math.exp(-self._interval/(self.model["R"]*self.model["C"]))
 
     def setStart(self, ts=None):
         """
@@ -116,8 +120,8 @@ class Environnement:
         self._tsvrai = self._tss + self._pos * self._interval
 
         print("*************************************")
-        print("{} - {}".format(ts,tsToHuman(ts)))
-        print("vrai={} - {}".format(self._tsvrai, tsToHuman(self._tsvrai)))
+        print(f'{ts} - {tsToHuman(ts)}')
+        print(f'vrai={self._tsvrai} - {tsToHuman(self._tsvrai)}')
 
     def buildEnv(self, Tint=None):
         """
@@ -161,7 +165,7 @@ class Environnement:
         """
         _Qc = datas[i-1:i+1,0]
         _Text = datas[i-1:i+1,1]
-        return R1C1(self._interval, self._model["R"], self._model["C"], _Qc, _Text, datas[i-1,2], cte=self._cte)
+        return R1C1(self._interval, self.model["R"], self.model["C"], _Qc, _Text, datas[i-1,2], cte=self._cte)
 
     def sim2Target(self, datas, i):
         """
@@ -174,7 +178,7 @@ class Environnement:
         # datas[i,1] correspond à Text[i+pos]
         Text = self._Text[self._pos+i:self._pos+i+tof+1]
         Tint = datas[i, 2]
-        return R1C1sim(self._interval, self._model["R"], self._model["C"], Qc, Text, Tint, cte=self._cte)
+        return R1C1sim(self._interval, self.model["R"], self.model["C"], Qc, Text, Tint, cte=self._cte)
 
     def play(self, datas):
         """
@@ -182,7 +186,7 @@ class Environnement:
 
         retourne le tenseur de données sources complété par le scénario de chauffage et la température intérieure simulée
         """
-        pass
+
 
 class Evaluate:
     """
@@ -200,7 +204,7 @@ class Evaluate:
         print("on va jouer {} épisodes".format(self._N))
         self._name = name
         self._env = env
-        self._modlabel = "R={:.2e} C={:.2e}".format(self._env._model["R"], self._env._model["C"])
+        self._modlabel = "R={:.2e} C={:.2e}".format(self._env.model["R"], self._env.model["C"])
         self._agent = agent
         print("métrique de l'agent online {}".format(agent.metrics_names))
         self._LNames, self._inSize, self._outSize = getConfig(agent)

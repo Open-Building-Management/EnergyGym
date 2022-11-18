@@ -27,7 +27,7 @@ def mirrorPlay(bat):
     - en arrêtant de chauffer pendant un nombre de pas égal à limit,
     - puis en chauffant de manière continue à partir de limit
     """
-    limit = bat._tot_eko
+    limit = bat.tot_eko
     ts = bat._tsvrai
     state = bat.reset(ts = ts)
     while True:
@@ -36,24 +36,24 @@ def mirrorPlay(bat):
         if done:
             print("MIRROR PLAY")
             stats(bat)
-            label = "chauffage arrêté pendant {} pas".format(np.sum(bat._tot_eko))
-            label = "{} - Tint à l'ouverture {:.2f}°C".format(label, bat._Tint[-2])
+            label = "chauffage arrêté pendant {} pas".format(np.sum(bat.tot_eko))
+            label = "{} - Tint à l'ouverture {:.2f}°C".format(label, bat.tint[-2])
             bat.render(stepbystep = False, label = label)
             break
 
 def stats(bat):
-    Tint_min = np.amin(bat._Tint[:-1])
-    Tint_max = np.amax(bat._Tint[:-1])
-    Tint_moy = np.mean(bat._Tint[:-1])
-    Text_min = np.amin(bat._Text[bat._pos:bat._pos+bat._wsize])
-    Text_max = np.amax(bat._Text[bat._pos:bat._pos+bat._wsize])
-    Text_moy = np.mean(bat._Text[bat._pos:bat._pos+bat._wsize])
+    Tint_min = np.amin(bat.tint[:-1])
+    Tint_max = np.amax(bat.tint[:-1])
+    Tint_moy = np.mean(bat.tint[:-1])
+    Text_min = np.amin(bat.text[bat.pos:bat.pos+bat.wsize])
+    Text_max = np.amax(bat.text[bat.pos:bat.pos+bat.wsize])
+    Text_moy = np.mean(bat.text[bat.pos:bat.pos+bat.wsize])
     print("Text min {:.2f} Text moy {:.2f} Text max {:.2f}".format(Text_min, Text_moy, Text_max))
     print("Tint min {:.2f} Tint moy {:.2f} Tint max {:.2f}".format(Tint_min, Tint_moy, Tint_max))
-    if bat._label == "vacancy":
-        print("valeur de Tint à l'ouverture : {:.2f}".format(bat._Tint[-2]))
-        peko = (bat._tot_eko * 100) // bat._wsize
-        print("pas de chauffage pendant {} pas".format(bat._tot_eko))
+    if bat.label == "vacancy":
+        print("valeur de Tint à l'ouverture : {:.2f}".format(bat.tint[-2]))
+        peko = (bat.tot_eko * 100) // bat.wsize
+        print("pas de chauffage pendant {} pas".format(bat.tot_eko))
         print("{}% d\'énergie économisée".format(peko))
     print("***********************************************************")
 
@@ -128,8 +128,8 @@ def main(agent_type, random_ts, mode, model, stepbystep):
                 if not stepbystep:
                     label = None
                     if mode == "vacancy":
-                        label = "chauffage arrêté pendant {} pas".format(bat._tot_eko)
-                        label = "{} - Tint à l'ouverture {:.2f}°C".format(label, bat._Tint[-2])
+                        label = "chauffage arrêté pendant {} pas".format(bat.tot_eko)
+                        label = "{} - Tint à l'ouverture {:.2f}°C".format(label, bat.tint[-2])
                     bat.render(stepbystep = False, label = label)
                     if mode == "vacancy":
                         mirrorPlay(bat)
