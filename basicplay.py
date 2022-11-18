@@ -1,95 +1,100 @@
+"""basic play"""
+import signal
+import sys
+import click
 import numpy as np
 from EnergyGym import getTruth, getFeed, pickName, Building, Vacancy
-import signal
+# on importe les configurations existantes de modèles depuis le fichier conf
+from conf import models
 
-interval = 3600
-wsize = 1 + 8*24*3600//interval
-dir = "datas"
+agent_types = ["random", "deterministic", "stochastic"]
+modes = ["vacancy", "week"]
+
+# pylint: disable=no-value-for-parameter
+
+INTERVAL = 3600
+WSIZE = 1 + 8*24*3600 // INTERVAL
+PATH = "datas"
 schedule = np.array([ [7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1] ])
-Cw = 1162.5 #Wh/m3/K
+CW = 1162.5 #Wh/m3/K
 # debit de 5m3/h et deltaT entre départ et retour de 15°C
-max_power = 5 * Cw * 15
+MAX_POWER = 5 * CW * 15
 hh = 1
-circuit = {"Text":1, "dir": dir, "schedule": schedule, "interval": interval, "wsize": wsize}
+circuit = {"Text":1, "dir": PATH, "schedule": schedule, "interval": INTERVAL, "wsize": WSIZE}
 
 def load(agent_path):
+    """load tensorflow model"""
     import tensorflow as tf
     agent = tf.keras.models.load_model(agent_path, compile = False, custom_objects={'Functional':tf.keras.models.Model})
     return agent
 
-def mirrorPlay(bat):
+def mirror_play(bat):
     """
-    Suppose de connaître le nombre de pas pendant lequel le chauffage peut-être arrêté : limit
+    Suppose de connaître le nombre de pas pendant lequel le chauffage peut-être arrêté
 
     A utiliser après avoir fait jouer une période de non-occupation à un modèle
 
     Rejoue la même période :
-    - en arrêtant de chauffer pendant un nombre de pas égal à limit,
-    - puis en chauffant de manière continue à partir de limit
+    - en arrêtant de chauffer pendant un nombre de pas égal à bat.tot_eko,
+    - puis en chauffant de manière continue à partir de bat.tot_eko
     """
     limit = bat.tot_eko
     ts = bat._tsvrai
-    state = bat.reset(ts = ts)
+    bat.reset(ts = ts)
     while True:
         action = 0 if bat.i < limit else 1
-        state, reward, done, _ = bat.step(action)
+        _, _, done, _ = bat.step(action)
         if done:
             print("MIRROR PLAY")
             stats(bat)
-            label = "chauffage arrêté pendant {} pas".format(np.sum(bat.tot_eko))
-            label = "{} - Tint à l'ouverture {:.2f}°C".format(label, bat.tint[-2])
-            bat.render(stepbystep = False, label = label)
+            label = f'chauffage arrêté pendant {np.sum(bat.tot_eko)} pas'
+            label = f'{label} - Tint à l\'ouverture {bat.tint[-2]:.2f}°C'
+            bat.render(stepbystep=False, label=label)
             break
 
 def stats(bat):
-    Tint_min = np.amin(bat.tint[:-1])
-    Tint_max = np.amax(bat.tint[:-1])
-    Tint_moy = np.mean(bat.tint[:-1])
-    Text_min = np.amin(bat.text[bat.pos:bat.pos+bat.wsize])
-    Text_max = np.amax(bat.text[bat.pos:bat.pos+bat.wsize])
-    Text_moy = np.mean(bat.text[bat.pos:bat.pos+bat.wsize])
-    print("Text min {:.2f} Text moy {:.2f} Text max {:.2f}".format(Text_min, Text_moy, Text_max))
-    print("Tint min {:.2f} Tint moy {:.2f} Tint max {:.2f}".format(Tint_min, Tint_moy, Tint_max))
+    """some basic stats"""
+    tint_min = np.amin(bat.tint[:-1])
+    tint_max = np.amax(bat.tint[:-1])
+    tint_moy = np.mean(bat.tint[:-1])
+    text_min = np.amin(bat.text[bat.pos:bat.pos+bat.wsize])
+    text_max = np.amax(bat.text[bat.pos:bat.pos+bat.wsize])
+    text_moy = np.mean(bat.text[bat.pos:bat.pos+bat.wsize])
+    print(f'Text min {text_min:.2f} Text moy {text_moy:.2f} Text max {text_max:.2f}')
+    print(f'Tint min {tint_min:.2f} Tint moy {tint_moy:.2f} Tint max {tint_max:.2f}')
     if bat.label == "vacancy":
-        print("valeur de Tint à l'ouverture : {:.2f}".format(bat.tint[-2]))
+        print(f'valeur de Tint à l\'ouverture : {bat.tint[-2]:.2f}')
         peko = (bat.tot_eko * 100) // bat.wsize
-        print("pas de chauffage pendant {} pas".format(bat.tot_eko))
-        print("{}% d\'énergie économisée".format(peko))
+        print(f'pas de chauffage pendant {bat.tot_eko} pas')
+        print(f'{peko}% d\'énergie économisée')
     print("***********************************************************")
 
-def _sig_handler(signum, frame):
-    """
-    Réception du signal de fermeture
-    """
+def _sig_handler(signum, frame):  # pylint: disable=unused-argument
+    """Réception du signal de fermeture"""
     print(f'signal de fermeture ({signum}) reçu')
-    exit(0)
+    sys.exit(0)
 
-# on importe les configurations existantes de modèles depuis le fichier conf
-from conf import models
-agentTypes = ["random", "deterministic", "stochastic"]
-modes = ["vacancy", "week"]
-import click
 @click.command()
-@click.option('--agent_type', type=click.Choice(agentTypes), prompt='comportement de l\'agent ?')
+@click.option('--agent_type', type=click.Choice(agent_types), prompt='comportement de l\'agent ?')
 @click.option('--random_ts', type=bool, default=False, prompt='timestamp de démarrage aléatoire ?')
 @click.option('--mode', type=click.Choice(modes), prompt='type d\'épisode : période de non-occupation, semaine ?')
 @click.option('--model', type=click.Choice(models), prompt='modèle ?')
 @click.option('--stepbystep', type=bool, default=False, prompt='jouer l\'épisode pas à pas ?')
 def main(agent_type, random_ts, mode, model, stepbystep):
+    """main command"""
     R = models[model]["R"]
     C = models[model]["C"]
     if mode == "week":
         Text, agenda = getTruth(circuit, visualCheck=False)
-        bat = Building(Text, agenda, wsize, max_power, 20, 0.9, R=R, C=C)
+        bat = Building(Text, agenda, WSIZE, MAX_POWER, 20, 0.9, R=R, C=C)
     if mode == "vacancy":
         Text = getFeed(circuit["Text"], circuit["interval"])
-        bat = Vacancy(Text, max_power, 20, 0.9, R=R, C=C)
+        bat = Vacancy(Text, MAX_POWER, 20, 0.9, R=R, C=C)
 
     # demande à l'utilisateur un nom de réseau
     if agent_type != "random":
         agent_path, saved = pickName()
         if not saved :
-            import sys
             sys.exit(0)
         agent = load(agent_path)
 
@@ -97,9 +102,9 @@ def main(agent_type, random_ts, mode, model, stepbystep):
     nbepisodes = 200 if random_ts else 1
     signal.signal(signal.SIGINT, _sig_handler)
     signal.signal(signal.SIGTERM, _sig_handler)
-    for episode in range(nbepisodes):
+    for _ in range(nbepisodes):
         state = bat.reset(ts = ts)
-        rewardTot = 0
+        rewardtot = 0
         while True :
             if stepbystep:
                 bat.render()
@@ -119,20 +124,20 @@ def main(agent_type, random_ts, mode, model, stepbystep):
                     act_probs = tf.nn.softmax(result, axis=1)
                     action = np.random.choice(act_probs.shape[1], p=act_probs.numpy()[0])
             state, reward, done, _ = bat.step(action)
-            rewardTot += reward
+            rewardtot += reward
             if done:
                 if mode == "vacancy":
-                    print("récompense à l'arrivée {}".format(reward))
-                print("récompense cumulée {}".format(rewardTot))
+                    print(f'récompense à l\'arrivée {reward}')
+                print(f'récompense cumulée {rewardtot}')
                 stats(bat)
                 if not stepbystep:
                     label = None
                     if mode == "vacancy":
-                        label = "chauffage arrêté pendant {} pas".format(bat.tot_eko)
-                        label = "{} - Tint à l'ouverture {:.2f}°C".format(label, bat.tint[-2])
-                    bat.render(stepbystep = False, label = label)
+                        label = f'chauffage arrêté pendant {bat.tot_eko} pas'
+                        label = f'{label} - Tint à l\'ouverture {bat.tint[-2]:.2f}°C'
+                    bat.render(stepbystep=False, label=label)
                     if mode == "vacancy":
-                        mirrorPlay(bat)
+                        mirror_play(bat)
                 break
 
     bat.close()

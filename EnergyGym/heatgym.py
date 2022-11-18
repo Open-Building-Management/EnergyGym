@@ -11,8 +11,8 @@ import numpy as np
 from .planning import get_random_start, get_level_duration
 
 # modèle par défault de type R1C1 obtenues par EDW avec les données de Marc Bloch
-#modelRC = {"R": 2.54061406e-04, "C": 9.01650468e+08}
-modelRC = {"R" : 5.94419964e-04, "C" : 5.40132642e+07}
+#MODELRC = {"R": 2.54061406e-04, "C": 9.01650468e+08}
+MODELRC = {"R": 5.94419964e-04, "C": 5.40132642e+07}
 
 def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
     """
@@ -96,7 +96,7 @@ class Vacancy(gym.Env):
         self._max_power = max_power
         self._tc = tc
         self._k = k
-        self.model = modelRC
+        self.model = MODELRC
         if model:
             self.model = model
         # la constante de temps du modèle électrique équivalent
@@ -117,7 +117,7 @@ class Vacancy(gym.Env):
         self._ax3 = None
 
 
-    def _reset(self, ts=None, tint=None, seed:Optional[int]=None):
+    def _reset(self, ts=None, tint=None, seed:Optional[int] = None):
         """
         generic reset method
 
@@ -156,7 +156,7 @@ class Vacancy(gym.Env):
         self._reward = 0
         return self.state
 
-    def _render(self, zoneconfort = None, zones_occ = None, stepbystep = True, label = None):
+    def _render(self, zoneconfort=None, zones_occ=None, stepbystep=True, label=None):
         """generic render method"""
         if self.i == 0 or not stepbystep:
             self._fig = plt.figure()
@@ -198,7 +198,7 @@ class Vacancy(gym.Env):
         self.action[self.i] = action
         # indoor temps at next state
         text = self.text[self.pos+self.i:self.pos+self.i+2]
-        delta = self._cte * ( q_c / self.model["C"] + text[0] / self._tcte )
+        delta = self._cte * (q_c / self.model["C"] + text[0] / self._tcte)
         delta += q_c / self.model["C"] + text[1] / self._tcte
         self.i += 1
         x = self.state[1] * self._cte + self._interval * 0.5 * delta
@@ -243,7 +243,8 @@ class Vacancy(gym.Env):
             self.tot_eko += 1
         return reward
 
-    def reset(self, ts=None, tint=None, seed:Optional[int]=None, wsize=None):
+    def reset(self, ts=None, tint=None, seed:Optional[int] = None, wsize=None):
+        """episode reset"""
         if not isinstance(wsize, int):
             self.wsize = 63 * 3600 // self._interval
         else :
@@ -254,9 +255,7 @@ class Vacancy(gym.Env):
         return self._reset(ts=ts, tint=tint, seed=seed)
 
     def step(self, action):
-        """
-        renvoie state, reward pour previous state, done, _
-        """
+        """return state, reward pour previous state, done, _"""
         reward = self._step(action)
         done = None
         if self._nbsteps == -1:
@@ -264,9 +263,11 @@ class Vacancy(gym.Env):
         return self.state, reward, done, {}
 
     def render(self, stepbystep=True, label=None):
+        """render realtime or not"""
         self._render(stepbystep=stepbystep, label = label)
 
     def close(self):
+        """closing"""
         #plt.savefig("test.png")
         plt.close()
 
@@ -295,7 +296,7 @@ class Building(Vacancy):
             l_1 = tc - 3
             l_2 = tc - 1
             if abs(self.state[1] - tc) > 1:
-                reward -= abs( self.state[1] - tc) * self._interval / 3600
+                reward -= abs(self.state[1] - tc) * self._interval / 3600
             if self._agenda[self.pos+self.i-1] == 0:
                 if self.state[1] < l_0:
                     reward -= 30
@@ -310,9 +311,9 @@ class Building(Vacancy):
                 self.tot_eko += 1
         return reward
 
-    def reset(self, ts=None, tint=None, seed: Optional[int] = None):
+    def reset(self, ts=None, tint=None, seed: Optional[int] = None, wsize=None):
         self.tot_eko = 0
-        return self._reset(ts = ts, tint = tint, seed = seed)
+        return self._reset(ts=ts, tint=tint, seed=seed)
 
     def step(self, action):
         reward = self._step(action)
@@ -321,7 +322,7 @@ class Building(Vacancy):
             done = True
         return self.state, reward, done, {}
 
-    def render(self, stepbystep = True, label=None):
+    def render(self, stepbystep=True, label=None):
         if self.i:
             tmin = np.min(self.tint[0: self.i])
             tmax = np.max(self.tint[0: self.i])
