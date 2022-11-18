@@ -3,7 +3,7 @@ import signal
 import sys
 import click
 import numpy as np
-from EnergyGym import getTruth, getFeed, pickName, Building, Vacancy
+from EnergyGym import get_truth, get_feed, pick_name, Building, Vacancy
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import models
 
@@ -85,15 +85,15 @@ def main(agent_type, random_ts, mode, model, stepbystep):
     R = models[model]["R"]
     C = models[model]["C"]
     if mode == "week":
-        text, agenda = getTruth(CIRCUIT, visualCheck=False)
+        text, agenda = get_truth(CIRCUIT, visual_check=False)
         bat = Building(text, agenda, WSIZE, MAX_POWER, 20, 0.9, R=R, C=C)
     if mode == "vacancy":
-        text = getFeed(CIRCUIT["Text"], CIRCUIT["interval"])
+        text = get_feed(CIRCUIT["Text"], CIRCUIT["interval"])
         bat = Vacancy(text, MAX_POWER, 20, 0.9, R=R, C=C)
 
     # demande à l'utilisateur un nom de réseau
     if agent_type != "random":
-        agent_path, saved = pickName()
+        agent_path, saved = pick_name()
         if not saved :
             sys.exit(0)
         agent = load(agent_path)
@@ -127,8 +127,8 @@ def main(agent_type, random_ts, mode, model, stepbystep):
             rewardtot += reward
             if done:
                 if mode == "vacancy":
-                    print(f'récompense à l\'arrivée {reward}')
-                print(f'récompense cumulée {rewardtot}')
+                    print(f'récompense à l\'arrivée {reward:.2f}')
+                print(f'récompense cumulée {rewardtot:.2f}')
                 stats(bat)
                 if not stepbystep:
                     label = None

@@ -152,8 +152,8 @@ def load(agent_path, ctxobj, silent = True):
     optimalpolicy = ctxobj['optimalpolicy']
     max_power = ctxobj['max_power']
 
-    from EnergyGym import getTruth
-    Text, agenda = getTruth(circuit, visualCheck = not silent)
+    from EnergyGym import get_truth
+    Text, agenda = get_truth(circuit, visual_check = not silent)
     print("max_power is {}".format(max_power))
 
     if optimalpolicy == "occupation_permanente":
@@ -223,8 +223,8 @@ def main(ctx, t_ext, model, powerlimit, tc, n, optimalpolicy, hystpath):
     ctx.obj['optimalpolicy'] = optimalpolicy
     ctx.obj['occupation_agent_path'] = None
     if hystpath is not None :
-        from EnergyGym import pickName
-        _, saved = pickName(name=hystpath)
+        from EnergyGym import pick_name
+        _, saved = pick_name(name=hystpath)
         if saved :
             ctx.obj['occupation_agent_path'] = hystpath
     ctx.obj['modelkey'] = model
@@ -259,8 +259,8 @@ def play(ctx, holiday, silent, k):
             circuit["schedule"][i] = [-1,-1]
 
     # demande à l'utilisateur un nom de réseau
-    from EnergyGym import pickName
-    agent_path, saved = pickName()
+    from EnergyGym import pick_name
+    agent_path, saved = pick_name()
 
     if saved == True:
         if not n:

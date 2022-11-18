@@ -13,62 +13,63 @@ circuit = {"Text":1, "dir": "/var/opt/emoncms/phpfina",
            "schedule": schedule, "interval": 3600, "wsize": 1 + 8*24}
 ```
 """
-
-import matplotlib.pylab as plt
-from PyFina import PyFina, getMeta
-from .planning import tsToHuman, biosAgenda
 import os
-
+import sys
 # pour l'autocompletion en ligne de commande
 import readline
 import glob
-def simplePathCompleter(text,state):
+import matplotlib.pylab as plt
+from PyFina import PyFina, getMeta
+from .planning import tsToHuman, biosAgenda
+
+
+def simple_path_completer(text, state):
     """
     tab completer pour les noms de fichiers, chemins....
     """
-    line   = readline.get_line_buffer().split()
+    return list(glob.glob(text + '*'))[state]
 
-    return [x for x in glob.glob(text+'*')][state]
 
-def pickName(name = None, autocomplete = True):
+def pick_name(name=None, autocomplete=True):
     """
     vérifie un chemin ou un nom de fichier fourni en argument ou saisi en autocomplétion par l'utilisateur
     """
     if name is None and autocomplete:
         readline.set_completer_delims('\t')
         readline.parse_and_bind("tab: complete")
-        readline.set_completer(simplePathCompleter)
+        readline.set_completer(simple_path_completer)
         name = input("nom du réseau ?")
         if not name:
             name = "RL.h5"
 
-    savedModel = False
+    saved_model = False
     if os.path.isdir(name):
-        if os.path.isfile("{}/saved_model.pb".format(name)):
-            savedModel = True
+        if os.path.isfile(f'{name}/saved_model.pb'):
+            saved_model = True
     else:
         if ".h5" not in name:
-            name = "{}.h5".format(name)
+            name = f'{name}.h5'
         if os.path.isfile(name):
-            savedModel = True
+            saved_model = True
 
-    return name, savedModel
+    return name, saved_model
 
-def getFeed(feedid, interval, dir="/var/opt/emoncms/phpfina"):
+
+def get_feed(feedid, interval, path="/var/opt/emoncms/phpfina"):
     """
     étant donné un numéro de flux et un pas de discrétisation exprimé en secondes
 
     récupère l'objet PyFina correspondant
     """
-    meta = getMeta(feedid, dir)
-    fullLength = meta["npoints"] * meta["interval"]
+    meta = getMeta(feedid, path)
+    full_length = meta["npoints"] * meta["interval"]
     _tss = meta["start_time"]
-    _tse = meta["start_time"]+fullLength
-    npoints =  fullLength // interval
-    return PyFina(feedid, dir, _tss, interval, npoints)
+    _tse = meta["start_time"] + full_length
+    npoints =  full_length // interval
+    return PyFina(feedid, path, _tss, interval, npoints)
 
 
-def getTruth(circuit, visualCheck):
+def get_truth(circuit, visual_check):
     """
     circuit : dictionnaire des paramètres du circuit
 
@@ -79,46 +80,42 @@ def getTruth(circuit, visualCheck):
     """
 
     feedid = circuit["Text"]
-    dir = circuit["dir"]
+    path = circuit["dir"]
     schedule = circuit["schedule"]
     interval = circuit["interval"]
     wsize = circuit["wsize"]
 
-    meta = getMeta(feedid, dir)
+    meta = getMeta(feedid, path)
     # durée du flux en secondes
-    fullLength = meta["npoints"] * meta["interval"]
-    _tss = meta["start_time"]
-    _tse = meta["start_time"]+fullLength
-    npoints =  fullLength // interval
+    full_length = meta["npoints"] * meta["interval"]
+    tss = meta["start_time"]
+    tse = meta["start_time"] + full_length
+    npoints =  full_length // interval
 
-    if _tse - _tss <= wsize*interval + 4*24*3600 :
+    if tse - tss <= wsize*interval + 4*24*3600 :
         print("Vous n'aurez pas assez de données pour travailler : impossible de poursuivre")
         sys.exit()
 
-    print("| ____|_ ____   _(_)_ __ ___  _ __  _ __ ___   ___ _ __ | |_")
-    print("|  _| | '_ \ \ / / | '__/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __|")
-    print("| |___| | | \ V /| | | | (_) | | | | | | | | |  __/ | | | |_")
-    print("|_____|_| |_|\_/ |_|_|  \___/|_| |_|_| |_| |_|\___|_| |_|\__|")
+    print("ENVIRONNEMENT")
+    print(f'Démarrage : {meta["start_time"]}')
+    print(f'Durée totale en secondes: {full_length}')
+    print(f'Fin: {meta["start_time"]+full_length}')
+    print(f'De {tsToHuman(tss)} à {tsToHuman(tse)}')
+    print(f'Au pas de {interval} secondes, le nombre de points sera de {npoints}')
+    print(f'Pour information, la durée d\'un épisode est de {wsize} intervalles')
 
-    print("Démarrage : {}".format(meta["start_time"]))
-    print("Durée totale en secondes: {}".format(fullLength))
-    print("Fin: {}".format(meta["start_time"]+fullLength))
-    print("De {} à {}".format(tsToHuman(_tss),tsToHuman(_tse)))
-    print("au pas de {} secondes, le nombre de points sera de {}".format(interval,npoints))
-    print("pour information, la durée d'un épisode est de {} intervalles".format(wsize))
+    text = PyFina(feedid, path, tss, interval, npoints)
 
-    Text = PyFina(feedid, dir, _tss, interval, npoints)
+    agenda = biosAgenda(npoints, interval, tss, [], schedule=schedule)
 
-    agenda = biosAgenda(npoints, interval, _tss, [], schedule=schedule)
-
-    if visualCheck:
+    if visual_check:
         ax1 = plt.subplot(211)
         plt.title("vérité terrain")
-        plt.plot(Text, label="Text")
+        plt.plot(text, label="Text")
         plt.legend()
         plt.subplot(212, sharex=ax1)
         plt.plot(agenda, label="agenda")
         plt.legend()
         plt.show()
 
-    return Text, agenda
+    return text, agenda

@@ -79,12 +79,10 @@ class Vacancy(gym.Env):
         self.pos = None
         # compteur de pas dans l'épisode
         self.i = 0
-        # nombre de pas restant à jouer dans l'épisode
-        self._nbsteps = None
         # échelle de temps de l'épisode au format humain
         self._xr = None
         # récompense accumulée au cours de l'épisode
-        self._reward = None
+        self._tot_reward = None
         # tableau numpy des températures intérieures au cours de l'épisode
         # de taille wsize + 1
         self.tint = None
@@ -124,7 +122,7 @@ class Vacancy(gym.Env):
         permet de définir self._xr, self.pos, self._tsvrai
         ces grandeurs sont des constantes de l'épisode
 
-        initialise self.i, self._reward, self.tint, self.action
+        initialise self.i, self._tot_reward, self.tint, self.action
         ces grandeurs sont mises à jour à chaque pas de temps
 
         retourne self.state
@@ -151,7 +149,7 @@ class Vacancy(gym.Env):
         self.tint[self.i] = tint
         tc, nbh = self.update_non_phys_params()
         self.state = np.array([text, tint, tc, nbh], dtype=np.float32)
-        self._reward = 0
+        self._tot_reward = 0
         return self.state
 
     def _render(self, zoneconfort=None, zones_occ=None, stepbystep=True, label=None):
@@ -163,7 +161,7 @@ class Vacancy(gym.Env):
             self._ax3 = plt.subplot(313, sharex=self._ax1)
             if stepbystep :
                 plt.ion()
-        title = f'{self._tsvrai} - score : {round(self._reward,2)}'
+        title = f'{self._tsvrai} - score : {self._tot_reward:.2f}'
         if label is not None :
             title = f'{title}\n{label}'
         self._fig.suptitle(title)
@@ -190,7 +188,7 @@ class Vacancy(gym.Env):
         assert self.state is not None, "Call reset before using step method."
         # reward at state
         reward = self.reward(action)
-        self._reward += reward
+        self._tot_reward += reward
         # Qc at state
         q_c = action * self._max_power
         self.action[self.i] = action
@@ -218,8 +216,7 @@ class Vacancy(gym.Env):
 
         In the vacancy case, tc*occupation is always 0
         """
-        self._nbsteps = self.wsize - 1 if self.i == 0 else self._nbsteps - 1
-        return 0, self._nbsteps * self._interval / 3600
+        return 0, (self.wsize - 1 - self.i) * self._interval / 3600
 
     def reward(self, action):
         """reward"""
@@ -255,9 +252,7 @@ class Vacancy(gym.Env):
     def step(self, action):
         """return state, reward pour previous state, done, _"""
         reward = self._step(action)
-        done = None
-        if self._nbsteps == -1:
-            done = True
+        done = True if self.i == self.wsize else None
         return self.state, reward, done, {}
 
     def render(self, stepbystep=True, label=None):
