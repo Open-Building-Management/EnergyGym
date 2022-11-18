@@ -1,4 +1,4 @@
-"""basic play"""
+"""a basic sandbox to play with Heatgym"""
 import signal
 import sys
 import click
@@ -7,20 +7,20 @@ from EnergyGym import getTruth, getFeed, pickName, Building, Vacancy
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import models
 
-agent_types = ["random", "deterministic", "stochastic"]
-modes = ["vacancy", "week"]
+AGENT_TYPES = ["random", "deterministic", "stochastic"]
+MODES = ["vacancy", "week"]
 
 # pylint: disable=no-value-for-parameter
 
 INTERVAL = 3600
 WSIZE = 1 + 8*24*3600 // INTERVAL
 PATH = "datas"
-schedule = np.array([ [7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1] ])
+SCHEDULE = np.array([ [7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1] ])
 CW = 1162.5 #Wh/m3/K
 # debit de 5m3/h et deltaT entre départ et retour de 15°C
 MAX_POWER = 5 * CW * 15
 hh = 1
-circuit = {"Text":1, "dir": PATH, "schedule": schedule, "interval": INTERVAL, "wsize": WSIZE}
+CIRCUIT = {"Text":1, "dir": PATH, "schedule": SCHEDULE, "interval": INTERVAL, "wsize": WSIZE}
 
 def load(agent_path):
     """load tensorflow model"""
@@ -75,9 +75,9 @@ def _sig_handler(signum, frame):  # pylint: disable=unused-argument
     sys.exit(0)
 
 @click.command()
-@click.option('--agent_type', type=click.Choice(agent_types), prompt='comportement de l\'agent ?')
+@click.option('--agent_type', type=click.Choice(AGENT_TYPES), prompt='comportement de l\'agent ?')
 @click.option('--random_ts', type=bool, default=False, prompt='timestamp de démarrage aléatoire ?')
-@click.option('--mode', type=click.Choice(modes), prompt='type d\'épisode : période de non-occupation, semaine ?')
+@click.option('--mode', type=click.Choice(MODES), prompt='type d\'épisode : période de non-occupation, semaine ?')
 @click.option('--model', type=click.Choice(models), prompt='modèle ?')
 @click.option('--stepbystep', type=bool, default=False, prompt='jouer l\'épisode pas à pas ?')
 def main(agent_type, random_ts, mode, model, stepbystep):
@@ -85,10 +85,10 @@ def main(agent_type, random_ts, mode, model, stepbystep):
     R = models[model]["R"]
     C = models[model]["C"]
     if mode == "week":
-        Text, agenda = getTruth(circuit, visualCheck=False)
+        Text, agenda = getTruth(CIRCUIT, visualCheck=False)
         bat = Building(Text, agenda, WSIZE, MAX_POWER, 20, 0.9, R=R, C=C)
     if mode == "vacancy":
-        Text = getFeed(circuit["Text"], circuit["interval"])
+        Text = getFeed(CIRCUIT["Text"], CIRCUIT["interval"])
         bat = Vacancy(Text, MAX_POWER, 20, 0.9, R=R, C=C)
 
     # demande à l'utilisateur un nom de réseau
@@ -103,7 +103,7 @@ def main(agent_type, random_ts, mode, model, stepbystep):
     signal.signal(signal.SIGINT, _sig_handler)
     signal.signal(signal.SIGTERM, _sig_handler)
     for _ in range(nbepisodes):
-        state = bat.reset(ts = ts)
+        state = bat.reset(ts=ts)
         rewardtot = 0
         while True :
             if stepbystep:
