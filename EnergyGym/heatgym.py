@@ -96,9 +96,7 @@ class Vacancy(gym.Env):
         self._max_power = max_power
         self._tc = tc
         self._k = k
-        self.model = MODELRC
-        if model:
-            self.model = model
+        self.model = model if model else MODELRC
         # la constante de temps du modèle électrique équivalent
         self._tcte = self.model["R"] * self.model["C"]
         self._cte = math.exp(-self._interval/self._tcte)
