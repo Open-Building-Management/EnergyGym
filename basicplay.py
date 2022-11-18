@@ -15,7 +15,7 @@ MODES = ["vacancy", "week"]
 INTERVAL = 3600
 WSIZE = 1 + 8*24*3600 // INTERVAL
 PATH = "datas"
-SCHEDULE = np.array([ [7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1] ])
+SCHEDULE = np.array([[7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1]])
 CW = 1162.5 #Wh/m3/K
 # debit de 5m3/h et deltaT entre départ et retour de 15°C
 MAX_POWER = 5 * CW * 15
@@ -25,7 +25,7 @@ CIRCUIT = {"Text":1, "dir": PATH, "schedule": SCHEDULE, "interval": INTERVAL, "w
 def load(agent_path):
     """load tensorflow model"""
     import tensorflow as tf
-    agent = tf.keras.models.load_model(agent_path, compile = False, custom_objects={'Functional':tf.keras.models.Model})
+    agent = tf.keras.models.load_model(agent_path, compile=False, custom_objects={'Functional':tf.keras.models.Model})
     return agent
 
 def mirror_play(bat):
@@ -40,7 +40,7 @@ def mirror_play(bat):
     """
     limit = bat.tot_eko
     ts = bat._tsvrai
-    bat.reset(ts = ts)
+    bat.reset(ts=ts)
     while True:
         action = 0 if bat.i < limit else 1
         _, _, done, _ = bat.step(action)
@@ -85,11 +85,11 @@ def main(agent_type, random_ts, mode, model, stepbystep):
     R = models[model]["R"]
     C = models[model]["C"]
     if mode == "week":
-        Text, agenda = getTruth(CIRCUIT, visualCheck=False)
-        bat = Building(Text, agenda, WSIZE, MAX_POWER, 20, 0.9, R=R, C=C)
+        text, agenda = getTruth(CIRCUIT, visualCheck=False)
+        bat = Building(text, agenda, WSIZE, MAX_POWER, 20, 0.9, R=R, C=C)
     if mode == "vacancy":
-        Text = getFeed(CIRCUIT["Text"], CIRCUIT["interval"])
-        bat = Vacancy(Text, MAX_POWER, 20, 0.9, R=R, C=C)
+        text = getFeed(CIRCUIT["Text"], CIRCUIT["interval"])
+        bat = Vacancy(text, MAX_POWER, 20, 0.9, R=R, C=C)
 
     # demande à l'utilisateur un nom de réseau
     if agent_type != "random":
@@ -141,6 +141,7 @@ def main(agent_type, random_ts, mode, model, stepbystep):
                 break
 
     bat.close()
+
 
 if __name__ == "__main__":
     main()
