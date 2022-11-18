@@ -63,10 +63,9 @@ def get_feed(feedid, interval, path="/var/opt/emoncms/phpfina"):
     """
     meta = getMeta(feedid, path)
     full_length = meta["npoints"] * meta["interval"]
-    _tss = meta["start_time"]
-    _tse = meta["start_time"] + full_length
+    tss = meta["start_time"]
     npoints =  full_length // interval
-    return PyFina(feedid, path, _tss, interval, npoints)
+    return PyFina(feedid, path, tss, interval, npoints)
 
 
 def get_truth(circuit, visual_check):
@@ -76,7 +75,7 @@ def get_truth(circuit, visual_check):
     récupère la vérité terrain :
     - température extérieure
     - agenda d'occupation
-    - timestamps de début(_tss) et de fin(_tse)
+    - timestamps de début (tss) et de fin (tse)
     """
 
     feedid = circuit["Text"]
