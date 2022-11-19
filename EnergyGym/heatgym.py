@@ -219,7 +219,7 @@ class Vacancy(gym.Env):
         return 0, (self.wsize - 1 - self.i) * self._interval / 3600
 
     def reward(self, action):
-        """reward"""
+        """reward at state action"""
         self.reward_label = "Vote_final_reward_only"
         reward = 0
         tc = self._tc
@@ -234,8 +234,7 @@ class Vacancy(gym.Env):
             if self.state[1] <= tc + 1 and self.state[1] >= tc - 3:
                 reward += self.tot_eko * self._k * self._interval / 3600
         # calcul de l'énergie économisée
-        if not action :
-            self.tot_eko += 1
+        self.tot_eko += action
         return reward
 
     def reset(self, ts=None, tint=None, seed:Optional[int] = None, wsize=None):
@@ -281,7 +280,6 @@ class Building(Vacancy):
         return tc, nbh
 
     def reward(self, action):
-        # reward at (state, action)
         reward = 0
         tc = self._tc
         if self.state[2] != 0:
