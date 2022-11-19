@@ -234,7 +234,8 @@ class Vacancy(gym.Env):
             if self.state[1] <= tc + 1 and self.state[1] >= tc - 3:
                 reward += self.tot_eko * self._k * self._interval / 3600
         # calcul de l'énergie économisée
-        self.tot_eko += action
+        if not action :
+            self.tot_eko += 1
         return reward
 
     def reset(self, ts=None, tint=None, seed:Optional[int] = None, wsize=None):
