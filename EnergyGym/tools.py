@@ -8,7 +8,7 @@ circuit : dictionnaire des paramètres du circuit / zone de bâtiment
 exemple :
 ```
 import numpy as np
-schedule = np.array([ [7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1] ])
+schedule = np.array([[7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1]])
 circuit = {"Text":1, "dir": "/var/opt/emoncms/phpfina",
            "schedule": schedule, "interval": 3600, "wsize": 1 + 8*24}
 ```
