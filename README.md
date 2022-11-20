@@ -39,7 +39,7 @@ possibilité :
 * de produire des statistiques
 
 ```
-./play.py play
+./play.py
 ```
 paramètre |  description
 --|--
@@ -49,7 +49,7 @@ powerlimit | coefficient multiplicatif de la puissance max.
 tc | température de consigne
 n | **nombre d'épisodes à jouer**<br>0 = joue une série d'épisodes prédéfinis, on parle de snapshots
 optimalpolicy | **politique optimale que l'environnement déterministe va jouer**<br>intermittence = succession de périodes d'occupation et de non-occupation<br>occupation_permanente = bâtiment occupé en permanence - cf hopital
-hystpath | nom d'un agent de type hystérésis, à fournir si on veut utiliser un agent pour gérer les périodes de non-occupation et un hystéréris pour gérer les périodes de présence du personnel : `./play.py --hystpath=agents/hys20.h5 play`
+hystpath | nom d'un agent de type hystérésis, à fournir si on veut utiliser un agent pour gérer les périodes de non-occupation et un hystéréris pour gérer les périodes de présence du personnel : `./play.py --hystpath=agents/hys20.h5`
 holiday | nombre de jours fériés à intégrer dans les replay
 silent | True = production de statistiques ou de snapshots<br>False = affiche les épisodes à l'écran
 k | coefficient énergétique, utilisé dans le calcul de la récompense
