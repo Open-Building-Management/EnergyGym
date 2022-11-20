@@ -262,7 +262,7 @@ class Evaluate:
         areward = 0
         mreward = 0
 
-        for i in range(1,wsize):
+        for i in range(1, wsize):
             if self._lnames == ['states', 'dense', 'dense_1']:
                 if self._insize == 5 :
                     state = np.zeros((self._insize))
@@ -275,7 +275,7 @@ class Evaluate:
                     # on permute Tint et Text car les agents jusque début 2021 prenaient Tint en premier....
                     # on pourrait utiliser np.array([ adatas[i-1,2], adatas[i-1,1], adatas[i-1,3], adatas[i-1,4] ])
                     # mais le slicing donne un code plus lisible et plus court :-)
-                    reorder = [2,1,3,4]
+                    reorder = [2, 1, 3, 4]
                     state = adatas[i-1, reorder[0:self._insize]]
             else:
                 state = adatas[i-1, 1:self._insize + 1]
@@ -293,8 +293,8 @@ class Evaluate:
             cumularewards.append(areward)
             cumulmrewards.append(mreward)
             # calcul de la température à l'état suivant
-            adatas[i,2] = self._env.sim(adatas, i)
-        aconso = int(np.sum(adatas[1:,0]) / 1000) * self._env.interval // 3600
+            adatas[i, 2] = self._env.sim(adatas, i)
+        aconso = int(np.sum(adatas[1:, 0]) / 1000) * self._env.interval // 3600
         print(f'récompense agent {areward:.2f} récompense modèle {mreward:.2f}')
 
         # on ne prend pas le premier point de température intérieure car c'est une condition initiale arbitraire
@@ -308,8 +308,8 @@ class Evaluate:
         self._stats[self._steps, :] = line
 
         if not silent or snapshot:
-            tmin = min( np.min(mdatas[:,2]) , np.min(adatas[:,2]) )
-            tmax = max( np.max(mdatas[:,2]) , np.min(adatas[:,2]) )
+            tmin = min(np.min(mdatas[:, 2]), np.min(adatas[:, 2]))
+            tmax = max(np.max(mdatas[:, 2]), np.min(adatas[:, 2]))
             tc = self._env.tc
             hh = self._env.hh
             tsvrai = self._env.tsvrai
@@ -333,19 +333,19 @@ class Evaluate:
             for occ in zones_occ:
                 ax1.add_patch(occ)
             plt.ylabel("Temp. intérieure °C")
-            plt.plot(xr, mdatas[:,2], color="orange", label="TintMod")
-            plt.plot(xr, adatas[:,2], color="black", label="TintAgent")
+            plt.plot(xr, mdatas[:, 2], color="orange", label="TintMod")
+            plt.plot(xr, adatas[:, 2], color="black", label="TintAgent")
             plt.legend(loc='upper left')
 
             ax1.twinx()
             plt.ylabel("Temp. extérieure °C")
-            plt.plot(xr, mdatas[:,1], color="blue", label="Text")
+            plt.plot(xr, mdatas[:, 1], color="blue", label="Text")
             plt.legend(loc='upper right')
 
             nbg+=1
             ax3 = plt.subplot(nbg, sharex=ax1)
             plt.ylabel("Conso W agent")
-            plt.plot(xr, adatas[:,0], color="black", label="consoAgent")
+            plt.plot(xr, adatas[:, 0], color="black", label="consoAgent")
             plt.legend(loc='upper left')
 
             ax4 = ax3.twinx()
@@ -361,7 +361,7 @@ class Evaluate:
             nbg+=1
             ax5 = plt.subplot(nbg, sharex=ax1)
             plt.ylabel("Conso W modèle")
-            plt.plot(xr, mdatas[:,0], color="orange", label="consoMod")
+            plt.plot(xr, mdatas[:, 0], color="orange", label="consoMod")
             plt.legend(loc='upper left')
 
             ax6 = ax5.twinx()
@@ -378,11 +378,11 @@ class Evaluate:
             nbg+=1
             ax7 = plt.subplot(nbg, sharex=ax1)
             plt.ylabel("°C")
-            plt.plot(xr, mdatas[:,3], label="consigne")
+            plt.plot(xr, mdatas[:, 3], label="consigne")
             plt.legend(loc='upper left')
             ax7.twinx()
             plt.ylabel("nb steps > cgt occ.")
-            plt.plot(xr, mdatas[:,4],'o', markersize=1, color="red")
+            plt.plot(xr, mdatas[:, 4],'o', markersize=1, color="red")
 
             if not snapshot:
                 plt.show()
