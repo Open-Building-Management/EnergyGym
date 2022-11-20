@@ -1,42 +1,40 @@
 #!/usr/bin/env python3
-"""
-joue des épisodes / produit des stats
-"""
-
-from energy_gym import Environnement, Evaluate
+"""joue des épisodes et produit des stats"""
 import os
+import random
+from collections import defaultdict
+import numpy as np
 import matplotlib.pyplot as plt
 import click
-
-# le circuit
-interval = 1800
-# nombre d'intervalles sur lequel la simulation sera menée
-wsize = 1 + 8*24*3600//interval
-dir = "datas"
-import numpy as np
-schedule = np.array([ [7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1] ])
-Cw = 1162.5 #Wh/m3/K
-max_power = 5 * Cw * 15
-
-circuit = {"Text":1, "dir": dir,
-           "schedule": schedule, "interval": interval, "wsize": wsize}
-
+from energy_gym import Environnement, Evaluate, get_truth, pick_name
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
 
+# le circuit
+INTERVAL = 1800
+# nombre d'intervalles sur lequel la simulation sera menée
+WSIZE = 1 + 8*24*3600//INTERVAL
+PATH = "datas"
+
+SCHEDULE = np.array([[7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1]])
+CW = 1162.5 #Wh/m3/K
+MAX_POWER = 5 * CW * 15
+
+circuit = {"Text":1, "dir": PATH,
+           "schedule": SCHEDULE, "interval": INTERVAL, "wsize": WSIZE}
+
 hh = 1
-optimalPolicies = ["intermittence", "occupation_permanente"]
+OPTIMAL_POLICIES = ["intermittence", "occupation_permanente"]
 # série d'épisodes dont on veut avoir des replays
 # les 3 premiers : froid
 # les 3 suivants : très froids
 # le dernier : mi-saison
-cold = [1577259140, 1605781940, 1608057140, 1610019140, 1612513940, 1611984740, 1633350740]
+COLD = [1577259140, 1605781940, 1608057140, 1610019140, 1612513940, 1611984740, 1633350740]
+
 
 class EnvHyst(Environnement):
+    """politique optimale de type hystérésis avec un modèle déterministe"""
     def play(self, datas):
-        """
-        politique optimale de type hysteresys avec un modèle déterministe
-        """
         # doit-on mettre en route le chauffage à l'étape 0 ?
         action = datas[0,2] <= self.tc
         datas[0,0] = action * self.max_power
@@ -55,17 +53,14 @@ class EnvHyst(Environnement):
 
         return datas
 
-class EnvHystNocc(Environnement):
-    def play(self, datas):
-        """
-        politique optimale en intermittence d'occupation avec un modèle déterministe
 
-        les régulateurs industriels essayent de tendre vers cette politique optimale, mais les réglages sont complexes
-        """
+class EnvHystNocc(Environnement):
+    """politique optimale en intermittence d'occupation avec un modèle déterministe"""
+    def play(self, datas):
         # doit-on mettre en route le chauffage à l'étape 0 ?
         if datas[0,3] == 0:
-            Tint_sim = self.sim2target(datas,0)
-            action = Tint_sim[-1] <= self.tc
+            tint_sim = self.sim2target(datas,0)
+            action = tint_sim[-1] <= self.tc
         else :
             action = datas[0,2] <= self.tc
         datas[0,0] = action * self.max_power
@@ -77,8 +72,8 @@ class EnvHystNocc(Environnement):
             # doit-on mettre en route le chauffage à l'étape i ?
             if datas[i,3] == 0 :
                 # pas d'occupation - calcul à la cible
-                Tint_sim = self.sim2target(datas, i)
-                action = Tint_sim[-1] <= self.tc
+                tint_sim = self.sim2target(datas, i)
+                action = tint_sim[-1] <= self.tc
                 datas[i,0] = action * self.max_power
             else:
                 # en occupation
@@ -92,147 +87,145 @@ class EnvHystNocc(Environnement):
 
         return datas
 
+
 class EvalHyst(Evaluate):
+    """récompense hystérésis"""
     def reward(self, datas, i):
-        p = self._policy
-        self._rewards[p]["confort"][i] = self._rewards[p]["confort"][i-1]
+        policy = self._policy
+        self._rewards[policy]["confort"][i] = self._rewards[policy]["confort"][i-1]
         tc = self._env.tc
         reward = - abs(datas[i,2] - tc) * self._env.interval / 3600
-        self._rewards[p]["confort"][i] += reward
+        self._rewards[policy]["confort"][i] += reward
         return reward
 
+
 class EvalVote(Evaluate):
+    """récompense pour une occupation intermittente"""
     def reward(self, datas, i):
-        p = self._policy
-        reward_architecture = ["confort", "vote", "energy", "gaspi"]
+        policy = self._policy
+        reward_types = ["confort", "vote", "energy", "gaspi"]
         reward = {}
-        for r in reward_architecture:
-            self._rewards[p][r][i] = self._rewards[p][r][i-1]
-            reward[r] = 0
+        for rewtyp in reward_types:
+            self._rewards[policy][rewtyp][i] = self._rewards[policy][rewtyp][i-1]
+            reward[rewtyp] = 0
         tc = self._env.tc
 
-        if datas[i,3] != 0:
+        if datas[i, 3] != 0:
             #tc = datas[i,3]
-            l0 = tc - 5 * self._env.hh
-            l1 = tc - 3 * self._env.hh
-            l2 = tc - self._env.hh
-            if abs(datas[i,2] - tc) > self._env.hh:
-                reward["confort"] = - abs( datas[i,2] - tc) * self._env.interval / 3600
-            if datas[i-1,3] == 0:
-                if datas[i,2] < l0:
+            l_0 = tc - 5 * self._env.hh
+            l_1 = tc - 3 * self._env.hh
+            l_2 = tc - self._env.hh
+            if abs(datas[i, 2] - tc) > self._env.hh:
+                reward["confort"] = - abs(datas[i, 2] - tc) * self._env.interval / 3600
+            if datas[i-1, 3] == 0:
+                if datas[i, 2] < l_0:
                     reward["vote"] -= 30
-                if datas[i,2] < l1:
+                if datas[i, 2] < l_1:
                     reward["vote"] -= 30
-                if datas[i,2] < l2:
+                if datas[i, 2] < l_2:
                     reward["vote"] -= 20
         else:
-            if datas[i,0] :
+            if datas[i, 0] :
                 reward["energy"] = - self._k * self._env.interval / 3600
                 # pénalite pas adaptée si le bâtiment est tellement déperditif et son système de chauffage si sous_dimensionné
                 # qu'il lui faut parfois lorsqu'il fait très froid chauffer au dessus de la consigne hors occupation
                 # pour pouvoir être sur d'avoir la consigne à l'ouverture
                 reward["gaspi"] = - max(0, datas[i,2] - tc) * self._env.interval / 3600
 
-        for r in reward_architecture:
-            self._rewards[p][r][i] += reward[r]
+        for rewtyp in reward_types:
+            self._rewards[policy][rewtyp][i] += reward[rewtyp]
 
         result = sum(reward.values())
         return result
 
 def load_agent(agent_path):
+    """load tensorflow network"""
     import tensorflow as tf
     # custom_objects est nécessaire pour charger certains réseaux entrainés sur le cloud, via les github actions
     agent = tf.keras.models.load_model(agent_path, compile = False, custom_objects={'Functional':tf.keras.models.Model})
     return agent
 
 def load(agent_path, ctxobj, silent = True):
+    """load tensorflow network and creates environment"""
     agent = load_agent(agent_path)
     tc = ctxobj['tc']
     model = ctxobj['model']
     optimalpolicy = ctxobj['optimalpolicy']
     max_power = ctxobj['max_power']
 
-    from energy_gym import get_truth
-    Text, agenda = get_truth(circuit, visual_check = not silent)
-    print("max_power is {}".format(max_power))
+    text, agenda = get_truth(circuit, visual_check = not silent)
+    print(f'max_power is {max_power}')
 
     if optimalpolicy == "occupation_permanente":
-        env = EnvHyst(Text, agenda, wsize, max_power, tc, hh, **model)
+        env = EnvHyst(text, agenda, WSIZE, max_power, tc, hh, **model)
     elif optimalpolicy == "intermittence":
-        env = EnvHystNocc(Text, agenda, wsize, max_power, tc, hh, **model)
+        env = EnvHystNocc(text, agenda, WSIZE, max_power, tc, hh, **model)
 
     return agent, env
 
-def snapshots(storage, agent_name, agent_path, ctxobj):
+def snapshots(storage, agent_name, ctxobj, sandbox):
     """
-    crée des snapshots pour chacun des épisodes présents dans la variable cold
+    crée des snapshots pour chacun des épisodes présents dans la variable COLD
 
     storage : répertoire dans lequel les snapshots seront enregistrés, du type agent_folder/snapshots
     """
-    tc = ctxobj['tc']
     optimalpolicy = ctxobj['optimalpolicy']
     # modelkey est la clé permettant d'accéder à la configuration du modèle utilisé pour décrire l'environnement
     modelkey = ctxobj['modelkey']
-    sub = "{}/{}".format(storage,agent_name.replace(".h5",""))
+    sub = f'{storage}/{agent_name.replace(".h5","")}'
     if not os.path.isdir(sub):
         os.mkdir(sub)
 
-    agent, env = load(agent_path, ctxobj)
-    sandbox = Training(agent_path, env, agent, N=1)
-    for ts in cold:
+    for ts in COLD:
         sandbox.play(silent=True, ts=ts, snapshot=True)
-        plt.savefig("{}/{}_{}_{}".format(sub,ts,modelkey,optimalpolicy))
+        plt.savefig(f'{sub}/{ts}_{modelkey}_{optimalpolicy}')
         plt.close()
 
     # reconstruit le fichier markdown en inspectant le répertoire snapshot
-    f = open("{}/README.md".format(sub), "w")
-    f.write("# {}\n".format(agent_name.replace(".h5","")))
-    all = os.listdir(sub)
-    all.sort()
-    family = {}
-    for policy in optimalPolicies :
-        family[policy] = []
-    for a in all:
-        if a.endswith(".png"):
-            root = True
-            for policy in optimalPolicies :
-                if a.replace(".png","").endswith(policy) :
-                    family[policy].append("![]({})".format(a))
-                    root = False
-            if root:
-                f.write("![]({})\n".format(a))
-    for policy in family:
-        if family[policy] :
-            f.write("\n# {}\n".format(policy))
-            f.write("\n".join(family[policy]))
-    f.close()
+    with open(f'{sub}/README.md', "w", encoding="utf-8") as readme:
+        readme.write(f'# {agent_name.replace(".h5","")}\n')
+        all_files = os.listdir(sub)
+        all_files.sort()
+        family = defaultdict(lambda:[])
+        for file in all_files:
+            if file.endswith(".png"):
+                root = True
+                for policy in OPTIMAL_POLICIES :
+                    if file.replace(".png","").endswith(policy) :
+                        family[policy].append(f'![]({file})')
+                        root = False
+                if root:
+                    readme.write(f'![]({file})\n')
+        for key, value in family.items():
+            readme.write(f'\n# {key}\n')
+            readme.write("\n".join(value))
+
 
 @click.group()
-@click.option('--t_ext', type=int, default=1, prompt='numéro du flux de température extérieure ?')
+@click.option('--text', type=int, default=1, prompt='numéro du flux de température extérieure ?')
 @click.option('--model', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--powerlimit', type=float, default=1, prompt='coefficient de réduction de la puissance max ?')
 @click.option('--tc', type=int, default=20, prompt='température de consigne en °C')
-@click.option('--n', type=int, prompt='nombre d\'épisodes à jouer, 0 = mode snapshot : le système joue des épisodes prédéfinis')
-@click.option('--optimalpolicy', type=click.Choice(optimalPolicies), prompt='politique du modèle ?')
+@click.option('--nbepisodes', type=int, prompt='nombre d\'épisodes à jouer, 0 = mode snapshot : le système joue des épisodes prédéfinis')
+@click.option('--optimalpolicy', type=click.Choice(OPTIMAL_POLICIES), prompt='politique du modèle ?')
 @click.option('--hystpath', type=str, default=None)
 @click.pass_context
-def main(ctx, t_ext, model, powerlimit, tc, n, optimalpolicy, hystpath):
+def main(ctx, text, model, powerlimit, tc, nbepisodes, optimalpolicy, hystpath):
     ctx.ensure_object(dict)
     ctx.obj['tc'] = tc
-    ctx.obj['n'] = n
+    ctx.obj['nbepisodes'] = nbepisodes
     ctx.obj['optimalpolicy'] = optimalpolicy
     ctx.obj['occupation_agent_path'] = None
     if hystpath is not None :
-        from energy_gym import pick_name
         _, saved = pick_name(name=hystpath)
         if saved :
             ctx.obj['occupation_agent_path'] = hystpath
     ctx.obj['modelkey'] = model
     ctx.obj['model'] = MODELS[model]
-    ctx.obj['max_power'] = powerlimit * max_power
+    ctx.obj['max_power'] = powerlimit * MAX_POWER
 
     global circuit
-    circuit["Text"] = t_ext
+    circuit["Text"] = text
 
 @main.command()
 @click.option('--holiday', type=int, default=0, prompt='nombre de jours fériés à intégrer dans les replay')
@@ -242,14 +235,13 @@ def main(ctx, t_ext, model, powerlimit, tc, n, optimalpolicy, hystpath):
 def play(ctx, holiday, silent, k):
     print(ctx.obj)
     tc = ctx.obj['tc']
-    n = ctx.obj['n']
+    nbepisodes = ctx.obj['nbepisodes']
     optimalpolicy = ctx.obj['optimalpolicy']
     occupation_agent_path = ctx.obj['occupation_agent_path']
-    print(holiday, silent, tc, n, optimalpolicy, k)
+    print(holiday, silent, tc, nbepisodes, optimalpolicy, k)
     input("press")
     if holiday:
-        import random
-        days = [0,4] if holiday == 1 else [0,1,2,3,4]
+        days = [0, 4] if holiday == 1 else [0, 1, 2, 3, 4]
         holidays = []
         for i in range(holiday):
             tirage = random.choice(days)
@@ -259,26 +251,28 @@ def play(ctx, holiday, silent, k):
             circuit["schedule"][i] = [-1,-1]
 
     # demande à l'utilisateur un nom de réseau
-    from energy_gym import pick_name
     agent_path, saved = pick_name()
 
     if saved == True:
-        if not n:
+        agent, env = load(agent_path, ctx.obj, silent=silent)
+        args = {}
+        if nbepisodes:
+            args["N"] = nbepisodes
+        args["k"] = k
+        if optimalpolicy == "occupation_permanente":
+            sandbox = EvalHyst(agent_path, env, agent, **args)
+        elif optimalpolicy == "intermittence":
+            sandbox = EvalVote(agent_path, env, agent, **args)
+        if occupation_agent_path is not None:
+            sandbox.set_occupancy_agent(load_agent(occupation_agent_path))
+        if not nbepisodes:
             agent_name = agent_path[agent_path.rfind("/")+1:]
             agent_folder = agent_path[:agent_path.rfind("/")]
-            storage = "{}/snapshots".format(agent_folder)
+            storage = f'{agent_folder}/snapshots'
             if not os.path.isdir(storage):
                 os.mkdir(storage)
-            snapshots(storage, agent_name, agent_path, ctx.obj)
+            snapshots(storage, agent_name, ctx.obj, sandbox)
         else:
-            agent, env = load(agent_path, ctx.obj, silent=silent)
-            if optimalpolicy == "occupation_permanente":
-                sandbox = EvalHyst(agent_path, env, agent, N=n, k=k)
-            elif optimalpolicy == "intermittence":
-                sandbox = EvalVote(agent_path, env, agent, N=n, k=k)
-                if occupation_agent_path is not None:
-                    sandbox.set_occupancy_agent(load_agent(occupation_agent_path))
-
             sandbox.play(silent=False, ts=1641828600) # 10 janvier 2022
 
             #sandbox.play(silent=False, ts=1576559067) # 2019-12-17 06:04:27:+0100

@@ -178,8 +178,20 @@ class Evaluate:
     """
     name : nom qui sera utilisé par la fonction close pour sauver le réseau et les graphiques
 
-    name est compris par close comme un chemin et les graphes sont tjrs enregistrés dans le répertoire contenant l'agent
+    name est compris par close comme un chemin
+    et les graphes sont tjrs enregistrés dans le répertoire contenant l'agent
 
+    _rewards sert à enregistrer le détail de la structure de la récompense sur un épisode
+    exemple : partie confort, partie vote, partie energy
+    à mettre à jour dans la classe fille dans la méthode reward()
+
+    on parle de luxe si la température intérieure est supérieure à tc+hh
+    on parle d'inconfort si la température intérieure est inférieure à tc-hh
+    les colonnes de la matrice _stats sont les suivantes :
+    - 0 : timestamp de l'épisode,
+    - 1 à 4 : agent température intérieure moyenne, nb pts luxe, nb pts inconfort, consommation
+    - 5 à 8 : modèle idem
+    - 9 à 10 : récompense agent puis modèle
     """
     def __init__(self, name, env, agent, **params):
         self._n = params.get("N", MAX_EPISODES)
@@ -193,28 +205,11 @@ class Evaluate:
         print(f'métrique de l\'agent online {agent.metrics_names}')
         self._lnames, self._insize, self._outsize = get_config(agent)
         self._exit = False
-        # sert uniquement pour évaluer la durée de l'entrainement
-        self._ts = int(time.time())
         # numéro de l'épisode
         self._steps = 0
         self._policy = "agent"
-        """
-        _rewards sert à enregistrer le détail de la structure de la récompense sur un épisode
-        exemple : partie confort, partie vote, partie energy
-        à mettre à jour dans la méthode reward() qui est à définir dans la classe fille
-        """
-
         ini = defaultdict(lambda:np.zeros(self._env.wsize))
         self._rewards = {"agent":ini, "model":copy.deepcopy(ini)}
-        """
-        on parle de luxe si la température intérieure est supérieure à tc+hh
-        on parle d'inconfort si la température intérieure est inférieure à tc-hh
-        les colonnes de la matrice stats sont les suivantes :
-        - 0 : timestamp de l'épisode,
-        - 1 à 4 : agent température intérieure moyenne, nb pts luxe, nb pts inconfort, consommation
-        - 5 à 8 : modèle idem
-        - 9 à 10 : récompense agent puis modèle
-        """
         self._stats = np.zeros((self._n, 11))
         self._multi_agent = False
 

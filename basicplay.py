@@ -22,7 +22,7 @@ MAX_POWER = 5 * CW * 15
 CIRCUIT = {"Text":1, "dir": PATH, "schedule": SCHEDULE, "interval": INTERVAL, "wsize": WSIZE}
 
 def load(agent_path):
-    """load tensorflow model"""
+    """load tensorflow network"""
     import tensorflow as tf
     agent = tf.keras.models.load_model(agent_path, compile=False, custom_objects={'Functional':tf.keras.models.Model})
     return agent

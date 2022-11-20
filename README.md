@@ -43,7 +43,7 @@ possibilité :
 ```
 paramètre |  description
 --|--
-t_ext | numéro du flux de température extérieure = 1
+text | numéro du flux de température extérieure = 1
 model | le nom d'une des configurations de [conf.py](conf.py)
 powerlimit | coefficient multiplicatif de la puissance max.
 tc | température de consigne
