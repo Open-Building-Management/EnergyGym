@@ -9,6 +9,7 @@ import click
 from energy_gym import Environnement, Evaluate, get_truth, pick_name
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
+from basicplay import load
 
 # le circuit
 INTERVAL = 1800
@@ -20,10 +21,7 @@ SCHEDULE = np.array([[7, 17], [7, 17], [7, 17], [7, 17], [7, 17], [-1, -1], [-1,
 CW = 1162.5 #Wh/m3/K
 MAX_POWER = 5 * CW * 15
 
-circuit = {"Text":1, "dir": PATH,
-           "schedule": SCHEDULE, "interval": INTERVAL, "wsize": WSIZE}
-
-hh = 1
+HH = 1
 OPTIMAL_POLICIES = ["intermittence", "occupation_permanente"]
 # série d'épisodes dont on veut avoir des replays
 # les 3 premiers : froid
@@ -138,47 +136,23 @@ class EvalVote(Evaluate):
         result = sum(reward.values())
         return result
 
-def load_agent(agent_path):
-    """load tensorflow network"""
-    import tensorflow as tf
-    # custom_objects est nécessaire pour charger certains réseaux entrainés sur le cloud, via les github actions
-    agent = tf.keras.models.load_model(agent_path, compile=False, custom_objects={'Functional':tf.keras.models.Model})
-    return agent
 
-def load(agent_path, ctxobj, silent=True):
-    """load tensorflow network and creates environment"""
-    agent = load_agent(agent_path)
-    tc = ctxobj['tc']
-    model = ctxobj['model']
-    optimalpolicy = ctxobj['optimalpolicy']
-    max_power = ctxobj['max_power']
-
-    text, agenda = get_truth(circuit, visual_check=not silent)
-    print(f'max_power is {max_power}')
-
-    if optimalpolicy == "occupation_permanente":
-        env = EnvHyst(text, agenda, WSIZE, max_power, tc, hh, **model)
-    elif optimalpolicy == "intermittence":
-        env = EnvHystNocc(text, agenda, WSIZE, max_power, tc, hh, **model)
-
-    return agent, env
-
-def snapshots(storage, agent_name, ctxobj, sandbox):
+def snapshots(storage, agent_name, sandbox, **kwargs):
     """
     crée des snapshots pour chacun des épisodes présents dans la variable COLD
 
     storage : répertoire dans lequel les snapshots seront enregistrés, du type agent_folder/snapshots
     """
-    optimalpolicy = ctxobj['optimalpolicy']
-    # modelkey est la clé permettant d'accéder à la configuration du modèle utilisé pour décrire l'environnement
-    modelkey = ctxobj['modelkey']
     sub = f'{storage}/{agent_name.replace(".h5","")}'
     if not os.path.isdir(sub):
         os.mkdir(sub)
 
     for ts in COLD:
         sandbox.play(silent=True, ts=ts, snapshot=True)
-        plt.savefig(f'{sub}/{ts}_{modelkey}_{optimalpolicy}')
+        name = f'{sub}/{ts}'
+        if "suffix" in kwargs:
+            name = f'{name}_{kwargs["suffix"]}'
+        plt.savefig(name)
         plt.close()
 
     # reconstruit le fichier markdown en inspectant le répertoire snapshot
@@ -201,47 +175,39 @@ def snapshots(storage, agent_name, ctxobj, sandbox):
             readme.write("\n".join(value))
 
 
-@click.group()
-@click.option('--text', type=int, default=1, prompt='numéro du flux de température extérieure ?')
-@click.option('--model', type=click.Choice(MODELS), prompt='modèle ?')
+@click.command()
+@click.option('--nbtext', type=int, default=1, prompt='numéro du flux de température extérieure ?')
+@click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--powerlimit', type=float, default=1, prompt='coefficient de réduction de la puissance max ?')
 @click.option('--tc', type=int, default=20, prompt='température de consigne en °C')
 @click.option('--nbepisodes', type=int, prompt='nombre d\'épisodes à jouer, 0 = mode snapshot : le système joue des épisodes prédéfinis')
 @click.option('--optimalpolicy', type=click.Choice(OPTIMAL_POLICIES), prompt='politique du modèle ?')
-@click.option('--hystpath', type=str, default=None)
-@click.pass_context
-def main(ctx, text, model, powerlimit, tc, nbepisodes, optimalpolicy, hystpath):
-    ctx.ensure_object(dict)
-    ctx.obj['tc'] = tc
-    ctx.obj['nbepisodes'] = nbepisodes
-    ctx.obj['optimalpolicy'] = optimalpolicy
-    ctx.obj['occupation_agent_path'] = None
-    if hystpath is not None :
-        _, saved = pick_name(name=hystpath)
-        if saved :
-            ctx.obj['occupation_agent_path'] = hystpath
-    ctx.obj['modelkey'] = model
-    ctx.obj['model'] = MODELS[model]
-    ctx.obj['max_power'] = powerlimit * MAX_POWER
-
-    #suffix = f'{modelkey}_{optimalpolicy}'
-
-    global circuit
-    circuit["Text"] = text
-
-@main.command()
 @click.option('--holiday', type=int, default=0, prompt='nombre de jours fériés à intégrer dans les replay')
 @click.option('--silent', type=bool, prompt='silent mode = sans montrer les replays des épisodes ?')
 @click.option('--k', type=float, default=0.9, prompt='paramètre énergie')
-@click.pass_context
-def play(ctx, holiday, silent, k):
-    print(ctx.obj)
-    tc = ctx.obj['tc']
-    nbepisodes = ctx.obj['nbepisodes']
-    optimalpolicy = ctx.obj['optimalpolicy']
-    occupation_agent_path = ctx.obj['occupation_agent_path']
-    print(holiday, silent, tc, nbepisodes, optimalpolicy, k)
-    input("press")
+@click.option('--hystpath', type=str, default=None)
+def main(
+    nbtext, modelkey, powerlimit,
+    tc, nbepisodes, optimalpolicy,
+    holiday, silent, k,
+    hystpath
+):
+    """main command"""
+    occupation_agent_path = None
+    if hystpath is not None :
+        _, saved = pick_name(name=hystpath)
+        if saved :
+            occupation_agent_path = hystpath
+
+    model = MODELS[modelkey]
+
+    max_power = powerlimit * MAX_POWER
+    print(f'max_power is {max_power}')
+
+    suffix = f'{modelkey}_{optimalpolicy}'
+
+    circuit = {"Text":1, "dir": PATH, "schedule": SCHEDULE, "interval": INTERVAL, "wsize": WSIZE}
+    circuit["Text"] = nbtext
     if holiday:
         days = [0, 4] if holiday == 1 else [0, 1, 2, 3, 4]
         holidays = []
@@ -256,24 +222,27 @@ def play(ctx, holiday, silent, k):
     agent_path, saved = pick_name()
 
     if saved:
-        agent, env = load(agent_path, ctx.obj, silent=silent)
+        agent = load(agent_path)
+        text, agenda = get_truth(circuit, visual_check=not silent)
         args = {}
         if nbepisodes:
             args["N"] = nbepisodes
         args["k"] = k
         if optimalpolicy == "occupation_permanente":
+            env = EnvHyst(text, agenda, WSIZE, max_power, tc, HH, **model)
             sandbox = EvalHyst(agent_path, env, agent, **args)
         elif optimalpolicy == "intermittence":
+            env = EnvHystNocc(text, agenda, WSIZE, max_power, tc, HH, **model)
             sandbox = EvalVote(agent_path, env, agent, **args)
         if occupation_agent_path is not None:
-            sandbox.set_occupancy_agent(load_agent(occupation_agent_path))
+            sandbox.set_occupancy_agent(load(occupation_agent_path))
         if not nbepisodes:
             agent_name = agent_path[agent_path.rfind("/")+1:]
             agent_folder = agent_path[:agent_path.rfind("/")]
             storage = f'{agent_folder}/snapshots'
             if not os.path.isdir(storage):
                 os.mkdir(storage)
-            snapshots(storage, agent_name, ctx.obj, sandbox)
+            snapshots(storage, agent_name, sandbox, suffix=suffix)
         else:
             sandbox.play(silent=False, ts=1641828600) # 10 janvier 2022
 
@@ -283,7 +252,6 @@ def play(ctx, holiday, silent, k):
             #sandbox.play(silent=False, ts=1579254245) # 2020-01-17 10:44:05:+0100
             #sandbox.play(silent=False, ts=1586850023) # 2020-04-14 09:40:23:+0200
             #sandbox.play(silent=False, ts=1589644200) # 2020-05-16 17:50:00:+0200
-
             #adatas = sandbox.play(silent=silent, ts=1603499540) # 2020-10-24 02:32:20:+0200
             #print(adatas)
             #sandbox.play(silent=False, ts=1606343540) # 2020-11-25 23:32:20:+0100
@@ -295,4 +263,4 @@ def play(ctx, holiday, silent, k):
             sandbox.close(suffix=optimalpolicy)
 
 if __name__ == "__main__":
-    main()
+    main()  # pylint: disable=no-value-for-parameter
