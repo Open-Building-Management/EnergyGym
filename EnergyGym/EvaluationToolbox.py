@@ -14,6 +14,7 @@ from .heatgym import covering, MODELRC
 
 # nombre d'épisodes que l'on souhaite jouer
 MAX_EPISODES = 900
+PRIMO_AGENT_LAYERS = ['states', 'dense', 'dense_1']
 
 
 def get_config(agent):
@@ -28,7 +29,7 @@ def get_config(agent):
     for layer in agent.layers:
         lnames.append(layer.name)
     print(lnames)
-    if lnames == ['states', 'dense', 'dense_1']:
+    if lnames == PRIMO_AGENT_LAYERS:
         print("agent issu des expérimentations primitives")
     outlayer = agent.get_layer(name="output") if "output" in lnames else agent.get_layer(name=lnames[-1])
     inlayer = agent.get_layer(name="states") if "states" in lnames else agent.get_layer(name=lnames[0])
@@ -222,7 +223,7 @@ class Evaluate:
         self._multi_agent = True
         self._occupancy_agent = agent
 
-    def _sig_handler(self, signum, frame):
+    def _sig_handler(self, signum, frame):  # pylint: disable=unused-argument
         """gracefull shutdown"""
         print(f'signal de fermeture reçu {signum}')
         self._exit = True
@@ -246,14 +247,15 @@ class Evaluate:
 
         ts : int - timestamp que l'on veut rejouer, si None, un tirage alétaoire est réalisé
 
-        snapshot : boolean - si True, l'image n'est pas affichée et un fichier tiers utilisant la classe peut l'enregistrer
+        snapshot : boolean - si True, l'image n'est pas affichée
+        et un fichier tiers utilisant la classe peut l'enregistrer
 
         tint : condition initiale de température intérieure
         """
         self._env.set_start(ts)
         adatas = self._env.build_env(tint=tint)
         wsize = adatas.shape[0]
-
+        # on fait jouer le modèle et on calcule sa consommation énergétique
         mdatas = self._env.play(copy.deepcopy(adatas))
         mconso = int(np.sum(mdatas[1:, 0]) / 1000) * self._env.interval // 3600
         self._rewards["agent"].clear()
@@ -264,7 +266,7 @@ class Evaluate:
         mreward = 0
 
         for i in range(1, wsize):
-            if self._lnames == ['states', 'dense', 'dense_1']:
+            if self._lnames == PRIMO_AGENT_LAYERS:
                 if self._insize == 5 :
                     state = np.zeros((self._insize))
                     state[0] = adatas[i-1, 2]
@@ -309,17 +311,20 @@ class Evaluate:
         self._stats[self._steps, :] = line
 
         if not silent or snapshot:
-            tmin = min(np.min(mdatas[:, 2]), np.min(adatas[:, 2]))
-            tmax = max(np.max(mdatas[:, 2]), np.min(adatas[:, 2]))
-            tc = self._env.tc
-            hh = self._env.hh
-            tsvrai = self._env.tsvrai
-            pos = self._env.pos
-            interval = self._env.interval
-            occupation = self._env.agenda[pos:pos + wsize + 4*24*3600 // interval]
-            xr, zone_confort, zones_occ = covering(tmin, tmax, tc, hh, tsvrai, wsize, interval, occupation)
+            covargs = []
+            covargs.append(min(np.min(mdatas[:, 2]), np.min(adatas[:, 2])))
+            covargs.append(max(np.max(mdatas[:, 2]), np.min(adatas[:, 2])))
+            covargs.append(self._env.tc)
+            covargs.append(self._env.hh)
+            covargs.append(self._env.tsvrai)
+            covargs.append(wsize)
+            covargs.append(self._env.interval)
+            covargs.append(self._env.agenda[self._env.pos:self._env.pos + wsize + 4*24*3600 // self._env.interval])
+            xr, zone_confort, zones_occ = covering(*covargs)  # pylint: disable=no-value-for-parameter
 
-            title = f'épisode {self._steps} - {tsvrai} {tsToHuman(tsvrai)} {self._modlabel}'
+            title = f'épisode {self._steps}'
+            title = f'{title} - {self._env.tsvrai} {tsToHuman(self._env.tsvrai)}'
+            title = f'{title} {self._modlabel}'
             title = f'{title}\n conso Modèle {mconso} Agent {aconso}'
             title = f'{title}\n Tocc moyenne modèle : {mtocc_moy} agent : {atocc_moy}'
             title = f'{title}\n nb heures inconfort modèle : {mnbinc} agent : {anbinc}'
@@ -437,9 +442,9 @@ class Evaluate:
             plt.legend()
 
             plt.subplot(412, sharex=ax1)
-            tmax = self._env.tc + self._env.hh
-            plt.plot(self._stats[:, 2], color="blue", label=f'nombre heures > {tmax}°C agent')
-            plt.plot(self._stats[:, 6], color="red", label=f'nombre heures > {tmax}°C modèle')
+            label = f'nombre heures > {self._env.tc + self._env.hh}°C'
+            plt.plot(self._stats[:, 2], color="blue", label=f'{label} agent')
+            plt.plot(self._stats[:, 6], color="red", label=f'{label} modèle')
             plt.legend()
 
             plt.subplot(413, sharex=ax1)
