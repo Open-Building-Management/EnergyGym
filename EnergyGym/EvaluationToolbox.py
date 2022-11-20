@@ -376,7 +376,7 @@ class Evaluate:
             plt.legend(loc='upper right')
 
             # à enlever si on veut alléger le graphique
-            nbg+=1
+            nbg += 1
             ax7 = plt.subplot(nbg, sharex=ax1)
             plt.ylabel("°C")
             plt.plot(xr, mdatas[:, 3], label="consigne")
