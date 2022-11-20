@@ -257,7 +257,7 @@ class Vacancy(gym.Env):
 
     def render(self, stepbystep=True, label=None):
         """render realtime or not"""
-        self._render(stepbystep=stepbystep, label = label)
+        self._render(stepbystep=stepbystep, label=label)
 
     def close(self):
         """closing"""
