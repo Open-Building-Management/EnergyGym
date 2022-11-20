@@ -186,17 +186,8 @@ def snapshots(storage, agent_name, sandbox, **kwargs):
 @click.option('--silent', type=bool, prompt='silent mode = sans montrer les replays des épisodes ?')
 @click.option('--k', type=float, default=0.9, prompt='paramètre énergie')
 @click.option('--hystpath', type=str, default=None)
-def main(
-    nbtext,
-    modelkey,
-    powerlimit,
-    tc,
-    nbepisodes,
-    optimalpolicy,
-    holiday,
-    silent,
-    k,
-    hystpath
+def main(nbtext, modelkey, powerlimit, tc, nbepisodes, optimalpolicy,
+         holiday, silent, k, hystpath
 ):
     """main command"""
     occupation_agent_path = None
