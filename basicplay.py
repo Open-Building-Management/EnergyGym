@@ -39,7 +39,7 @@ def mirror_play(bat):
     - puis en chauffant de manière continue à partir de bat.tot_eko
     """
     limit = bat.tot_eko
-    ts = bat._tsvrai
+    ts = bat.tsvrai
     bat.reset(ts=ts)
     while True:
         action = 0 if bat.i < limit else 1

@@ -34,7 +34,7 @@ def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
         xrs = np.arange(ts, ts + wsize * interval, interval)
         xr = np.array(xrs, dtype='datetime64[s]')
 
-    zoneconfort = Rectangle((xr[0], tc-hh), xr[-1]-xr[0], 2 * hh,
+    zone_confort = Rectangle((xr[0], tc-hh), xr[-1]-xr[0], 2 * hh,
                              facecolor='g', alpha=0.5, edgecolor='None',
                              label="zone de confort")
     changes = []
@@ -50,7 +50,7 @@ def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
                             facecolor='orange', alpha=0.5, edgecolor='None')
             zones_occ.append(occ)
 
-    return xr, zoneconfort, zones_occ
+    return xr, zone_confort, zones_occ
 
 
 class Vacancy(gym.Env):
@@ -74,7 +74,7 @@ class Vacancy(gym.Env):
         # nombre de pas dans un épisode (taille de la fenêtre)
         self.wsize = None
         # timestamp du début de l'épisode
-        self._tsvrai = None
+        self.tsvrai = None
         # position de l'épisode dans la timesérie text
         self.pos = None
         # compteur de pas dans l'épisode
@@ -119,7 +119,7 @@ class Vacancy(gym.Env):
 
         Avant d'appeler cette méthode, il faut fixer la taille de l'épisode wsize !
 
-        permet de définir self._xr, self.pos, self._tsvrai
+        permet de définir self._xr, self.pos, self.tsvrai
         ces grandeurs sont des constantes de l'épisode
 
         initialise self.i, self._tot_reward, self.tint, self.action
@@ -136,10 +136,10 @@ class Vacancy(gym.Env):
             ts = get_random_start(start, end, 10, 5)
         self.i = 0
         self.pos = (ts - self._tss) // self._interval
-        self._tsvrai = self._tss + self.pos * self._interval
-        #print("episode timestamp : {}".format(self._tsvrai))
+        self.tsvrai = self._tss + self.pos * self._interval
+        #print("episode timestamp : {}".format(self.tsvrai))
         # x axis = time for human
-        xrs = np.arange(self._tsvrai, self._tsvrai + self.wsize * self._interval, self._interval)
+        xrs = np.arange(self.tsvrai, self.tsvrai + self.wsize * self._interval, self._interval)
         self._xr = np.array(xrs, dtype='datetime64[s]')
         text = self.text[self.pos]
         if not isinstance(tint, (int, float)):
@@ -152,7 +152,7 @@ class Vacancy(gym.Env):
         self._tot_reward = 0
         return self.state
 
-    def _render(self, zoneconfort=None, zones_occ=None, stepbystep=True, label=None):
+    def _render(self, zone_confort=None, zones_occ=None, stepbystep=True, label=None):
         """generic render method"""
         if self.i == 0 or not stepbystep:
             self._fig = plt.figure()
@@ -161,7 +161,7 @@ class Vacancy(gym.Env):
             self._ax3 = plt.subplot(313, sharex=self._ax1)
             if stepbystep :
                 plt.ion()
-        title = f'{self._tsvrai} - score : {self._tot_reward:.2f}'
+        title = f'{self.tsvrai} - score : {self._tot_reward:.2f}'
         if label is not None :
             title = f'{title}\n{label}'
         self._fig.suptitle(title)
@@ -172,8 +172,8 @@ class Vacancy(gym.Env):
         self._ax2.plot(self._xr[0:self.i], self.tint[0:self.i])
         self._ax3.plot(self._xr[0:self.i], self.action[0:self.i])
         if self.i :
-            if zoneconfort is not None :
-                self._ax2.add_patch(zoneconfort)
+            if zone_confort is not None :
+                self._ax2.add_patch(zone_confort)
             if zones_occ is not None :
                 for occ in zones_occ:
                     self._ax2.add_patch(occ)
@@ -319,9 +319,9 @@ class Building(Vacancy):
             tmin = np.min(self.tint[0: self.i])
             tmax = np.max(self.tint[0: self.i])
             occupation = self._agenda[self.pos:self.pos+self.wsize+4*24*3600//self._interval]
-            _, zoneconfort, zones_occ = covering(tmin, tmax, self._tc, 1,
-                                                 self._tsvrai, self.wsize, self._interval,
+            _, zone_confort, zones_occ = covering(tmin, tmax, self._tc, 1,
+                                                 self.tsvrai, self.wsize, self._interval,
                                                  occupation, self._xr)
-            self._render(zoneconfort=zoneconfort, zones_occ=zones_occ, stepbystep=stepbystep)
+            self._render(zone_confort=zone_confort, zones_occ=zones_occ, stepbystep=stepbystep)
         else:
             self._render(stepbystep=stepbystep)

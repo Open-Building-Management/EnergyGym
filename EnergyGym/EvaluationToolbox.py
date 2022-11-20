@@ -1,184 +1,173 @@
 """
 Evaluation toolbox
 """
-# nombre d'épisodes que l'on souhaite jouer
-MAX_EPISODES = 900
-
-# modèle par défault de type R1C1 obtenues par EDW avec les données de Marc Bloch
-modelRC = {"R": 2.54061406e-04, "C": 9.01650468e+08}
-
-import numpy as np
-#import tensorflow as tf
-import matplotlib.pyplot as plt
-#from matplotlib.patches import Rectangle
 import random
 import signal
 import time
 import copy
 import math
+from collections import defaultdict
+
+import numpy as np
+#import tensorflow as tf
+import matplotlib.pyplot as plt
+#from matplotlib.patches import Rectangle
 
 from .planning import tsToHuman, get_random_start, get_level_duration
-from .heatgym import covering
+from .heatgym import covering, MODELRC
 
-def R1C1(step, R, C, Qc, Text, Tint, cte=None):
-    """
-    calcule le point suivant avec la méthode des trapèzes
-    Text et Qc sont des vecteurs de taille 2 contenant les valeurs à t et t+step
-    """
-    if cte is None:
-        cte = math.exp(-step/(R*C))
-    delta = cte * ( Qc[0] / C + Text[0] / (R*C) ) + Qc[0] / C + Text[1] / (R*C)
-    x = Tint * cte + step * 0.5 * delta
-    return x
+# nombre d'épisodes que l'on souhaite jouer
+MAX_EPISODES = 900
 
-def R1C1sim(step, R, C, Qc, Text, T0, cte=None):
-    """
-    simulation utilisant le simple calcul du point suivant
-    """
-    n = Text.shape[0]
-    x = np.zeros(n)
-    x[0] = T0
-    for i in range(1,n):
-        x[i] = R1C1(step, R, C, Qc[i-1:i+1], Text[i-1:i+1], x[i-1], cte=cte)
-    return x
 
-def getConfig(agent):
+def get_config(agent):
     """
     extrait la configuration du réseau
 
-    - LNames : liste des noms des couches
-    - inSize : taille de l'input
-    - outSize : taille de la sortie
+    - lnames : liste des noms des couches
+    - insize : taille de l'input
+    - outsize : taille de la sortie
     """
-    LNames = []
+    lnames = []
     for layer in agent.layers:
-        LNames.append(layer.name)
-    print(LNames)
-    if LNames == ['states', 'dense', 'dense_1']:
+        lnames.append(layer.name)
+    print(lnames)
+    if lnames == ['states', 'dense', 'dense_1']:
         print("agent issu des expérimentations primitives")
-    outlayer = agent.get_layer(name="output") if "output" in LNames else agent.get_layer(name=LNames[-1])
-    inlayer = agent.get_layer(name="states") if "states" in LNames else agent.get_layer(name=LNames[0])
-    outSize = outlayer.get_config()['units']
+    outlayer = agent.get_layer(name="output") if "output" in lnames else agent.get_layer(name=lnames[-1])
+    inlayer = agent.get_layer(name="states") if "states" in lnames else agent.get_layer(name=lnames[0])
+    outsize = outlayer.get_config()['units']
     try:
-        inSize = inlayer.get_config()["batch_input_shape"][1]
+        insize = inlayer.get_config()["batch_input_shape"][1]
     except Exception :
         print("no input layer")
-        inSize = 4
-    print("network input size {} output size {}".format(inSize, outSize))
-    return LNames, inSize, outSize
+        insize = 4
+    print(f'network input size {insize} output size {outsize}')
+    return lnames, insize, outsize
+
 
 class Environnement:
     """
     stocke les données décrivant l'environnement
     et offre des méthodes pour le caractériser
 
-    - Text : objet PyFina, vecteur numpy de température extérieure
+    - text : objet PyFina, vecteur numpy de température extérieure
              échantillonné selon le pas de discrétisation (interval)
     - agenda : vecteur numpy de l'agenda d'occupation échantillonné selon
-             le même pas de discrétisation que Text et de même taille que Text
+             le même pas de discrétisation que text et de même taille que text
     - wsize : nombre d'intervalles constituant un épisode, l'épisode étant
               la métrique de base utilisé pour les entrainements et les replays.
-    - Tc : température de consigne / confort temperature set point (°C)
+    - tc : température de consigne / confort temperature set point (°C)
     - hh : demi-intervalle (en °C) pour le contrôle hysteresys
     - model : paramètres du modèle d'environnement - exemple : R=2e-4, C=2e8
     """
-    def __init__(self, Text, agenda, wsize, max_power, Tc, hh, **model):
-        self._Text = Text
-        self._agenda = agenda
-        self._tss = Text.start
-        self._tse = Text.start + Text.step * Text.shape[0]
-        self._interval = Text.step
-        self._wsize = wsize
-        self._max_power = max_power
-        self._Tc = Tc
-        self._hh = hh
-        print(f'environnement initialisé avec Tc={self._Tc}, hh={self._hh}')
-        self.model = modelRC
-        if model:
-            self.model = model
-        self._cte = math.exp(-self._interval/(self.model["R"]*self.model["C"]))
+    def __init__(self, text, agenda, wsize, max_power, tc, hh, **model):
+        self.text = text
+        self.agenda = agenda
+        self._tss = text.start
+        self._tse = text.start + text.step * text.shape[0]
+        self.interval = text.step
+        self.wsize = wsize
+        self.max_power = max_power
+        self.tc = tc
+        self.hh = hh
+        print(f'environnement initialisé avec Tc={self.tc}, hh={self.hh}')
+        self.model = model if model else MODELRC
+        self._tcte = self.model["R"] * self.model["C"]
+        self._cte = math.exp(-self.interval / self._tcte)
+        self.pos = None
+        self.tsvrai = None
 
-    def setStart(self, ts=None):
+    def set_start(self, ts=None):
         """
-
         1) tire un timestamp aléatoirement avant fin mai OU après début octobre
 
-        2) fixe le timestamp à une valeur donnée, si ts est fourni, pour rejouer un épisode (ex : 1588701000)
+        2) fixe le timestamp à une valeur donnée, si ts est fourni,
+           pour rejouer un épisode (ex : 1588701000)
 
         ts : unix timestamp (non requis)
 
-        retourne la position dans la timeserie Text et le timestamp correspondant
+        retourne la position dans la timeserie text et le timestamp correspondant
         """
         if ts is None:
             start = self._tss
             tse = self._tse
-            end = tse - self._wsize * self._interval - 4*24*3600
+            end = tse - self.wsize * self.interval - 4*24*3600
             #print(tsToHuman(start),tsToHuman(end))
             # on tire un timestamp avant fin mai OU après début octobre
             ts = get_random_start(start, end, 10, 5)
-        self._pos = (ts - self._tss) // self._interval
-        self._tsvrai = self._tss + self._pos * self._interval
-
+        self.pos = (ts - self._tss) // self.interval
+        self.tsvrai = self._tss + self.pos * self.interval
         print("*************************************")
         print(f'{ts} - {tsToHuman(ts)}')
-        print(f'vrai={self._tsvrai} - {tsToHuman(self._tsvrai)}')
+        print(f'vrai={self.tsvrai} - {tsToHuman(self.tsvrai)}')
 
-    def buildEnv(self, Tint=None):
+    def build_env(self, tint=None):
         """
         retourne le tenseur des données de l'épisode
 
-        Tint : valeur initiale de température intérieure
-        Fournir un entier pour Tint permet de fixer la température intérieure du premier point de l'épisode
-        Si Tint vaut None, un tirage aléatoire entre 17 et 20 est réalisé
+        tint : valeur initiale de température intérieure
+        Fournir un entier pour tint permet de fixer la température intérieure du premier point de l'épisode
+        Si tint vaut None, un tirage aléatoire entre 17 et 20 est réalisé
 
         caractéristiques du tenseur de sortie
 
         - axe 0 = le temps
         - axe 1 = les paramètres pour décrire l'environnement
 
-        3 paramètres physiques : Qc, Text et Tint
+        3 paramètres physiques : qc, text et tint
 
         2 paramètres organisationnels :
 
         - temperature de consigne * occupation - si > 0 : bâtiment occupé,
         - nombre d'heures d'ici le changement d 'occupation
         """
-        datas=np.zeros((self._wsize, 5))
+        datas=np.zeros((self.wsize, 5))
         # condition initiale en température
-        if isinstance(Tint, (int, float)):
-            datas[0,2] = Tint
+        if isinstance(tint, (int, float)):
+            datas[0,2] = tint
         else:
             datas[0,2] = random.randint(17,20)
         # on connait Text (vérité terrain) sur toute la longueur de l'épisode
-        datas[:,1] = self._Text[self._pos:self._pos+self._wsize]
-        occupation = self._agenda[self._pos:self._pos+self._wsize+4*24*3600//self._interval]
-        for i in range(self._wsize):
-            datas[i,4] = get_level_duration(occupation, i) * self._interval / 3600
+        datas[:,1] = self.text[self.pos:self.pos+self.wsize]
+        occupation = self.agenda[self.pos:self.pos+self.wsize+4*24*3600//self.interval]
+        for i in range(self.wsize):
+            datas[i,4] = get_level_duration(occupation, i) * self.interval / 3600
         # consigne
-        datas[:,3] = self._Tc * occupation[0:self._wsize]
-        print("condition initiale : Text {:.2f} Tint {:.2f}".format(datas[0,1],datas[0,2]))
+        datas[:,3] = self.tc * occupation[0:self.wsize]
+        print(f'condition initiale : Text {datas[0,1]:.2f} Tint {datas[0,2]:.2f}')
         return datas
 
     def sim(self, datas, i):
         """
         calcule la température à l'étape i
+        avec la méthode des trapèzes
         """
-        _Qc = datas[i-1:i+1,0]
-        _Text = datas[i-1:i+1,1]
-        return R1C1(self._interval, self.model["R"], self.model["C"], _Qc, _Text, datas[i-1,2], cte=self._cte)
+        q_c = datas[i-1, 0]
+        text = datas[i-1:i+1, 1]
+        tint = datas[i-1, 2]
+        delta = self._cte * ( q_c / self.model["C"] + text[0] / self._tcte )
+        delta += q_c / self.model["C"] + text[1] / self._tcte
+        return tint * self._cte + self.interval * 0.5 * delta
 
-    def sim2Target(self, datas, i):
+
+    def sim2target(self, datas, i):
         """
-        on est à l'étape i et on veut calculer la température à l'ouverture des locaux, en chauffant dès à présent en permanence
+        on est à l'étape i et on veut calculer la température à l'ouverture des locaux,
+        en chauffant dès à présent en permanence
         """
         # pour pouvoir se balader dans les vecteurs et calculer à la cible, on repasse en nombre d'intervalles
-        tof = int(datas[i, 4] * 3600 / self._interval)
-        # ON VEUT CONNAITRE LA TEMPERATURE INTERIEURE A self._pos+i+tof
-        Qc = np.ones(tof+1)*self._max_power
-        # datas[i,1] correspond à Text[i+pos]
-        Text = self._Text[self._pos+i:self._pos+i+tof+1]
-        Tint = datas[i, 2]
-        return R1C1sim(self._interval, self.model["R"], self.model["C"], Qc, Text, Tint, cte=self._cte)
+        tof = int(datas[i, 4] * 3600 / self.interval)
+        # ON VEUT CONNAITRE LA TEMPERATURE INTERIEURE A self.pos+i+tof
+        # datas[i,1] correspond à text[i+pos]
+        text = self.text[self.pos+i: self.pos+i+tof+1]
+        tint = np.zeros(text.shape[0])
+        tint[0] = datas[i, 2]
+        for j in range(1, text.shape[0]):
+            delta = self._cte * ( self.max_power / self.model["C"] + text[j-1] / self._tcte )
+            delta += self.max_power / self.model["C"] + text[j] / self._tcte
+            tint[j] = tint[j-1] * self._cte + self.interval * 0.5 * delta
+        return tint
 
     def play(self, datas):
         """
@@ -196,18 +185,16 @@ class Evaluate:
 
     """
     def __init__(self, name, env, agent, **params):
-        self._N = MAX_EPISODES
-        if "N" in params:
-            self._N = params["N"]
-        self._k = params["k"] if "k" in params else 1
-
-        print("on va jouer {} épisodes".format(self._N))
+        self._n = params.get("N", MAX_EPISODES)
+        self._k = params.get("k", 1)
+        print(f'on va jouer {self._n} épisodes')
         self._name = name
         self._env = env
-        self._modlabel = "R={:.2e} C={:.2e}".format(self._env.model["R"], self._env.model["C"])
+        self._modlabel = f'R={self._env.model["R"]:.2e} C={self._env.model["C"]:.2e}'
         self._agent = agent
-        print("métrique de l'agent online {}".format(agent.metrics_names))
-        self._LNames, self._inSize, self._outSize = getConfig(agent)
+        self._occupancy_agent = None
+        print(f'métrique de l\'agent online {agent.metrics_names}')
+        self._lnames, self._insize, self._outsize = get_config(agent)
         self._exit = False
         # sert uniquement pour évaluer la durée de l'entrainement
         self._ts = int(time.time())
@@ -219,39 +206,42 @@ class Evaluate:
         exemple : partie confort, partie vote, partie energy
         à mettre à jour dans la méthode reward() qui est à définir dans la classe fille
         """
-        from collections import defaultdict
-        ini = defaultdict(lambda:np.zeros(self._env._wsize))
+
+        ini = defaultdict(lambda:np.zeros(self._env.wsize))
         self._rewards = {"agent":ini, "model":copy.deepcopy(ini)}
         """
-        on parle de luxe si la température intérieure est supérieure à Tc+hh
-        on parle d'inconfort si la température intérieure est inférieure à Tc-hh
+        on parle de luxe si la température intérieure est supérieure à tc+hh
+        on parle d'inconfort si la température intérieure est inférieure à tc-hh
         les colonnes de la matrice stats sont les suivantes :
         - 0 : timestamp de l'épisode,
         - 1 à 4 : agent température intérieure moyenne, nb pts luxe, nb pts inconfort, consommation
         - 5 à 8 : modèle idem
         - 9 à 10 : récompense agent puis modèle
         """
-        self._stats = np.zeros((self._N, 11))
-        self._multiAgent = False
+        self._stats = np.zeros((self._n, 11))
+        self._multi_agent = False
 
-    def setOccupancyAgent(self, agent):
-        self._multiAgent = True
-        self._occupancyAgent = agent
+    def set_occupancy_agent(self, agent):
+        """add an occupancy agent such as an hystérésis"""
+        self._multi_agent = True
+        self._occupancy_agent = agent
 
-    def _sigint_handler(self, signal, frame):
-        print("signal de fermeture reçu")
+    def _sig_handler(self, signum, frame):
+        """gracefull shutdown"""
+        print(f'signal de fermeture reçu {signum}')
         self._exit = True
 
     def stats(self, datas):
-        w = datas[datas[:,3]!=0,2]
-        inc = w[w[:] < self._env._Tc - self._env._hh]
-        luxe = w[w[:] > self._env._Tc + self._env._hh]
-        Tocc_moy = round(np.mean(w[:]),2)
-        nbinc = inc.shape[0] * self._env._interval // 3600
-        nbluxe = luxe.shape[0] * self._env._interval // 3600
-        return Tocc_moy, nbinc, nbluxe
+        """basic stats"""
+        datas_occ = datas[datas[:,3]!=0, 2]
+        inc = datas_occ[datas_occ[:] < self._env.tc - self._env.hh]
+        luxe = datas_occ[datas_occ[:] > self._env.tc + self._env.hh]
+        tocc_moy = round(np.mean(datas_occ[:]), 2)
+        nbinc = inc.shape[0] * self._env.interval // 3600
+        nbluxe = luxe.shape[0] * self._env.interval // 3600
+        return tocc_moy, nbinc, nbluxe
 
-    def play(self, silent, ts=None, snapshot=False, Tint = None):
+    def play(self, silent, ts=None, snapshot=False, tint = None):
         """
         joue un épisode
 
@@ -261,25 +251,25 @@ class Evaluate:
 
         snapshot : boolean - si True, l'image n'est pas affichée et un fichier tiers utilisant la classe peut l'enregistrer
 
-        Tint : condition initiale de température intérieure
+        tint : condition initiale de température intérieure
         """
-        self._env.setStart(ts)
-        adatas = self._env.buildEnv(Tint=Tint)
+        self._env.set_start(ts)
+        adatas = self._env.build_env(tint=tint)
         wsize = adatas.shape[0]
 
         mdatas = self._env.play(copy.deepcopy(adatas))
-        mConso = int(np.sum(mdatas[1:,0]) / 1000) * self._env._interval // 3600
+        mconso = int(np.sum(mdatas[1:,0]) / 1000) * self._env.interval // 3600
         self._rewards["agent"].clear()
         self._rewards["model"].clear()
-        cumulArewards = []
-        cumulMrewards = []
-        ar = 0
-        mr = 0
+        cumularewards = []
+        cumulmrewards = []
+        areward = 0
+        mreward = 0
 
         for i in range(1,wsize):
-            if self._LNames == ['states', 'dense', 'dense_1']:
-                if self._inSize == 5 :
-                    state = np.zeros((self._inSize))
+            if self._lnames == ['states', 'dense', 'dense_1']:
+                if self._insize == 5 :
+                    state = np.zeros((self._insize))
                     state[0] = adatas[i-1, 2]
                     state[1] = adatas[i-1, 1]
                     state[2] = 1 if adatas[i-1, 3] > 0 else 0
@@ -290,49 +280,52 @@ class Evaluate:
                     # on pourrait utiliser np.array([ adatas[i-1,2], adatas[i-1,1], adatas[i-1,3], adatas[i-1,4] ])
                     # mais le slicing donne un code plus lisible et plus court :-)
                     reorder = [2,1,3,4]
-                    state = adatas[i-1, reorder[0:self._inSize]]
+                    state = adatas[i-1, reorder[0:self._insize]]
             else:
-                state = adatas[i-1, 1:self._inSize + 1]
+                state = adatas[i-1, 1:self._insize + 1]
             agent = self._agent
-            if self._multiAgent:
-                agent = self._occupancyAgent if state[2] != 0 else self._agent
-            predictionBrute = agent(state.reshape(1, self._inSize))
-            action = np.argmax(predictionBrute)
-            adatas[i-1,0] = action * self._env._max_power
+            if self._multi_agent:
+                agent = self._occupancy_agent if state[2] != 0 else self._agent
+            prediction_brute = agent(state.reshape(1, self._insize))
+            action = np.argmax(prediction_brute)
+            adatas[i-1,0] = action * self._env.max_power
             # on peut désormais calculer la récompense à l'étape i-1
             self._policy = "agent"
-            ar += self.reward(adatas, i-1)
+            areward += self.reward(adatas, i-1)
             self._policy = "model"
-            mr += self.reward(mdatas, i-1)
-            cumulArewards.append(ar)
-            cumulMrewards.append(mr)
+            mreward += self.reward(mdatas, i-1)
+            cumularewards.append(areward)
+            cumulmrewards.append(mreward)
             # calcul de la température à l'état suivant
             adatas[i,2] = self._env.sim(adatas, i)
-        aConso = int(np.sum(adatas[1:,0]) / 1000) * self._env._interval // 3600
-        print("récompense agent {:.2f} récompense modèle {:.2f}".format(ar,mr))
+        aconso = int(np.sum(adatas[1:,0]) / 1000) * self._env.interval // 3600
+        print(f'récompense agent {areward:.2f} récompense modèle {mreward:.2f}')
 
         # on ne prend pas le premier point de température intérieure car c'est une condition initiale arbitraire
-        aTocc_moy, aNbinc, aNbluxe = self.stats(adatas[1:,:])
-        mTocc_moy, mNbinc, mNbluxe = self.stats(mdatas[1:,:])
-        line = np.array([self._env._tsvrai, aTocc_moy, aNbluxe, aNbinc, aConso, mTocc_moy, mNbluxe, mNbinc, mConso, ar, mr])
+        atocc_moy, anbinc, anbluxe = self.stats(adatas[1:,:])
+        mtocc_moy, mnbinc, mnbluxe = self.stats(mdatas[1:,:])
+        line = np.array([self._env.tsvrai,
+                         atocc_moy, anbluxe, anbinc, aconso,
+                         mtocc_moy, mnbluxe, mnbinc, mconso,
+                         areward, mreward])
         #print(line)
         self._stats[self._steps, :] = line
 
         if not silent or snapshot:
-            Tmin = min( np.min(mdatas[:,2]) , np.min(adatas[:,2]) )
-            Tmax = max( np.max(mdatas[:,2]) , np.min(adatas[:,2]) )
-            Tc = self._env._Tc
-            hh = self._env._hh
-            tsvrai = self._env._tsvrai
-            pos = self._env._pos
-            interval = self._env._interval
-            occupation = self._env._agenda[pos:pos + wsize + 4*24*3600 // interval]
-            xr, zoneconfort, zonesOcc = covering(Tmin, Tmax, Tc, hh, tsvrai, wsize, interval, occupation)
+            tmin = min( np.min(mdatas[:,2]) , np.min(adatas[:,2]) )
+            tmax = max( np.max(mdatas[:,2]) , np.min(adatas[:,2]) )
+            tc = self._env.tc
+            hh = self._env.hh
+            tsvrai = self._env.tsvrai
+            pos = self._env.pos
+            interval = self._env.interval
+            occupation = self._env.agenda[pos:pos + wsize + 4*24*3600 // interval]
+            xr, zone_confort, zones_occ = covering(tmin, tmax, tc, hh, tsvrai, wsize, interval, occupation)
 
-            title = "épisode {} - {} {} {}".format(self._steps, tsvrai, tsToHuman(tsvrai), self._modlabel)
-            title = "{}\n conso Modèle {} Agent {}".format(title, mConso, aConso)
-            title = "{}\n Tocc moyenne modèle : {} agent : {}".format(title, mTocc_moy, aTocc_moy)
-            title = "{}\n nb heures inconfort modèle : {} agent : {}".format(title, mNbinc, aNbinc)
+            title = f'épisode {self._steps} - {tsvrai} {tsToHuman(tsvrai)} {self._modlabel}'
+            title = f'{title}\n conso Modèle {mconso} Agent {aconso}'
+            title = f'{title}\n Tocc moyenne modèle : {mtocc_moy} agent : {atocc_moy}'
+            title = f'{title}\n nb heures inconfort modèle : {mnbinc} agent : {anbinc}'
 
             if snapshot:
                 plt.figure(figsize=(20, 10))
@@ -340,9 +333,9 @@ class Evaluate:
             nbg = 411
             ax1 = plt.subplot(nbg)
             plt.title(title, fontsize=8)
-            ax1.add_patch(zoneconfort)
-            for v in zonesOcc:
-                ax1.add_patch(v)
+            ax1.add_patch(zone_confort)
+            for occ in zones_occ:
+                ax1.add_patch(occ)
             plt.ylabel("Temp. intérieure °C")
             plt.plot(xr, mdatas[:,2], color="orange", label="TintMod")
             plt.plot(xr, adatas[:,2], color="black", label="TintAgent")
@@ -361,12 +354,12 @@ class Evaluate:
 
             ax4 = ax3.twinx()
             plt.ylabel("cum.reward agent")
-            a = "agent"
-            y = np.zeros(wsize)
-            for r in self._rewards[a]:
-                ax4.fill_between(xr, y, y+self._rewards[a][r], alpha=0.6, label="{} {}".format(a,r))
-                y = y+self._rewards[a][r]
-            #plt.plot(xr[1:], cumulArewards, color="black", label="agent")
+            ypos = np.zeros(wsize)
+            for rewtyp in self._rewards["agent"]:
+                ax4.fill_between(xr, ypos, ypos + self._rewards["agent"][rewtyp],
+                                 alpha=0.6, label=f'agent {rewtyp}')
+                ypos = ypos + self._rewards["agent"][rewtyp]
+            #plt.plot(xr[1:], cumularewards, color="black", label="agent")
             plt.legend(loc='upper right')
 
             nbg+=1
@@ -377,12 +370,12 @@ class Evaluate:
 
             ax6 = ax5.twinx()
             plt.ylabel("cum.reward mod")
-            a = "model"
-            y = np.zeros(wsize)
-            for r in self._rewards[a]:
-                ax6.fill_between(xr, y, y+self._rewards[a][r], alpha=0.6, label="{} {}".format(a,r))
-                y = y+self._rewards[a][r]
-            #plt.plot(xr[1:], cumulMrewards, color="orange", label="mod")
+            ypos = np.zeros(wsize)
+            for rewtyp in self._rewards["model"]:
+                ax6.fill_between(xr, ypos, ypos + self._rewards["model"][rewtyp],
+                                 alpha=0.6, label=f'model {rewtyp}')
+                ypos = ypos + self._rewards["model"][rewtyp]
+            #plt.plot(xr[1:], cumulmrewards, color="orange", label="mod")
             plt.legend(loc='upper right')
 
             # à enlever si on veut alléger le graphique
@@ -400,25 +393,18 @@ class Evaluate:
         return adatas
 
     def reward(self, datas, i):
-        """
-        fonction récompense
+        """fonction récompense à définir dans la classe fille"""
 
-        à définir dans la classe fille
-        """
-        pass
-
-    def run(self, silent=False, Tint=None):
-        """
-        boucle d'exécution
-        """
-        signal.signal(signal.SIGINT, self._sigint_handler)
-        signal.signal(signal.SIGTERM, self._sigint_handler)
+    def run(self, silent=False, tint=None):
+        """boucle d'exécution"""
+        signal.signal(signal.SIGINT, self._sig_handler)
+        signal.signal(signal.SIGTERM, self._sig_handler)
 
         while not self._exit:
-            if self._steps >= self._N - 1:
+            if self._steps >= self._n - 1:
                 self._exit = True
 
-            self.play(silent=silent, Tint=Tint)
+            self.play(silent=silent, tint=tint)
             self._steps += 1
 
             time.sleep(0.1)
@@ -429,22 +415,21 @@ class Evaluate:
 
         suffix, s'il est fourni, sert dans la construction de(s) nom(s) de fichier(s),
         pour préciser par ex. le type de politique optimale jouée par le modèle
-
         """
 
-        statsMoy = np.mean(self._stats, axis = 0).round(1)
+        stats_moy = np.mean(self._stats, axis = 0).round(1)
 
         print("leaving the game")
         # enregistrement des statistiques du jeu
         # uniquement si on est allé au bout des épisodes - pas la peine de sauver des figures vides
         # on utilise le suffixe pour indiquer le mode de jeu du modèle
-        if self._steps == self._N :
+        if self._steps == self._n :
 
-            title = "modèle {} jouant la politique optimale {}\n".format(self._modlabel, suffix) if suffix is not None else ""
-            title = "{} Conso moyenne agent : {} / Conso moyenne modèle : {}\n".format(title, statsMoy[4], statsMoy[8])
+            title = f'modèle {self._modlabel} jouant la politique optimale {suffix}\n' if suffix is not None else ""
+            title = f'{title} Conso moyenne agent : {stats_moy[4]} / Conso moyenne modèle : {stats_moy[8]}\n'
 
-            pct = round(100*(statsMoy[8]-statsMoy[4])/statsMoy[8], 2)
-            title = "{} Pourcentage de gain agent : {} %".format(title, pct)
+            pct = round(100*(stats_moy[8]-stats_moy[4])/stats_moy[8], 2)
+            title = f'{title} Pourcentage de gain agent : {pct} %'
 
             plt.figure(figsize=(20, 10))
             ax1 = plt.subplot(411)
@@ -454,13 +439,15 @@ class Evaluate:
             plt.legend()
 
             plt.subplot(412, sharex=ax1)
-            plt.plot(self._stats[:,2], color="blue", label="nombre heures > {}°C agent".format(self._env._Tc + self._env._hh))
-            plt.plot(self._stats[:,6], color="red", label="nombre heures > {}°C modèle".format(self._env._Tc + self._env._hh))
+            tmax = self._env.tc + self._env.hh
+            plt.plot(self._stats[:,2], color="blue", label=f'nombre heures > {tmax}°C agent')
+            plt.plot(self._stats[:,6], color="red", label=f'nombre heures > {tmax}°C modèle')
             plt.legend()
 
             plt.subplot(413, sharex=ax1)
-            plt.plot(self._stats[:,3], color="blue", label="nombre heures < {}°C agent".format(self._env._Tc - self._env._hh))
-            plt.plot(self._stats[:,7], color="red", label="nombre heures < {}°C modèle".format(self._env._Tc - self._env._hh))
+            label = f'nombre heures < {self._env.tc - self._env.hh}°C'
+            plt.plot(self._stats[:,3], color="blue", label=f'{label} agent')
+            plt.plot(self._stats[:,7], color="red", label=f'{label} modèle')
             plt.legend()
 
             plt.subplot(414, sharex=ax1)
@@ -470,15 +457,15 @@ class Evaluate:
 
             ts = time.time()
             now = tsToHuman(ts, fmt="%Y_%m_%d_%H_%M")
-            label = "played_{}".format(suffix) if suffix is not None else "played"
-
-            name = "{}_{}_{}".format(self._name.replace(".h5",""),label,now)
+            label = f'played_{suffix}' if suffix is not None else "played"
+            name = f'{self._name.replace(".h5","")}_{label}_{now}'
             plt.savefig(name)
             header = "ts"
-            for w in ["agent","modèle"]:
-                header = "{0},{1}_Tintmoy,{1}_nbpts_luxe,{1}_nbpts_inconfort,{1}_conso".format(header,w)
-            np.savetxt('{}.csv'.format(name), self._stats, delimiter=',', header=header)
+            for player in ["agent","modèle"]:
+                header = f'{header},{player}_Tintmoy,{player}_nbpts_luxe'
+                header = f'{header},{player}_nbpts_inconfort,{player}_conso'
+            np.savetxt(f'{name}.csv', self._stats, delimiter=',', header=header)
 
         plt.close()
 
-        return statsMoy
+        return stats_moy

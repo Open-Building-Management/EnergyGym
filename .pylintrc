@@ -2,7 +2,8 @@
 
 disable=too-many-arguments,
         too-many-instance-attributes,
-        line-too-long
+        line-too-long,
+        broad-except,
 
 max-nested-blocks=10
 max-statements=100

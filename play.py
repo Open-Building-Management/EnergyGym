@@ -38,17 +38,17 @@ class EnvHyst(Environnement):
         politique optimale de type hysteresys avec un modèle déterministe
         """
         # doit-on mettre en route le chauffage à l'étape 0 ?
-        action = datas[0,2] <= self._Tc
-        datas[0,0] = action * self._max_power
+        action = datas[0,2] <= self.tc
+        datas[0,0] = action * self.max_power
 
         # itération de l'étape 1 à la fin de l'épisode
         for i in range(1, datas.shape[0]):
             # l'état précédant est totalement déterminé, on peut calculer la température à l'état i
             datas[i,2] = self.sim(datas, i)
             # doit-on mettre en route le chauffage à l'étape i ?
-            if datas[i,2] > self._Tc + self._hh or datas[i,2] < self._Tc - self._hh :
-                action = datas[i,2] <= self._Tc
-                datas[i,0] = action * self._max_power
+            if datas[i,2] > self.tc + self.hh or datas[i,2] < self.tc - self.hh :
+                action = datas[i,2] <= self.tc
+                datas[i,0] = action * self.max_power
             else:
                 # on est dans la fenêtre > on ne change rien :-)
                 datas[i,0] = datas[i-1,0]
@@ -64,11 +64,11 @@ class EnvHystNocc(Environnement):
         """
         # doit-on mettre en route le chauffage à l'étape 0 ?
         if datas[0,3] == 0:
-            Tint_sim = self.sim2Target(datas,0)
-            action = Tint_sim[-1] <= self._Tc
+            Tint_sim = self.sim2target(datas,0)
+            action = Tint_sim[-1] <= self.tc
         else :
-            action = datas[0,2] <= self._Tc
-        datas[0,0] = action * self._max_power
+            action = datas[0,2] <= self.tc
+        datas[0,0] = action * self.max_power
 
         # itération de l'étape 1 à la fin de l'épisode
         for i in range(1,datas.shape[0]):
@@ -77,15 +77,15 @@ class EnvHystNocc(Environnement):
             # doit-on mettre en route le chauffage à l'étape i ?
             if datas[i,3] == 0 :
                 # pas d'occupation - calcul à la cible
-                Tint_sim = self.sim2Target(datas, i)
-                action = Tint_sim[-1] <= self._Tc
-                datas[i,0] = action * self._max_power
+                Tint_sim = self.sim2target(datas, i)
+                action = Tint_sim[-1] <= self.tc
+                datas[i,0] = action * self.max_power
             else:
                 # en occupation
                 # hystérésis classique
-                if datas[i,2] > self._Tc + self._hh or datas[i,2] < self._Tc - self._hh :
-                    action = datas[i,2] <= self._Tc
-                    datas[i,0] = action * self._max_power
+                if datas[i,2] > self.tc + self.hh or datas[i,2] < self.tc - self.hh :
+                    action = datas[i,2] <= self.tc
+                    datas[i,0] = action * self.max_power
                 else:
                     # on est dans la fenêtre > on ne change rien :-)
                     datas[i,0] = datas[i-1,0]
@@ -96,8 +96,8 @@ class EvalHyst(Evaluate):
     def reward(self, datas, i):
         p = self._policy
         self._rewards[p]["confort"][i] = self._rewards[p]["confort"][i-1]
-        Tc = self._env._Tc
-        reward = - abs(datas[i,2] - Tc) * self._env._interval / 3600
+        tc = self._env.tc
+        reward = - abs(datas[i,2] - tc) * self._env.interval / 3600
         self._rewards[p]["confort"][i] += reward
         return reward
 
@@ -109,15 +109,15 @@ class EvalVote(Evaluate):
         for r in reward_architecture:
             self._rewards[p][r][i] = self._rewards[p][r][i-1]
             reward[r] = 0
-        Tc = self._env._Tc
+        tc = self._env.tc
 
         if datas[i,3] != 0:
-            #Tc = datas[i,3]
-            l0 = Tc - 5 * self._env._hh
-            l1 = Tc - 3 * self._env._hh
-            l2 = Tc - self._env._hh
-            if abs(datas[i,2] - Tc) > self._env._hh:
-                reward["confort"] = - abs( datas[i,2] - Tc) * self._env._interval / 3600
+            #tc = datas[i,3]
+            l0 = tc - 5 * self._env.hh
+            l1 = tc - 3 * self._env.hh
+            l2 = tc - self._env.hh
+            if abs(datas[i,2] - tc) > self._env.hh:
+                reward["confort"] = - abs( datas[i,2] - tc) * self._env.interval / 3600
             if datas[i-1,3] == 0:
                 if datas[i,2] < l0:
                     reward["vote"] -= 30
@@ -127,11 +127,11 @@ class EvalVote(Evaluate):
                     reward["vote"] -= 20
         else:
             if datas[i,0] :
-                reward["energy"] = - self._k * self._env._interval / 3600
+                reward["energy"] = - self._k * self._env.interval / 3600
                 # pénalite pas adaptée si le bâtiment est tellement déperditif et son système de chauffage si sous_dimensionné
                 # qu'il lui faut parfois lorsqu'il fait très froid chauffer au dessus de la consigne hors occupation
                 # pour pouvoir être sur d'avoir la consigne à l'ouverture
-                reward["gaspi"] = - max(0, datas[i,2] - Tc) * self._env._interval / 3600
+                reward["gaspi"] = - max(0, datas[i,2] - tc) * self._env.interval / 3600
 
         for r in reward_architecture:
             self._rewards[p][r][i] += reward[r]
@@ -277,7 +277,7 @@ def play(ctx, holiday, silent, k):
             elif optimalpolicy == "intermittence":
                 sandbox = EvalVote(agent_path, env, agent, N=n, k=k)
                 if occupation_agent_path is not None:
-                    sandbox.setOccupancyAgent(load_agent(occupation_agent_path))
+                    sandbox.set_occupancy_agent(load_agent(occupation_agent_path))
 
             sandbox.play(silent=False, ts=1641828600) # 10 janvier 2022
 
