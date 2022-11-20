@@ -122,20 +122,20 @@ class Environnement:
         - temperature de consigne * occupation - si > 0 : bâtiment occupé,
         - nombre d'heures d'ici le changement d 'occupation
         """
-        datas=np.zeros((self.wsize, 5))
+        datas = np.zeros((self.wsize, 5))
         # condition initiale en température
         if isinstance(tint, (int, float)):
-            datas[0,2] = tint
+            datas[0, 2] = tint
         else:
-            datas[0,2] = random.randint(17,20)
+            datas[0, 2] = random.randint(17, 20)
         # on connait Text (vérité terrain) sur toute la longueur de l'épisode
-        datas[:,1] = self.text[self.pos:self.pos+self.wsize]
+        datas[:, 1] = self.text[self.pos:self.pos+self.wsize]
         occupation = self.agenda[self.pos:self.pos+self.wsize+4*24*3600//self.interval]
         for i in range(self.wsize):
-            datas[i,4] = get_level_duration(occupation, i) * self.interval / 3600
+            datas[i, 4] = get_level_duration(occupation, i) * self.interval / 3600
         # consigne
-        datas[:,3] = self.tc * occupation[0:self.wsize]
-        print(f'condition initiale : Text {datas[0,1]:.2f} Tint {datas[0,2]:.2f}')
+        datas[:, 3] = self.tc * occupation[0:self.wsize]
+        print(f'condition initiale : Text {datas[0, 1]:.2f} Tint {datas[0, 2]:.2f}')
         return datas
 
     def sim(self, datas, i):
@@ -233,7 +233,7 @@ class Evaluate:
 
     def stats(self, datas):
         """basic stats"""
-        datas_occ = datas[datas[:,3]!=0, 2]
+        datas_occ = datas[datas[:, 3]!=0, 2]
         inc = datas_occ[datas_occ[:] < self._env.tc - self._env.hh]
         luxe = datas_occ[datas_occ[:] > self._env.tc + self._env.hh]
         tocc_moy = round(np.mean(datas_occ[:]), 2)
@@ -241,7 +241,7 @@ class Evaluate:
         nbluxe = luxe.shape[0] * self._env.interval // 3600
         return tocc_moy, nbinc, nbluxe
 
-    def play(self, silent, ts=None, snapshot=False, tint = None):
+    def play(self, silent, ts=None, snapshot=False, tint=None):
         """
         joue un épisode
 
@@ -258,7 +258,7 @@ class Evaluate:
         wsize = adatas.shape[0]
 
         mdatas = self._env.play(copy.deepcopy(adatas))
-        mconso = int(np.sum(mdatas[1:,0]) / 1000) * self._env.interval // 3600
+        mconso = int(np.sum(mdatas[1:, 0]) / 1000) * self._env.interval // 3600
         self._rewards["agent"].clear()
         self._rewards["model"].clear()
         cumularewards = []
@@ -288,7 +288,7 @@ class Evaluate:
                 agent = self._occupancy_agent if state[2] != 0 else self._agent
             prediction_brute = agent(state.reshape(1, self._insize))
             action = np.argmax(prediction_brute)
-            adatas[i-1,0] = action * self._env.max_power
+            adatas[i-1, 0] = action * self._env.max_power
             # on peut désormais calculer la récompense à l'étape i-1
             self._policy = "agent"
             areward += self.reward(adatas, i-1)
@@ -302,8 +302,8 @@ class Evaluate:
         print(f'récompense agent {areward:.2f} récompense modèle {mreward:.2f}')
 
         # on ne prend pas le premier point de température intérieure car c'est une condition initiale arbitraire
-        atocc_moy, anbinc, anbluxe = self.stats(adatas[1:,:])
-        mtocc_moy, mnbinc, mnbluxe = self.stats(mdatas[1:,:])
+        atocc_moy, anbinc, anbluxe = self.stats(adatas[1:, :])
+        mtocc_moy, mnbinc, mnbluxe = self.stats(mdatas[1:, :])
         line = np.array([self._env.tsvrai,
                          atocc_moy, anbluxe, anbinc, aconso,
                          mtocc_moy, mnbluxe, mnbinc, mconso,
@@ -417,7 +417,7 @@ class Evaluate:
         pour préciser par ex. le type de politique optimale jouée par le modèle
         """
 
-        stats_moy = np.mean(self._stats, axis = 0).round(1)
+        stats_moy = np.mean(self._stats, axis=0).round(1)
 
         print("leaving the game")
         # enregistrement des statistiques du jeu
@@ -434,25 +434,27 @@ class Evaluate:
             plt.figure(figsize=(20, 10))
             ax1 = plt.subplot(411)
             plt.title(title)
-            plt.plot(self._stats[:,1], color="blue", label='température moyenne occupation agent')
-            plt.plot(self._stats[:,5], color="red", label='température moyenne occupation modèle')
+            label = "température moyenne occupation"
+            plt.plot(self._stats[:, 1], color="blue", label=f'{label} agent')
+            plt.plot(self._stats[:, 5], color="red", label=f'{label} modèle')
             plt.legend()
 
             plt.subplot(412, sharex=ax1)
             tmax = self._env.tc + self._env.hh
-            plt.plot(self._stats[:,2], color="blue", label=f'nombre heures > {tmax}°C agent')
-            plt.plot(self._stats[:,6], color="red", label=f'nombre heures > {tmax}°C modèle')
+            plt.plot(self._stats[:, 2], color="blue", label=f'nombre heures > {tmax}°C agent')
+            plt.plot(self._stats[:, 6], color="red", label=f'nombre heures > {tmax}°C modèle')
             plt.legend()
 
             plt.subplot(413, sharex=ax1)
             label = f'nombre heures < {self._env.tc - self._env.hh}°C'
-            plt.plot(self._stats[:,3], color="blue", label=f'{label} agent')
-            plt.plot(self._stats[:,7], color="red", label=f'{label} modèle')
+            plt.plot(self._stats[:, 3], color="blue", label=f'{label} agent')
+            plt.plot(self._stats[:, 7], color="red", label=f'{label} modèle')
             plt.legend()
 
             plt.subplot(414, sharex=ax1)
-            plt.plot(self._stats[:,9], color="blue", label="récompense cumulée agent")
-            plt.plot(self._stats[:,10], color="red", label="récompense cumulée modèle")
+            label = "récompense cumulée"
+            plt.plot(self._stats[:, 9], color="blue", label=f'{label} agent')
+            plt.plot(self._stats[:, 10], color="red", label=f'{label} modèle')
             plt.legend()
 
             ts = time.time()
@@ -460,8 +462,8 @@ class Evaluate:
             label = f'played_{suffix}' if suffix is not None else "played"
             name = f'{self._name.replace(".h5","")}_{label}_{now}'
             plt.savefig(name)
-            header = "ts"
-            for player in ["agent","modèle"]:
+            header="ts"
+            for player in ["agent", "modèle"]:
                 header = f'{header},{player}_Tintmoy,{player}_nbpts_luxe'
                 header = f'{header},{player}_nbpts_inconfort,{player}_conso'
             np.savetxt(f'{name}.csv', self._stats, delimiter=',', header=header)
