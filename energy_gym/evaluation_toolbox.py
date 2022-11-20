@@ -245,9 +245,11 @@ class Evaluate:
 
         retourne le tenseur des données de l'agent, au cas où on souhaite y vérifier un détail
 
-        ts : int - timestamp que l'on veut rejouer, si None, un tirage alétaoire est réalisé
+        ts : int - timestamp que l'on veut rejouer
+        si None, un tirage alétaoire est réalisé
 
-        snapshot : boolean - si True, l'image n'est pas affichée
+        snapshot : boolean
+        si snapshot est True, l'image de l'épisode n'est pas affichée
         et un fichier tiers utilisant la classe peut l'enregistrer
 
         tint : condition initiale de température intérieure

@@ -3,7 +3,7 @@
 joue des épisodes / produit des stats
 """
 
-from EnergyGym import Environnement, Evaluate
+from energy_gym import Environnement, Evaluate
 import os
 import matplotlib.pyplot as plt
 import click
@@ -152,7 +152,7 @@ def load(agent_path, ctxobj, silent = True):
     optimalpolicy = ctxobj['optimalpolicy']
     max_power = ctxobj['max_power']
 
-    from EnergyGym import get_truth
+    from energy_gym import get_truth
     Text, agenda = get_truth(circuit, visual_check = not silent)
     print("max_power is {}".format(max_power))
 
@@ -223,7 +223,7 @@ def main(ctx, t_ext, model, powerlimit, tc, n, optimalpolicy, hystpath):
     ctx.obj['optimalpolicy'] = optimalpolicy
     ctx.obj['occupation_agent_path'] = None
     if hystpath is not None :
-        from EnergyGym import pick_name
+        from energy_gym import pick_name
         _, saved = pick_name(name=hystpath)
         if saved :
             ctx.obj['occupation_agent_path'] = hystpath
@@ -259,7 +259,7 @@ def play(ctx, holiday, silent, k):
             circuit["schedule"][i] = [-1,-1]
 
     # demande à l'utilisateur un nom de réseau
-    from EnergyGym import pick_name
+    from energy_gym import pick_name
     agent_path, saved = pick_name()
 
     if saved == True:

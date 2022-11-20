@@ -3,7 +3,7 @@ import signal
 import sys
 import click
 import numpy as np
-from EnergyGym import get_truth, get_feed, pick_name, Building, Vacancy
+from energy_gym import get_truth, get_feed, pick_name, Building, Vacancy
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import models
 
