@@ -19,7 +19,6 @@ SCHEDULE = np.array([[7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1]])
 CW = 1162.5 #Wh/m3/K
 # debit de 5m3/h et deltaT entre départ et retour de 15°C
 MAX_POWER = 5 * CW * 15
-hh = 1
 CIRCUIT = {"Text":1, "dir": PATH, "schedule": SCHEDULE, "interval": INTERVAL, "wsize": WSIZE}
 
 def load(agent_path):
@@ -69,7 +68,7 @@ def stats(bat):
         print(f'{peko}% d\'énergie économisée')
     print("***********************************************************")
 
-def _sig_handler(signum, frame):  # pylint: disable=unused-argument
+def sig_handler(signum, frame):  # pylint: disable=unused-argument
     """Réception du signal de fermeture"""
     print(f'signal de fermeture ({signum}) reçu')
     sys.exit(0)
@@ -100,8 +99,8 @@ def main(agent_type, random_ts, mode, model, stepbystep):
 
     ts = None if random_ts else 1609104740
     nbepisodes = 200 if random_ts else 1
-    signal.signal(signal.SIGINT, _sig_handler)
-    signal.signal(signal.SIGTERM, _sig_handler)
+    signal.signal(signal.SIGINT, sig_handler)
+    signal.signal(signal.SIGTERM, sig_handler)
     for _ in range(nbepisodes):
         state = bat.reset(ts=ts)
         rewardtot = 0

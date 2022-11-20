@@ -142,7 +142,7 @@ class Environnement:
         q_c = datas[i-1, 0]
         text = datas[i-1:i+1, 1]
         tint = datas[i-1, 2]
-        delta = self._cte * ( q_c / self.model["C"] + text[0] / self._tcte )
+        delta = self._cte * (q_c / self.model["C"] + text[0] / self._tcte)
         delta += q_c / self.model["C"] + text[1] / self._tcte
         return tint * self._cte + self.interval * 0.5 * delta
 
@@ -160,7 +160,7 @@ class Environnement:
         tint = np.zeros(text.shape[0])
         tint[0] = datas[i, 2]
         for j in range(1, text.shape[0]):
-            delta = self._cte * ( self.max_power / self.model["C"] + text[j-1] / self._tcte )
+            delta = self._cte * (self.max_power / self.model["C"] + text[j-1] / self._tcte)
             delta += self.max_power / self.model["C"] + text[j] / self._tcte
             tint[j] = tint[j-1] * self._cte + self.interval * 0.5 * delta
         return tint
@@ -229,7 +229,8 @@ class Evaluate:
 
     def stats(self, datas):
         """basic stats"""
-        datas_occ = datas[datas[:, 3]!=0, 2]
+        idx = datas[:, 3] != 0
+        datas_occ = datas[idx, 2]
         inc = datas_occ[datas_occ[:] < self._env.tc - self._env.hh]
         luxe = datas_occ[datas_occ[:] > self._env.tc + self._env.hh]
         tocc_moy = round(np.mean(datas_occ[:]), 2)
@@ -342,7 +343,7 @@ class Evaluate:
             plt.plot(xr, mdatas[:, 1], color="blue", label="Text")
             plt.legend(loc='upper right')
 
-            nbg+=1
+            nbg += 1
             ax3 = plt.subplot(nbg, sharex=ax1)
             plt.ylabel("Conso W agent")
             plt.plot(xr, adatas[:, 0], color="black", label="consoAgent")
@@ -382,7 +383,7 @@ class Evaluate:
             plt.legend(loc='upper left')
             ax7.twinx()
             plt.ylabel("nb steps > cgt occ.")
-            plt.plot(xr, mdatas[:, 4],'o', markersize=1, color="red")
+            plt.plot(xr, mdatas[:, 4], 'o', markersize=1, color="red")
 
             if not snapshot:
                 plt.show()
