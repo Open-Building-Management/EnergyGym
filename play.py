@@ -6,12 +6,13 @@ from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
 import click
+
 from energy_gym import Environnement, Evaluate, get_truth, pick_name
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
 from basicplay import load
 
-# le circuit
+# pas de temps en secondes
 INTERVAL = 1800
 # nombre d'intervalles sur lequel la simulation sera menée
 WSIZE = 1 + 8*24*3600//INTERVAL
