@@ -64,7 +64,7 @@ def get_feed(feedid, interval, path="/var/opt/emoncms/phpfina"):
     meta = getMeta(feedid, path)
     full_length = meta["npoints"] * meta["interval"]
     tss = meta["start_time"]
-    npoints =  full_length // interval
+    npoints = full_length // interval
     return PyFina(feedid, path, tss, interval, npoints)
 
 
