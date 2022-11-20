@@ -1,4 +1,5 @@
-models = {
+"""banque de modèles R1C1"""
+MODELS = {
     "unreal":  {"R" : 2e-04, "C": 2e+07},
     "extremeb":{"R" : 2e-04, "C": 9e+07},
     "extreme": {"R" : 2e-04, "C": 2e+08},

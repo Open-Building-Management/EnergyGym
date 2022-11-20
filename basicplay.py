@@ -5,7 +5,7 @@ import click
 import numpy as np
 from energy_gym import get_truth, get_feed, pick_name, Building, Vacancy
 # on importe les configurations existantes de modèles depuis le fichier conf
-from conf import models
+from conf import MODELS
 
 AGENT_TYPES = ["random", "deterministic", "stochastic"]
 MODES = ["vacancy", "week"]
@@ -77,12 +77,12 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
 @click.option('--agent_type', type=click.Choice(AGENT_TYPES), prompt='comportement de l\'agent ?')
 @click.option('--random_ts', type=bool, default=False, prompt='timestamp de démarrage aléatoire ?')
 @click.option('--mode', type=click.Choice(MODES), prompt='type d\'épisode : période de non-occupation, semaine ?')
-@click.option('--model', type=click.Choice(models), prompt='modèle ?')
+@click.option('--model', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--stepbystep', type=bool, default=False, prompt='jouer l\'épisode pas à pas ?')
 def main(agent_type, random_ts, mode, model, stepbystep):
     """main command"""
-    R = models[model]["R"]
-    C = models[model]["C"]
+    R = MODELS[model]["R"]
+    C = MODELS[model]["C"]
     if mode == "week":
         text, agenda = get_truth(CIRCUIT, visual_check=False)
         bat = Building(text, agenda, WSIZE, MAX_POWER, 20, 0.9, R=R, C=C)

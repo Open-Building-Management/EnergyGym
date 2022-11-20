@@ -22,7 +22,7 @@ circuit = {"Text":1, "dir": dir,
            "schedule": schedule, "interval": interval, "wsize": wsize}
 
 # on importe les configurations existantes de modèles depuis le fichier conf
-from conf import models
+from conf import MODELS
 
 hh = 1
 optimalPolicies = ["intermittence", "occupation_permanente"]
@@ -209,7 +209,7 @@ def snapshots(storage, agent_name, agent_path, ctxobj):
 
 @click.group()
 @click.option('--t_ext', type=int, default=1, prompt='numéro du flux de température extérieure ?')
-@click.option('--model', type=click.Choice(models), prompt='modèle ?')
+@click.option('--model', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--powerlimit', type=float, default=1, prompt='coefficient de réduction de la puissance max ?')
 @click.option('--tc', type=int, default=20, prompt='température de consigne en °C')
 @click.option('--n', type=int, prompt='nombre d\'épisodes à jouer, 0 = mode snapshot : le système joue des épisodes prédéfinis')
@@ -228,7 +228,7 @@ def main(ctx, t_ext, model, powerlimit, tc, n, optimalpolicy, hystpath):
         if saved :
             ctx.obj['occupation_agent_path'] = hystpath
     ctx.obj['modelkey'] = model
-    ctx.obj['model'] = models[model]
+    ctx.obj['model'] = MODELS[model]
     ctx.obj['max_power'] = powerlimit * max_power
 
     global circuit
