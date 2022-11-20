@@ -89,7 +89,7 @@ def get_truth(circuit, visual_check):
     full_length = meta["npoints"] * meta["interval"]
     tss = meta["start_time"]
     tse = meta["start_time"] + full_length
-    npoints =  full_length // interval
+    npoints = full_length // interval
 
     if tse - tss <= wsize*interval + 4*24*3600 :
         print("Vous n'aurez pas assez de données pour travailler : impossible de poursuivre")

@@ -359,7 +359,7 @@ class Evaluate:
             #plt.plot(xr[1:], cumularewards, color="black", label="agent")
             plt.legend(loc='upper right')
 
-            nbg+=1
+            nbg += 1
             ax5 = plt.subplot(nbg, sharex=ax1)
             plt.ylabel("Conso W modèle")
             plt.plot(xr, mdatas[:, 0], color="orange", label="consoMod")
