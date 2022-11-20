@@ -1,6 +1,4 @@
-"""
-Evaluation toolbox
-"""
+"""Evaluation toolbox"""
 import random
 import signal
 import time
@@ -9,9 +7,7 @@ import math
 from collections import defaultdict
 
 import numpy as np
-#import tensorflow as tf
 import matplotlib.pyplot as plt
-#from matplotlib.patches import Rectangle
 
 from .planning import tsToHuman, get_random_start, get_level_duration
 from .heatgym import covering, MODELRC
@@ -462,7 +458,7 @@ class Evaluate:
             label = f'played_{suffix}' if suffix is not None else "played"
             name = f'{self._name.replace(".h5","")}_{label}_{now}'
             plt.savefig(name)
-            header="ts"
+            header = "ts"
             for player in ["agent", "modèle"]:
                 header = f'{header},{player}_Tintmoy,{player}_nbpts_luxe'
                 header = f'{header},{player}_nbpts_inconfort,{player}_conso'

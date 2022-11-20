@@ -320,8 +320,8 @@ class Building(Vacancy):
             tmax = np.max(self.tint[0: self.i])
             occupation = self._agenda[self.pos:self.pos+self.wsize+4*24*3600//self._interval]
             _, zone_confort, zones_occ = covering(tmin, tmax, self._tc, 1,
-                                                 self.tsvrai, self.wsize, self._interval,
-                                                 occupation, self._xr)
+                                                  self.tsvrai, self.wsize, self._interval,
+                                                  occupation, self._xr)
             self._render(zone_confort=zone_confort, zones_occ=zones_occ, stepbystep=stepbystep)
         else:
             self._render(stepbystep=stepbystep)
