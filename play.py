@@ -187,8 +187,7 @@ def snapshots(storage, agent_name, sandbox, **kwargs):
 @click.option('--k', type=float, default=0.9, prompt='paramètre énergie')
 @click.option('--hystpath', type=str, default=None)
 def main(nbtext, modelkey, powerlimit, tc, nbepisodes, optimalpolicy,
-         holiday, silent, k, hystpath
-):
+         holiday, silent, k, hystpath):
     """main command"""
     occupation_agent_path = None
     if hystpath is not None :
@@ -258,6 +257,7 @@ def main(nbtext, modelkey, powerlimit, tc, nbepisodes, optimalpolicy,
 
             sandbox.run(silent=silent)
             sandbox.close(suffix=optimalpolicy)
+
 
 if __name__ == "__main__":
     main()  # pylint: disable=no-value-for-parameter
