@@ -15,7 +15,7 @@ MODES = ["vacancy", "week"]
 INTERVAL = 3600
 WSIZE = 1 + 8*24*3600 // INTERVAL
 PATH = "datas"
-SCHEDULE = np.array([[7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1]])
+SCHEDULE = np.array([[7, 17], [7, 17], [7, 17], [7, 17], [7, 17], [-1, -1], [-1, -1]])
 CW = 1162.5 #Wh/m3/K
 # debit de 5m3/h et deltaT entre départ et retour de 15°C
 MAX_POWER = 5 * CW * 15

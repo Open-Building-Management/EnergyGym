@@ -16,7 +16,7 @@ INTERVAL = 1800
 WSIZE = 1 + 8*24*3600//INTERVAL
 PATH = "datas"
 
-SCHEDULE = np.array([[7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1]])
+SCHEDULE = np.array([[7, 17], [7, 17], [7, 17], [7, 17], [7, 17], [-1, -1], [-1, -1]])
 CW = 1162.5 #Wh/m3/K
 MAX_POWER = 5 * CW * 15
 
@@ -36,20 +36,20 @@ class EnvHyst(Environnement):
     """politique optimale de type hystérésis avec un modèle déterministe"""
     def play(self, datas):
         # doit-on mettre en route le chauffage à l'étape 0 ?
-        action = datas[0,2] <= self.tc
-        datas[0,0] = action * self.max_power
+        action = datas[0, 2] <= self.tc
+        datas[0, 0] = action * self.max_power
 
         # itération de l'étape 1 à la fin de l'épisode
         for i in range(1, datas.shape[0]):
             # l'état précédant est totalement déterminé, on peut calculer la température à l'état i
-            datas[i,2] = self.sim(datas, i)
+            datas[i, 2] = self.sim(datas, i)
             # doit-on mettre en route le chauffage à l'étape i ?
-            if datas[i,2] > self.tc + self.hh or datas[i,2] < self.tc - self.hh :
-                action = datas[i,2] <= self.tc
-                datas[i,0] = action * self.max_power
+            if datas[i, 2] > self.tc + self.hh or datas[i, 2] < self.tc - self.hh :
+                action = datas[i, 2] <= self.tc
+                datas[i, 0] = action * self.max_power
             else:
                 # on est dans la fenêtre > on ne change rien :-)
-                datas[i,0] = datas[i-1,0]
+                datas[i, 0] = datas[i-1, 0]
 
         return datas
 
@@ -58,32 +58,32 @@ class EnvHystNocc(Environnement):
     """politique optimale en intermittence d'occupation avec un modèle déterministe"""
     def play(self, datas):
         # doit-on mettre en route le chauffage à l'étape 0 ?
-        if datas[0,3] == 0:
-            tint_sim = self.sim2target(datas,0)
+        if datas[0, 3] == 0:
+            tint_sim = self.sim2target(datas, 0)
             action = tint_sim[-1] <= self.tc
         else :
-            action = datas[0,2] <= self.tc
-        datas[0,0] = action * self.max_power
+            action = datas[0, 2] <= self.tc
+        datas[0, 0] = action * self.max_power
 
         # itération de l'étape 1 à la fin de l'épisode
-        for i in range(1,datas.shape[0]):
+        for i in range(1, datas.shape[0]):
             #  calcul de la température à l'état i
-            datas[i,2] = self.sim(datas, i)
+            datas[i, 2] = self.sim(datas, i)
             # doit-on mettre en route le chauffage à l'étape i ?
-            if datas[i,3] == 0 :
+            if datas[i, 3] == 0 :
                 # pas d'occupation - calcul à la cible
                 tint_sim = self.sim2target(datas, i)
                 action = tint_sim[-1] <= self.tc
-                datas[i,0] = action * self.max_power
+                datas[i, 0] = action * self.max_power
             else:
                 # en occupation
                 # hystérésis classique
-                if datas[i,2] > self.tc + self.hh or datas[i,2] < self.tc - self.hh :
-                    action = datas[i,2] <= self.tc
-                    datas[i,0] = action * self.max_power
+                if datas[i, 2] > self.tc + self.hh or datas[i, 2] < self.tc - self.hh :
+                    action = datas[i, 2] <= self.tc
+                    datas[i, 0] = action * self.max_power
                 else:
                     # on est dans la fenêtre > on ne change rien :-)
-                    datas[i,0] = datas[i-1,0]
+                    datas[i, 0] = datas[i-1, 0]
 
         return datas
 
@@ -94,7 +94,7 @@ class EvalHyst(Evaluate):
         policy = self._policy
         self._rewards[policy]["confort"][i] = self._rewards[policy]["confort"][i-1]
         tc = self._env.tc
-        reward = - abs(datas[i,2] - tc) * self._env.interval / 3600
+        reward = - abs(datas[i, 2] - tc) * self._env.interval / 3600
         self._rewards[policy]["confort"][i] += reward
         return reward
 
@@ -130,7 +130,7 @@ class EvalVote(Evaluate):
                 # pénalite pas adaptée si le bâtiment est tellement déperditif et son système de chauffage si sous_dimensionné
                 # qu'il lui faut parfois lorsqu'il fait très froid chauffer au dessus de la consigne hors occupation
                 # pour pouvoir être sur d'avoir la consigne à l'ouverture
-                reward["gaspi"] = - max(0, datas[i,2] - tc) * self._env.interval / 3600
+                reward["gaspi"] = - max(0, datas[i, 2] - tc) * self._env.interval / 3600
 
         for rewtyp in reward_types:
             self._rewards[policy][rewtyp][i] += reward[rewtyp]
@@ -142,10 +142,10 @@ def load_agent(agent_path):
     """load tensorflow network"""
     import tensorflow as tf
     # custom_objects est nécessaire pour charger certains réseaux entrainés sur le cloud, via les github actions
-    agent = tf.keras.models.load_model(agent_path, compile = False, custom_objects={'Functional':tf.keras.models.Model})
+    agent = tf.keras.models.load_model(agent_path, compile=False, custom_objects={'Functional':tf.keras.models.Model})
     return agent
 
-def load(agent_path, ctxobj, silent = True):
+def load(agent_path, ctxobj, silent=True):
     """load tensorflow network and creates environment"""
     agent = load_agent(agent_path)
     tc = ctxobj['tc']
@@ -153,7 +153,7 @@ def load(agent_path, ctxobj, silent = True):
     optimalpolicy = ctxobj['optimalpolicy']
     max_power = ctxobj['max_power']
 
-    text, agenda = get_truth(circuit, visual_check = not silent)
+    text, agenda = get_truth(circuit, visual_check=not silent)
     print(f'max_power is {max_power}')
 
     if optimalpolicy == "occupation_permanente":
@@ -183,7 +183,7 @@ def snapshots(storage, agent_name, ctxobj, sandbox):
 
     # reconstruit le fichier markdown en inspectant le répertoire snapshot
     with open(f'{sub}/README.md', "w", encoding="utf-8") as readme:
-        readme.write(f'# {agent_name.replace(".h5","")}\n')
+        readme.write(f'# {agent_name.replace(".h5", "")}\n')
         all_files = os.listdir(sub)
         all_files.sort()
         family = defaultdict(lambda:[])
@@ -191,7 +191,7 @@ def snapshots(storage, agent_name, ctxobj, sandbox):
             if file.endswith(".png"):
                 root = True
                 for policy in OPTIMAL_POLICIES :
-                    if file.replace(".png","").endswith(policy) :
+                    if file.replace(".png", "").endswith(policy) :
                         family[policy].append(f'![]({file})')
                         root = False
                 if root:
@@ -224,6 +224,8 @@ def main(ctx, text, model, powerlimit, tc, nbepisodes, optimalpolicy, hystpath):
     ctx.obj['model'] = MODELS[model]
     ctx.obj['max_power'] = powerlimit * MAX_POWER
 
+    #suffix = f'{modelkey}_{optimalpolicy}'
+
     global circuit
     circuit["Text"] = text
 
@@ -248,12 +250,12 @@ def play(ctx, holiday, silent, k):
             if tirage not in holidays:
                 holidays.append(tirage)
         for i in holidays:
-            circuit["schedule"][i] = [-1,-1]
+            circuit["schedule"][i] = [-1, -1]
 
     # demande à l'utilisateur un nom de réseau
     agent_path, saved = pick_name()
 
-    if saved == True:
+    if saved:
         agent, env = load(agent_path, ctx.obj, silent=silent)
         args = {}
         if nbepisodes:
