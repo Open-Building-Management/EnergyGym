@@ -3,6 +3,7 @@ import signal
 import sys
 import click
 import numpy as np
+import tensorflow as tf
 from energy_gym import get_truth, get_feed, pick_name, Building, Vacancy
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
@@ -23,7 +24,6 @@ CIRCUIT = {"Text":1, "dir": PATH, "schedule": SCHEDULE, "interval": INTERVAL, "w
 
 def load(agent_path):
     """load tensorflow network"""
-    import tensorflow as tf
     # custom_objects est nécessaire pour charger certains réseaux entrainés sur le cloud, via les github actions
     agent = tf.keras.models.load_model(agent_path, compile=False, custom_objects={'Functional':tf.keras.models.Model})
     return agent
