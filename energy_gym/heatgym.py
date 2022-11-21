@@ -1,6 +1,5 @@
 """heatgym module"""
 import random
-from typing import Optional
 import math
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
@@ -113,7 +112,7 @@ class Vacancy(gym.Env):
         self._ax3 = None
 
 
-    def _reset(self, ts=None, tint=None, seed:Optional[int] = None):
+    def _reset(self, ts=None, tint=None):
         """
         generic reset method
 
@@ -127,7 +126,6 @@ class Vacancy(gym.Env):
 
         retourne self.state
         """
-        super().seed(seed)
         if ts is None:
             start = self._tss
             tse = self._tse
@@ -238,7 +236,7 @@ class Vacancy(gym.Env):
             self.tot_eko += 1
         return reward
 
-    def reset(self, ts=None, tint=None, seed:Optional[int] = None, wsize=None):  # pylint: disable=W0221
+    def reset(self, ts=None, tint=None, wsize=None):  # pylint: disable=W0221
         """episode reset"""
         if not isinstance(wsize, int):
             self.wsize = 63 * 3600 // self._interval
@@ -247,7 +245,7 @@ class Vacancy(gym.Env):
         self.tot_eko = 0
         if not isinstance(tint, (int, float)):
             tint = 20
-        return self._reset(ts=ts, tint=tint, seed=seed)
+        return self._reset(ts=ts, tint=tint)
 
     def step(self, action):
         """return state, reward pour previous state, done, _"""
@@ -304,9 +302,9 @@ class Building(Vacancy):
                 self.tot_eko += 1
         return reward
 
-    def reset(self, ts=None, tint=None, seed: Optional[int] = None, wsize=None):
+    def reset(self, ts=None, tint=None, wsize=None):
         self.tot_eko = 0
-        return self._reset(ts=ts, tint=tint, seed=seed)
+        return self._reset(ts=ts, tint=tint)
 
     def step(self, action):
         reward = self._step(action)

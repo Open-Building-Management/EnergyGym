@@ -120,7 +120,6 @@ def main(agent_type, random_ts, mode, model, stepbystep):
                     action = np.argmax(result)
                 if agent_type == "stochastic":
                     # stochastic policy
-                    import tensorflow as tf
                     act_probs = tf.nn.softmax(result, axis=1)
                     action = np.random.choice(act_probs.shape[1], p=act_probs.numpy()[0])
             state, reward, done, _ = bat.step(action)
