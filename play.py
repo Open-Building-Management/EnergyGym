@@ -102,11 +102,7 @@ class EvalVote(Evaluate):
     """récompense pour une occupation intermittente"""
     def reward(self, datas, i):
         policy = self._policy
-        reward_types = ["confort", "vote", "energy", "gaspi"]
-        reward = {}
-        for rewtyp in reward_types:
-            self._rewards[policy][rewtyp][i] = self._rewards[policy][rewtyp][i-1]
-            reward[rewtyp] = 0
+        reward = defaultdict(lambda:0)
         tc = self._env.tc
 
         if datas[i, 3] != 0:
@@ -130,10 +126,8 @@ class EvalVote(Evaluate):
                 # qu'il lui faut parfois lorsqu'il fait très froid chauffer au dessus de la consigne hors occupation
                 # pour pouvoir être sur d'avoir la consigne à l'ouverture
                 reward["gaspi"] = - max(0, datas[i, 2] - tc) * self._env.interval / 3600
-
-        for rewtyp in reward_types:
-            self._rewards[policy][rewtyp][i] += reward[rewtyp]
-
+        for rewtyp in ["confort", "vote", "energy", "gaspi"]:
+            self._rewards[policy][rewtyp][i] = self._rewards[policy][rewtyp][i-1] + reward[rewtyp]
         result = sum(reward.values())
         return result
 
