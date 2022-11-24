@@ -88,7 +88,7 @@ def main(agent_type, random_ts, mode, model, stepbystep):
         text, agenda = get_truth(CIRCUIT, visual_check=False)
         bat = Building(text, agenda, WSIZE, MAX_POWER, 20, 0.9, R=R, C=C)
     if mode == "vacancy":
-        text = get_feed(CIRCUIT["Text"], CIRCUIT["interval"])
+        text = get_feed(CIRCUIT["Text"], CIRCUIT["interval"], path=CIRCUIT["dir"])
         bat = Vacancy(text, MAX_POWER, 20, 0.9, R=R, C=C)
 
     # demande à l'utilisateur un nom de réseau
