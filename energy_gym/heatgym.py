@@ -72,6 +72,10 @@ class Vacancy(gym.Env):
         self._interval = text.step
         # nombre de pas dans un épisode (taille de la fenêtre)
         self.wsize = None
+        # nombre de pas que l'on peut remonter dans l'histoire passée
+        self.pastsize = 8 * 3600 // self._interval
+        # tableau numpy des températures passées
+        self.tint_past = np.zeros(pastsize)
         # timestamp du début de l'épisode
         self.tsvrai = None
         # position de l'épisode dans la timesérie text
@@ -92,6 +96,7 @@ class Vacancy(gym.Env):
         self.tot_eko = 0
         self._max_power = max_power
         self._tc = tc
+        self._tc_episode = None
         self._k = k
         self.model = model if model else MODELRC
         # la constante de temps du modèle électrique équivalent
@@ -127,7 +132,7 @@ class Vacancy(gym.Env):
         retourne self.state
         """
         if ts is None:
-            start = self._tss
+            start = self._tss + self.pastsize * self._interval
             tse = self._tse
             end = tse - self.wsize * self._interval - 4*24*3600
             # on tire un timestamp avant fin mai OU après début octobre
@@ -135,18 +140,35 @@ class Vacancy(gym.Env):
         self.i = 0
         self.pos = (ts - self._tss) // self._interval
         self.tsvrai = self._tss + self.pos * self._interval
+        # on fixe la température de consigne (à la cible) de notre épisode 
+        self._tc_episode = self._tc + random.randint(-2,2)
         #print("episode timestamp : {}".format(self.tsvrai))
         # x axis = time for human
         xrs = np.arange(self.tsvrai, self.tsvrai + self.wsize * self._interval, self._interval)
         self._xr = np.array(xrs, dtype='datetime64[s]')
         text = self.text[self.pos]
-        if not isinstance(tint, (int, float)):
-            tint = random.randint(17, 20)
         self.tint = np.zeros(self.wsize + 1)
         self.action = np.zeros(self.wsize + 1)
-        self.tint[self.i] = tint
+        # construction d'une histoire passée
+        if not isinstance(tint, (int, float)):
+            tint = random.randint(17, 20) 
+        self.tint_past[0] = tint
+        action = self.tint_past[0] <= self._tc_episode
+        q_c = action * self._max_power
+        for i in range(1, self.pastsize):
+            pos = self.pos - self.pastsize + 1 + i
+            delta = self._cte * (q_c / self.model["C"] + self.text[pos-1] / self._tcte)
+            delta += q_c / self.model["C"] + self.text[pos] / self._tcte
+            self.tint_past[i] = self.tint_past[i-1] * self._cte + self._interval * 0.5 * delta
+            if self.tint_past[i] >= self._tc_episode + 1 or self.tint_past[i] <= self._tc_episode - 1:
+                action = self.tint_past[i] <= self._tc_episode
+            q_c = action * self._max_power
+        # on vient de s'arrêter à self.pos
+        # on a donc notre condition initiale en température intérieure
+        self.tint[0] = self.tint_past[-1]
+        # construction de state
         tc, nbh = self.update_non_phys_params()
-        self.state = np.array([text, tint, tc, nbh], dtype=np.float32)
+        self.state = np.array([text, self.tint[0], tc, nbh], dtype=np.float32)
         self._tot_reward = 0
         return self.state
 
@@ -195,32 +217,31 @@ class Vacancy(gym.Env):
         delta = self._cte * (q_c / self.model["C"] + text[0] / self._tcte)
         delta += q_c / self.model["C"] + text[1] / self._tcte
         self.i += 1
-        x = self.state[1] * self._cte + self._interval * 0.5 * delta
-        self.tint[self.i] = x
+        tint = self.state[1] * self._cte + self._interval * 0.5 * delta
+        self.tint[self.i] = tint
         # non physical parameters at next state
         tc, nbh = self.update_non_phys_params()
         # on met à jour state avec les données de next state
-        self.state = np.array([text[1], x, tc, nbh], dtype=np.float32)
+        self.state = np.array([text[1], tint, tc, nbh], dtype=np.float32)
+        self.tint_past = np.array([*self.tint_past[1:], tint])
         # return reward at state
         return reward
 
     def update_non_phys_params(self):
         """
-        estimates :
-        - tc*occupation
+        return 
+        - temperature de consigne à la cible
         - nbh -> occupation change (from occupied to empty and vice versa)
 
         *Note that 1h30 has to be coded as 1.5*
-
-        In the vacancy case, tc*occupation is always 0
         """
-        return 0, (self.wsize - 1 - self.i) * self._interval / 3600
+        return self._tc_episode, (self.wsize - 1 - self.i) * self._interval / 3600
 
     def reward(self, action):
         """reward at state action"""
         self.reward_label = "Vote_final_reward_only"
         reward = 0
-        tc = self._tc
+        tc = self.state[2]
         if self.state[3] == 0 :
             # l'occupation du bâtiment commence
             # pour converger vers la température cible
