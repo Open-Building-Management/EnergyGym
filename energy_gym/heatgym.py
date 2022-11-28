@@ -75,7 +75,7 @@ class Vacancy(gym.Env):
         # nombre de pas que l'on peut remonter dans l'histoire passée
         self.pastsize = 8 * 3600 // self._interval
         # tableau numpy des températures passées
-        self.tint_past = np.zeros(pastsize)
+        self.tint_past = np.zeros(self.pastsize)
         # timestamp du début de l'épisode
         self.tsvrai = None
         # position de l'épisode dans la timesérie text
@@ -140,7 +140,7 @@ class Vacancy(gym.Env):
         self.i = 0
         self.pos = (ts - self._tss) // self._interval
         self.tsvrai = self._tss + self.pos * self._interval
-        # on fixe la température de consigne (à la cible) de notre épisode 
+        # on fixe la température de consigne (à la cible) de notre épisode
         self._tc_episode = self._tc + random.randint(-2,2)
         #print("episode timestamp : {}".format(self.tsvrai))
         # x axis = time for human
@@ -151,7 +151,7 @@ class Vacancy(gym.Env):
         self.action = np.zeros(self.wsize + 1)
         # construction d'une histoire passée
         if not isinstance(tint, (int, float)):
-            tint = random.randint(17, 20) 
+            tint = random.randint(17, 20)
         self.tint_past[0] = tint
         action = self.tint_past[0] <= self._tc_episode
         q_c = action * self._max_power
@@ -229,7 +229,7 @@ class Vacancy(gym.Env):
 
     def update_non_phys_params(self):
         """
-        return 
+        return
         - temperature de consigne à la cible
         - nbh -> occupation change (from occupied to empty and vice versa)
 
