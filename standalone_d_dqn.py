@@ -56,9 +56,6 @@ class Memory:
         return len(self._samples)
 
 
-memory = Memory(50000)
-
-
 def choose_action(state, primary_network, eps, num_actions):
     """epsilon greedy action"""
     if random.random() < eps:
@@ -141,6 +138,8 @@ def main(nbtext, modelkey, k):
     primary_network.compile(optimizer=keras.optimizers.Adam(), loss='mse')
     eps = MAX_EPSILON
     steps = 0
+
+    memory = Memory(50000)
 
     def dot(num):
         """replace dots"""
