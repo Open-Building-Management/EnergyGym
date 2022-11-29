@@ -2,10 +2,11 @@
 import random
 import datetime as dt
 import math
+import click
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-import click
+
 
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
@@ -97,8 +98,10 @@ def train(primary_network, mem, state_size, target_network=None):
         prim_actions = np.argmax(prim_qsad.numpy(), axis=1)
         q_from_target = target_network(next_states)
         updates[valid_idxs] += GAMMA * q_from_target.numpy()[
-                                            batch_idxs[valid_idxs],
-                                            prim_actions[valid_idxs]]
+            batch_idxs[valid_idxs],
+            prim_actions[valid_idxs]
+        ]
+
     # on calcule le target_q à utiliser dans train_on_batch
     target_q = prim_qsa.numpy()
     target_q[batch_idxs, actions] = updates
@@ -108,7 +111,7 @@ def train(primary_network, mem, state_size, target_network=None):
     if target_network is not None:
         # slowly update target_network from primary_network
         for t_tv, p_tv in zip(target_network.trainable_variables,
-                            primary_network.trainable_variables):
+                              primary_network.trainable_variables):
             t_tv.assign(t_tv * (1 - TAU) + p_tv * TAU)
     return loss
 
@@ -138,8 +141,10 @@ def main(nbtext, modelkey, k):
     primary_network.compile(optimizer=keras.optimizers.Adam(), loss='mse')
     eps = MAX_EPSILON
     steps = 0
+
     def dot(num):
-        return str(num).replace(".","dot")
+        """replace dots"""
+        return str(num).replace(".", "dot")
 
     for i in range(NUM_EPISODES):
         state = env.reset()
