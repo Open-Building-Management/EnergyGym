@@ -80,7 +80,8 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
 @click.option('--mode', type=click.Choice(MODES), prompt='type d\'épisode : période de non-occupation, semaine ?')
 @click.option('--model', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--stepbystep', type=bool, default=False, prompt='jouer l\'épisode pas à pas ?')
-def main(agent_type, random_ts, mode, model, stepbystep):
+@click.option('--mirrorplay', type=bool, default=False, prompt='jouer le mirrorplay après avoir joué l\'épisode ?')
+def main(agent_type, random_ts, mode, model, stepbystep, mirrorplay):
     """main command"""
     R = MODELS[model]["R"]
     C = MODELS[model]["C"]
@@ -135,7 +136,7 @@ def main(agent_type, random_ts, mode, model, stepbystep):
                         label = f'chauffage arrêté pendant {bat.tot_eko} pas'
                         label = f'{label} - Tint à l\'ouverture {bat.tint[-2]:.2f}°C'
                     bat.render(stepbystep=False, label=label)
-                    if mode == "vacancy":
+                    if mode == "vacancy" and mirrorplay:
                         mirror_play(bat)
                 break
 

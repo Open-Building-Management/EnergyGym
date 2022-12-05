@@ -245,10 +245,7 @@ class Vacancy(gym.Env):
         if self.state[3] == 0 :
             # l'occupation du bâtiment commence
             # pour converger vers la température cible
-            if self.state[1] >= tc :
-                reward = -15 * (self.state[1] - tc - 1) - 20
-            if self.state[1] < tc :
-                reward = -15 * (tc - 1 - self.state[1]) - 20
+            reward = - 15 * abs(self.state[1] - tc)
             # le bonus énergétique
             if self.state[1] <= tc + 1 and self.state[1] >= tc - 3:
                 reward += self.tot_eko * self._k * self._interval / 3600
