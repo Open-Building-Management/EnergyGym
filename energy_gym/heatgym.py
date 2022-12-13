@@ -58,9 +58,10 @@ class Vacancy(gym.Env):
         """
         text : objet PyFina de température extérieure
 
-        state : tableau numpy de 4 éléments :
-        - température extérieure
-        - température intérieure
+        state : tableau numpy :
+        - historique de température extérieure de taille n
+        - historique de température intérieure de taille n
+        - historique de chauffage de taille n-1
         - tc * occupation
         - nb hours -> occupation change (from occupied to empty and vice versa)
         """
@@ -73,9 +74,13 @@ class Vacancy(gym.Env):
         # nombre de pas dans un épisode (taille de la fenêtre)
         self.wsize = None
         # nombre de pas que l'on peut remonter dans l'histoire passée
-        self.pastsize = 8 * 3600 // self._interval
+        self.pastsize = model.get("pastsize", 1)
+        if "nbh" in model:
+            self.pastsize = model["nbh"] * 3600 // self._interval
         # tableau numpy des températures passées
         self.tint_past = np.zeros(self.pastsize)
+        self.text_past = np.zeros(self.pastsize)
+        self.q_c_past = np.zeros(self.pastsize - 1)
         # timestamp du début de l'épisode
         self.tsvrai = None
         # position de l'épisode dans la timesérie text
@@ -96,7 +101,7 @@ class Vacancy(gym.Env):
         self.tot_eko = 0
         self._max_power = max_power
         self._tc = tc
-        self._tc_episode = None
+        self.tc_episode = None
         self._k = k
         self.model = model if model else MODELRC
         # la constante de temps du modèle électrique équivalent
@@ -104,7 +109,7 @@ class Vacancy(gym.Env):
         self._cte = math.exp(-self._interval/self._tcte)
         self.action_space = spaces.Discrete(2)
         high = np.finfo(np.float32).max
-        self.observation_space = spaces.Box(-high, high, (4,), dtype=np.float32)
+        self.observation_space = spaces.Box(-high, high, (3*self.pastsize+1,), dtype=np.float32)
         #print(self.observation_space)
         self.state = None
         # labels
@@ -141,36 +146,45 @@ class Vacancy(gym.Env):
         self.pos = (ts - self._tss) // self._interval
         self.tsvrai = self._tss + self.pos * self._interval
         # on fixe la température de consigne (à la cible) de notre épisode
-        self._tc_episode = self._tc + random.randint(-2,2)
+        self.tc_episode = self._tc + random.randint(-2,2)
         #print("episode timestamp : {}".format(self.tsvrai))
         # x axis = time for human
         xrs = np.arange(self.tsvrai, self.tsvrai + self.wsize * self._interval, self._interval)
         self._xr = np.array(xrs, dtype='datetime64[s]')
-        text = self.text[self.pos]
         self.tint = np.zeros(self.wsize + 1)
         self.action = np.zeros(self.wsize + 1)
         # construction d'une histoire passée
         if not isinstance(tint, (int, float)):
             tint = random.randint(17, 20)
         self.tint_past[0] = tint
-        action = self.tint_past[0] <= self._tc_episode
+        action = self.tint_past[0] <= self.tc_episode
         q_c = action * self._max_power
+        self.text_past = self.text[self.pos - self.pastsize + 1: self.pos + 1]
         for i in range(1, self.pastsize):
+            self.q_c_past[i-1] = q_c
             pos = self.pos - self.pastsize + 1 + i
             delta = self._cte * (q_c / self.model["C"] + self.text[pos-1] / self._tcte)
             delta += q_c / self.model["C"] + self.text[pos] / self._tcte
             self.tint_past[i] = self.tint_past[i-1] * self._cte + self._interval * 0.5 * delta
-            if self.tint_past[i] >= self._tc_episode + 1 or self.tint_past[i] <= self._tc_episode - 1:
-                action = self.tint_past[i] <= self._tc_episode
+            if self.tint_past[i] >= self.tc_episode + 1 or self.tint_past[i] <= self.tc_episode - 1:
+                action = self.tint_past[i] <= self.tc_episode
             q_c = action * self._max_power
         # on vient de s'arrêter à self.pos
         # on a donc notre condition initiale en température intérieure
         self.tint[0] = self.tint_past[-1]
         # construction de state
         tc, nbh = self.update_non_phys_params()
-        self.state = np.array([text, self.tint[0], tc, nbh], dtype=np.float32)
+        self.state = self._state(tc, nbh)
         self._tot_reward = 0
         return self.state
+
+    def _state(self, tc, nbh):
+        """return the current state after all calculations are done"""
+        return np.array([*self.text_past,
+                         *self.tint_past,
+                         *self.q_c_past,
+                         tc,
+                         nbh], dtype=np.float32)
 
     def _render(self, zone_confort=None, zones_occ=None, stepbystep=True, label=None):
         """generic render method"""
@@ -212,18 +226,21 @@ class Vacancy(gym.Env):
         # Qc at state
         q_c = action * self._max_power
         self.action[self.i] = action
-        # indoor temps at next state
+        # indoor temp at next state
         text = self.text[self.pos+self.i:self.pos+self.i+2]
         delta = self._cte * (q_c / self.model["C"] + text[0] / self._tcte)
         delta += q_c / self.model["C"] + text[1] / self._tcte
+        tint = self.tint[self.i] * self._cte + self._interval * 0.5 * delta
         self.i += 1
-        tint = self.state[1] * self._cte + self._interval * 0.5 * delta
         self.tint[self.i] = tint
         # non physical parameters at next state
         tc, nbh = self.update_non_phys_params()
         # on met à jour state avec les données de next state
-        self.state = np.array([text[1], tint, tc, nbh], dtype=np.float32)
         self.tint_past = np.array([*self.tint_past[1:], tint])
+        self.text_past = np.array([*self.text_past[1:], text[1]])
+        if self.pastsize > 1:
+            self.q_c_past = np.array([*self.q_c_past[1:], q_c])
+        self.state = self._state(tc, nbh)
         # return reward at state
         return reward
 
@@ -235,19 +252,20 @@ class Vacancy(gym.Env):
 
         *Note that 1h30 has to be coded as 1.5*
         """
-        return self._tc_episode, (self.wsize - 1 - self.i) * self._interval / 3600
+        return self.tc_episode, (self.wsize - 1 - self.i) * self._interval / 3600
 
     def reward(self, action):
         """reward at state action"""
         self.reward_label = "Vote_final_reward_only"
         reward = 0
-        tc = self.state[2]
-        if self.state[3] == 0 :
+        tc = self.tc_episode
+        tint = self.tint[self.i]
+        if self.state[-1] == 0 :
             # l'occupation du bâtiment commence
             # pour converger vers la température cible
-            reward = - 15 * abs(self.state[1] - tc)
+            reward = - 15 * abs(tint - tc) * self._interval / 3600
             # le bonus énergétique
-            if self.state[1] <= tc + 1 and self.state[1] >= tc - 3:
+            if tc - 3 <= tint <= tc + 1 :
                 reward += self.tot_eko * self._k * self._interval / 3600
         # calcul de l'énergie économisée
         if not action :
@@ -291,7 +309,7 @@ class Building(Vacancy):
 
     def update_non_phys_params(self):
         pos1 = self.pos + self.i
-        tc = self._agenda[pos1] * self._tc
+        tc = self._agenda[pos1] * self.tc_episode
         pos2 = self.pos + self.i + self.wsize + 4 * 24 * 3600 // self._interval
         occupation = self._agenda[pos1:pos2]
         nbh = get_level_duration(occupation, 0) * self._interval / 3600
@@ -299,24 +317,19 @@ class Building(Vacancy):
 
     def reward(self, action):
         reward = 0
-        tc = self._tc
-        if self.state[2] != 0:
-            l_0 = tc - 5
-            l_1 = tc - 3
-            l_2 = tc - 1
-            if abs(self.state[1] - tc) > 1:
-                reward -= abs(self.state[1] - tc) * self._interval / 3600
+        if self.state[-2] != 0:
+            tc = self.state[-2]
+            tint = self.tint[self.i]
+            reward -= abs(tint - tc) * self._interval / 3600
             if self._agenda[self.pos+self.i-1] == 0:
-                if self.state[1] < l_0:
-                    reward -= 30
-                if self.state[1] < l_1:
-                    reward -= 30
-                if self.state[1] < l_2:
-                    reward -= 20
-        else:
-            if action :
-                reward -= (self._k + max(0, self.state[1] - tc)) * self._interval / 3600
+                # was the building empty at previous state ?
+                if tc - 3 <= tint <= tc + 1 :
+                    reward += self.tot_eko * self._k * self._interval / 3600
             else :
+                if self.tot_eko:
+                    self.tot_eko = 0
+        else:
+            if not action :
                 self.tot_eko += 1
         return reward
 
@@ -326,9 +339,7 @@ class Building(Vacancy):
 
     def step(self, action):
         reward = self._step(action)
-        done = None
-        if self.i == self.wsize - 1:
-            done = True
+        done = True if self.i == self.wsize - 1 else None
         return self.state, reward, done, {}
 
     def render(self, stepbystep=True, label=None):
