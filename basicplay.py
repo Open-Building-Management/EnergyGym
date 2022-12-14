@@ -40,7 +40,9 @@ def mirror_play(bat):
     """
     limit = bat.tot_eko
     ts = bat.tsvrai
-    bat.reset(ts=ts)
+    tc_episode = bat.tc_episode
+    tint0 = bat.tint[0]
+    bat.reset(ts=ts, tint=tint0, tc_episode=tc_episode)
     while True:
         action = 0 if bat.i < limit else 1
         _, _, done, _ = bat.step(action)

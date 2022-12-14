@@ -122,7 +122,7 @@ class Vacancy(gym.Env):
         self._ax3 = None
 
 
-    def _reset(self, ts=None, tint=None):
+    def _reset(self, ts=None, tint=None, tc_episode=None):
         """
         generic reset method
 
@@ -145,9 +145,12 @@ class Vacancy(gym.Env):
         self.i = 0
         self.pos = (ts - self._tss) // self._interval
         self.tsvrai = self._tss + self.pos * self._interval
-        # on fixe la température de consigne (à la cible) de notre épisode
-        self.tc_episode = self._tc + random.randint(-2,2)
         #print("episode timestamp : {}".format(self.tsvrai))
+        # on fixe la température de consigne (à la cible) de notre épisode
+        if isinstance(tc_episode, (int, float)):
+            self.tc_episode = tc_episode
+        else:
+            self.tc_episode = self._tc + random.randint(-2,2)
         # x axis = time for human
         xrs = np.arange(self.tsvrai, self.tsvrai + self.wsize * self._interval, self._interval)
         self._xr = np.array(xrs, dtype='datetime64[s]')
@@ -155,7 +158,7 @@ class Vacancy(gym.Env):
         self.action = np.zeros(self.wsize + 1)
         # construction d'une histoire passée
         if not isinstance(tint, (int, float)):
-            tint = random.randint(17, 20)
+            tint = self.tc_episode + random.randint(-3, 0)
         self.tint_past[0] = tint
         action = self.tint_past[0] <= self.tc_episode
         q_c = action * self._max_power
@@ -195,7 +198,7 @@ class Vacancy(gym.Env):
             self._ax3 = plt.subplot(313, sharex=self._ax1)
             if stepbystep :
                 plt.ion()
-        title = f'{self.tsvrai} - score : {self._tot_reward:.2f}'
+        title = f'{self.tsvrai} - score: {self._tot_reward:.2f} - tc_episode: {self.tc_episode}°C'
         if label is not None :
             title = f'{title}\n{label}'
         self._fig.suptitle(title)
@@ -272,16 +275,14 @@ class Vacancy(gym.Env):
             self.tot_eko += 1
         return reward
 
-    def reset(self, ts=None, tint=None, wsize=None):  # pylint: disable=W0221
+    def reset(self, ts=None, tint=None, tc_episode=None, wsize=None):  # pylint: disable=W0221
         """episode reset"""
         if not isinstance(wsize, int):
             self.wsize = 63 * 3600 // self._interval
         else :
             self.wsize = wsize
         self.tot_eko = 0
-        if not isinstance(tint, (int, float)):
-            tint = 20
-        return self._reset(ts=ts, tint=tint)
+        return self._reset(ts=ts, tint=tint, tc_episode=tc_episode)
 
     def step(self, action):
         """return state, reward pour previous state, done, _"""
@@ -300,7 +301,9 @@ class Vacancy(gym.Env):
 
 
 class Building(Vacancy):
-    """mode universel - alternance d'occupation et de non-occupation"""
+    """mode universel - alternance d'occupation et de non-occupation
+    needed for tests, not really for trainings
+    """
     def __init__(self, text, agenda, wsize, max_power, tc, k, **model):
         super().__init__(text, max_power, tc, k, **model)
         self._agenda = agenda
@@ -333,9 +336,13 @@ class Building(Vacancy):
                 self.tot_eko += 1
         return reward
 
-    def reset(self, ts=None, tint=None, wsize=None):
+    def reset(self, ts=None, tint=None, tc_episode=None, wsize=None):
+        if not isinstance(wsize, int):
+            self.wsize = 1 + 8*24*3600 // self._interval
+        else :
+            self.wsize = wsize
         self.tot_eko = 0
-        return self._reset(ts=ts, tint=tint)
+        return self._reset(ts=ts, tint=tint, tc_episode=tc_episode)
 
     def step(self, action):
         reward = self._step(action)

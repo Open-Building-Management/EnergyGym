@@ -178,6 +178,8 @@ def main(nbtext, modelkey, k):
                 message = f'Episode: {i}, Reward: {reward:.3f}'
                 message = f'{message}, avg loss: {avg_loss:.3f}, eps: {eps:.3f}'
                 print(message)
+                message = f'consigne de température intérieure: {env.tc_episode}°C'
+                print(message)
                 tint_min = np.amin(env.tint)
                 tint_max = np.amax(env.tint)
                 tint_moy = np.mean(env.tint)
