@@ -74,9 +74,10 @@ class Vacancy(gym.Env):
         # nombre de pas dans un épisode (taille de la fenêtre)
         self.wsize = None
         # nombre de pas que l'on peut remonter dans l'histoire passée
-        self.pastsize = model.get("pastsize", 1)
+        pastsize = model.get("pastsize", 1)
         if "nbh" in model:
-            self.pastsize = model["nbh"] * 3600 // self._interval
+            pastsize = model["nbh"] * 3600 // self._interval
+        self.pastsize = int(pastsize)
         # tableau numpy des températures passées
         self.tint_past = np.zeros(self.pastsize)
         self.text_past = np.zeros(self.pastsize)
