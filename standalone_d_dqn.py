@@ -30,6 +30,7 @@ NOW = dt.datetime.now().strftime('%d%m%Y%H%M')
 DOUBLE_Q = True
 CW = 1162.5 #Wh/m3/K
 MAX_POWER = 5 * CW * 15
+INTERVAL = 3600
 
 
 class Memory:
@@ -117,10 +118,17 @@ def train(primary_network, mem, state_size, target_network=None):
 @click.option('--nbtext', type=int, default=1, prompt='numéro du flux temp. extérieure ?')
 @click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--k', type=float, default=0.9, prompt='paramètre énergie')
-def main(nbtext, modelkey, k):
+@click.option('--nbh', type=float, default=None)
+@click.option('--pastsize', type=int, default=None)
+def main(nbtext, modelkey, k, nbh, pastsize):
     """main command"""
-    text = get_feed(nbtext, 3600, "./datas")
-    env = Vacancy(text, MAX_POWER, 20, k, **MODELS[modelkey])
+    text = get_feed(nbtext, INTERVAL, "./datas")
+    model = MODELS[modelkey]
+    if pastsize:
+        model["pastsize"] = pastsize
+    if nbh:
+        model["nbh"] = nbh
+    env = Vacancy(text, MAX_POWER, 20, k, **model)
     print(env.model)
     state_size = env.observation_space.shape[0]
     num_actions = env.action_space.n

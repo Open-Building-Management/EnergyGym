@@ -177,7 +177,7 @@ class Vacancy(gym.Env):
         # on a donc notre condition initiale en température intérieure
         self.tint[0] = self.tint_past[-1]
         # construction de state
-        tc, nbh = self.update_non_phys_params()
+        tc, nbh = self._update_non_phys_params()
         self.state = self._state(tc, nbh)
         self._tot_reward = 0
         return self.state
@@ -238,7 +238,7 @@ class Vacancy(gym.Env):
         self.i += 1
         self.tint[self.i] = tint
         # non physical parameters at next state
-        tc, nbh = self.update_non_phys_params()
+        tc, nbh = self._update_non_phys_params()
         # on met à jour state avec les données de next state
         self.tint_past = np.array([*self.tint_past[1:], tint])
         self.text_past = np.array([*self.text_past[1:], text[1]])
@@ -248,7 +248,7 @@ class Vacancy(gym.Env):
         # return reward at state
         return reward
 
-    def update_non_phys_params(self):
+    def _update_non_phys_params(self):
         """
         return
         - temperature de consigne à la cible
@@ -281,7 +281,7 @@ class Vacancy(gym.Env):
         if not isinstance(wsize, int):
             self.wsize = 63 * 3600 // self._interval
         else :
-            self.wsize = wsize
+            self.wsize = int(wsize)
         self.tot_eko = 0
         return self._reset(ts=ts, tint=tint, tc_episode=tc_episode)
 
@@ -305,13 +305,12 @@ class Building(Vacancy):
     """mode universel - alternance d'occupation et de non-occupation
     needed for tests, not really for trainings
     """
-    def __init__(self, text, agenda, wsize, max_power, tc, k, **model):
+    def __init__(self, text, agenda, max_power, tc, k, **model):
         super().__init__(text, max_power, tc, k, **model)
         self._agenda = agenda
-        self.wsize = wsize
         self.label = "week"
 
-    def update_non_phys_params(self):
+    def _update_non_phys_params(self):
         pos1 = self.pos + self.i
         tc = self._agenda[pos1] * self.tc_episode
         pos2 = self.pos + self.i + self.wsize + 4 * 24 * 3600 // self._interval
@@ -341,7 +340,7 @@ class Building(Vacancy):
         if not isinstance(wsize, int):
             self.wsize = 1 + 8*24*3600 // self._interval
         else :
-            self.wsize = wsize
+            self.wsize = int(wsize)
         self.tot_eko = 0
         return self._reset(ts=ts, tint=tint, tc_episode=tc_episode)
 

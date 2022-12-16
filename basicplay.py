@@ -83,16 +83,21 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
 @click.option('--model', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--stepbystep', type=bool, default=False, prompt='jouer l\'épisode pas à pas ?')
 @click.option('--mirrorplay', type=bool, default=False, prompt='jouer le mirrorplay après avoir joué l\'épisode ?')
-def main(agent_type, random_ts, mode, model, stepbystep, mirrorplay):
+@click.option('--nbh', type=float, default=None)
+@click.option('--pastsize', type=int, default=None)
+def main(agent_type, random_ts, mode, model, stepbystep, mirrorplay, nbh, pastsize):
     """main command"""
-    R = MODELS[model]["R"]
-    C = MODELS[model]["C"]
+    model = MODELS[model]
+    if pastsize:
+        model["pastsize"] = pastsize
+    if nbh:
+        model["nbh"] = nbh
     if mode == "week":
         text, agenda = get_truth(CIRCUIT, visual_check=False)
-        bat = Building(text, agenda, WSIZE, MAX_POWER, 20, 0.9, R=R, C=C)
+        bat = Building(text, agenda, MAX_POWER, 20, 0.9, **model)
     if mode == "vacancy":
         text = get_feed(CIRCUIT["Text"], CIRCUIT["interval"], path=CIRCUIT["dir"])
-        bat = Vacancy(text, MAX_POWER, 20, 0.9, R=R, C=C)
+        bat = Vacancy(text, MAX_POWER, 20, 0.9, **model)
 
     # demande à l'utilisateur un nom de réseau
     if agent_type != "random":
