@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # tensorboard files
-TensorBoard
+TensorBoard*
 
 # C extensions
 *.so
