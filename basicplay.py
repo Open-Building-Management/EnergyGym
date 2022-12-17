@@ -11,7 +11,7 @@ from conf import MODELS
 INTERVAL = 3600
 AGENT_TYPES = ["random", "deterministic", "stochastic"]
 SIZES = {"weekend": 63 * 3600 // INTERVAL, "week" : 1 + 8*24*3600 // INTERVAL}
-MODES = ["Hyst", "NoOcc", "Intermittence"]
+MODES = ["hyst", "vacancy", "intermittence"]
 
 # pylint: disable=no-value-for-parameter
 WSIZE = 1 + 8*24*3600 // INTERVAL
@@ -100,11 +100,11 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, nbh, 
     if size == "week":
         agenda = biosAgenda(text.shape[0], INTERVAL, text.start, [], schedule=SCHEDULE)
 
-    if mode == "Hyst":
+    if mode == "hyst":
         bat = Hyst(text, MAX_POWER, 20, 0.9, **model)
-    if mode == "NonOcc":
+    if mode == "vacancy":
         bat = Vacancy(text, MAX_POWER, 20, 0.9, **model)
-    if mode == "Intermittence":
+    if mode == "intermittence":
         bat = Building(text, agenda, MAX_POWER, 20, 0.9, **model)
 
     # demande à l'utilisateur un nom de réseau
