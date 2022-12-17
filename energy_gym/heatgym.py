@@ -13,7 +13,7 @@ from .planning import get_random_start, get_level_duration
 #MODELRC = {"R": 2.54061406e-04, "C": 9.01650468e+08}
 MODELRC = {"R": 5.94419964e-04, "C": 5.40132642e+07}
 
-def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
+def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation=None, xr=None):
     """
     permet l'habillage du graphique d'un épisode
     avec la zone de confort et les périodes d'occupation
@@ -51,19 +51,11 @@ def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
 
     return xr, zone_confort, zones_occ
 
-
-class Vacancy(gym.Env):
-    """mode hors occupation"""
+class Env(gym.Env):
+    """base environnement"""
     def __init__(self, text, max_power, tc, k, **model):
         """
         text : objet PyFina de température extérieure
-
-        state : tableau numpy :
-        - historique de température extérieure de taille n
-        - historique de température intérieure de taille n
-        - historique de chauffage de taille n-1
-        - tc * occupation
-        - nb hours -> occupation change (from occupied to empty and vice versa)
         """
         super().__init__()
         self.text = text
@@ -108,20 +100,15 @@ class Vacancy(gym.Env):
         # la constante de temps du modèle électrique équivalent
         self._tcte = self.model["R"] * self.model["C"]
         self._cte = math.exp(-self._interval/self._tcte)
-        self.action_space = spaces.Discrete(2)
-        high = np.finfo(np.float32).max
-        self.observation_space = spaces.Box(-high, high, (3*self.pastsize+1,), dtype=np.float32)
-        #print(self.observation_space)
+        # current state in the observation space
         self.state = None
         # labels
-        self.label = "vacancy"
         self.reward_label = None
         # paramètres pour le rendu graphique
         self._fig = None
         self._ax1 = None
         self._ax2 = None
         self._ax3 = None
-
 
     def _reset(self, ts=None, tint=None, tc_episode=None):
         """
@@ -177,18 +164,9 @@ class Vacancy(gym.Env):
         # on a donc notre condition initiale en température intérieure
         self.tint[0] = self.tint_past[-1]
         # construction de state
-        tc, nbh = self._update_non_phys_params()
-        self.state = self._state(tc, nbh)
+        self.state = self._state()
         self._tot_reward = 0
         return self.state
-
-    def _state(self, tc, nbh):
-        """return the current state after all calculations are done"""
-        return np.array([*self.text_past,
-                         *self.tint_past,
-                         *self.q_c_past,
-                         tc,
-                         nbh], dtype=np.float32)
 
     def _render(self, zone_confort=None, zones_occ=None, stepbystep=True, label=None):
         """generic render method"""
@@ -237,40 +215,33 @@ class Vacancy(gym.Env):
         tint = self.tint[self.i] * self._cte + self._interval * 0.5 * delta
         self.i += 1
         self.tint[self.i] = tint
-        # non physical parameters at next state
-        tc, nbh = self._update_non_phys_params()
         # on met à jour state avec les données de next state
         self.tint_past = np.array([*self.tint_past[1:], tint])
         self.text_past = np.array([*self.text_past[1:], text[1]])
         if self.pastsize > 1:
             self.q_c_past = np.array([*self.q_c_past[1:], q_c])
-        self.state = self._state(tc, nbh)
+        self.state = self._state()
         # return reward at state
         return reward
 
-    def _update_non_phys_params(self):
-        """
-        return
-        - temperature de consigne à la cible
-        - nbh -> occupation change (from occupied to empty and vice versa)
-
-        *Note that 1h30 has to be coded as 1.5*
-        """
-        return self.tc_episode, (self.wsize - 1 - self.i) * self._interval / 3600
+    def _state(self):
+        """return the current state after all calculations are done
+        example de state
+        pour une température de consigne maintenue constante sur l'épisode
+        à surcharger dans classe fille"""
+        tc = self.tc_episode
+        return np.array([*self.text_past,
+                         *self.tint_past,
+                         *self.q_c_past,
+                         tc], dtype=np.float32)
 
     def reward(self, action):
-        """reward at state action"""
-        self.reward_label = "Vote_final_reward_only"
+        """récompense hystéresis
+        à surcharger dans classe fille"""
         reward = 0
         tc = self.tc_episode
         tint = self.tint[self.i]
-        if self.state[-1] == 0 :
-            # l'occupation du bâtiment commence
-            # pour converger vers la température cible
-            reward = - 15 * abs(tint - tc) * self._interval / 3600
-            # le bonus énergétique
-            if tc - 3 <= tint <= tc + 1 :
-                reward += self.tot_eko * self._k * self._interval / 3600
+        reward = - abs(tint - tc) * self._interval / 3600
         # calcul de l'énergie économisée
         if not action :
             self.tot_eko += 1
@@ -300,6 +271,85 @@ class Vacancy(gym.Env):
         #plt.savefig("test.png")
         plt.close()
 
+class Hyst(Env):
+    """mode hystéresis permanent"""
+    def __init__(self, text, max_power, tc, k, **model):
+        """
+        state : tableau numpy :
+        - historique de température extérieure de taille n
+        - historique de température intérieure de taille n
+        - historique de chauffage de taille n-1
+        - tc, consigne de température intérieure
+        avec n=1, l'espace d'observation est de taille 3
+        """
+        super().__init__(text, max_power, tc, k, **model)
+        self.action_space = spaces.Discrete(2)
+        high = np.finfo(np.float32).max
+        self.observation_space = spaces.Box(-high, high, (3*self.pastsize,), dtype=np.float32)
+        # labels
+        self.label = "hysteresis"
+        self.reward_label = "hysteresis"
+
+    def render(self, stepbystep=True, label=None):
+        """avec affichage de la zone de confort"""
+        if self.i:
+            xr = self._xr
+            zone_confort = Rectangle((xr[0], self.tc_episode-1), xr[-1]-xr[0], 2,
+                                     facecolor='g', alpha=0.5, edgecolor='None',
+                                     label="zone de confort")
+            self._render(zone_confort=zone_confort, stepbystep=stepbystep, label=label)
+        else:
+            self._render(stepbystep=stepbystep, label=label)
+
+
+class Vacancy(Env):
+    """mode hors occupation"""
+    def __init__(self, text, max_power, tc, k, **model):
+        """
+        state : tableau numpy :
+        - historique de température extérieure de taille n
+        - historique de température intérieure de taille n
+        - historique de chauffage de taille n-1
+        - température de consigne à la cible
+        - nb hours -> occupation change (from occupied to empty and vice versa)
+        """
+        super().__init__(text, max_power, tc, k, **model)
+        self.action_space = spaces.Discrete(2)
+        high = np.finfo(np.float32).max
+        self.observation_space = spaces.Box(-high, high, (3*self.pastsize+1,), dtype=np.float32)
+        #print(self.observation_space)
+        # labels
+        self.label = "vacancy"
+
+    def _state(self):
+        """return the current state after all calculations are done"""
+        tc = self.tc_episode
+        # nbh -> occupation change (from occupied to empty and vice versa)
+        # Note that 1h30 has to be coded as 1.5
+        nbh = (self.wsize - 1 - self.i) * self._interval / 3600
+        return np.array([*self.text_past,
+                         *self.tint_past,
+                         *self.q_c_past,
+                         tc,
+                         nbh], dtype=np.float32)
+
+    def reward(self, action):
+        """reward at state action"""
+        self.reward_label = "Vote_final_reward_only"
+        reward = 0
+        tc = self.tc_episode
+        tint = self.tint[self.i]
+        if self.state[-1] == 0 :
+            # l'occupation du bâtiment commence
+            # pour converger vers la température cible
+            reward = - 15 * abs(tint - tc) * self._interval / 3600
+            # le bonus énergétique
+            if tc - 3 <= tint <= tc + 1 :
+                reward += self.tot_eko * self._k * self._interval / 3600
+        if not action :
+            self.tot_eko += 1
+        return reward
+
 
 class Building(Vacancy):
     """mode universel - alternance d'occupation et de non-occupation
@@ -310,13 +360,18 @@ class Building(Vacancy):
         self._agenda = agenda
         self.label = "week"
 
-    def _update_non_phys_params(self):
+    def _state(self):
+        """return the current state after all calculations are done"""
         pos1 = self.pos + self.i
         tc = self._agenda[pos1] * self.tc_episode
         pos2 = self.pos + self.i + self.wsize + 4 * 24 * 3600 // self._interval
         occupation = self._agenda[pos1:pos2]
         nbh = get_level_duration(occupation, 0) * self._interval / 3600
-        return tc, nbh
+        return np.array([*self.text_past,
+                         *self.tint_past,
+                         *self.q_c_past,
+                         tc,
+                         nbh], dtype=np.float32)
 
     def reward(self, action):
         reward = 0

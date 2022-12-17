@@ -10,7 +10,7 @@ from tensorflow import keras
 
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
-from energy_gym import Vacancy, get_feed
+from energy_gym import Hyst, Vacancy, get_feed
 
 # pylint: disable=no-value-for-parameter
 
@@ -32,6 +32,7 @@ CW = 1162.5 #Wh/m3/K
 MAX_POWER = 5 * CW * 15
 INTERVAL = 3600
 
+SCENARIOS = ["Hyst", "Vacancy"]
 
 class Memory:
     """experience replay memory"""
@@ -118,9 +119,10 @@ def train(primary_network, mem, state_size, target_network=None):
 @click.option('--nbtext', type=int, default=1, prompt='numéro du flux temp. extérieure ?')
 @click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--k', type=float, default=0.9, prompt='paramètre énergie')
+@click.option('--scenario', type=click.Choice(SCENARIOS), default="Vacancy", prompt='scénario ?')
 @click.option('--nbh', type=float, default=None)
 @click.option('--pastsize', type=int, default=None)
-def main(nbtext, modelkey, k, nbh, pastsize):
+def main(nbtext, modelkey, k, scenario, nbh, pastsize):
     """main command"""
     text = get_feed(nbtext, INTERVAL, "./datas")
     model = MODELS[modelkey]
@@ -128,7 +130,10 @@ def main(nbtext, modelkey, k, nbh, pastsize):
         model["pastsize"] = pastsize
     if nbh:
         model["nbh"] = nbh
-    env = Vacancy(text, MAX_POWER, 20, k, **model)
+    if scenario == "Hyst":
+        env = Hyst(text, MAX_POWER, 20, k, **model)
+    else:
+        env = Vacancy(text, MAX_POWER, 20, k, **model)
     print(env.model)
     state_size = env.observation_space.shape[0]
     num_actions = env.action_space.n

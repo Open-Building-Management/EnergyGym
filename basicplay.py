@@ -4,23 +4,23 @@ import sys
 import click
 import numpy as np
 import tensorflow as tf
-from energy_gym import get_truth, get_feed, pick_name, Building, Vacancy
+from energy_gym import get_feed, biosAgenda, pick_name, Hyst, Vacancy, Building
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
 
+INTERVAL = 3600
 AGENT_TYPES = ["random", "deterministic", "stochastic"]
-MODES = ["vacancy", "week"]
+SIZES = {"weekend": 63 * 3600 // INTERVAL, "week" : 1 + 8*24*3600 // INTERVAL}
+MODES = ["Hyst", "NoOcc", "Intermittence"]
 
 # pylint: disable=no-value-for-parameter
-
-INTERVAL = 3600
 WSIZE = 1 + 8*24*3600 // INTERVAL
 PATH = "datas"
 SCHEDULE = np.array([[7, 17], [7, 17], [7, 17], [7, 17], [7, 17], [-1, -1], [-1, -1]])
 CW = 1162.5 #Wh/m3/K
 # debit de 5m3/h et deltaT entre départ et retour de 15°C
 MAX_POWER = 5 * CW * 15
-CIRCUIT = {"Text":1, "dir": PATH, "schedule": SCHEDULE, "interval": INTERVAL, "wsize": WSIZE}
+TEXT_FEED = 1
 
 def load(agent_path):
     """load tensorflow network"""
@@ -40,9 +40,10 @@ def mirror_play(bat):
     """
     limit = bat.tot_eko
     ts = bat.tsvrai
-    tc_episode = bat.tc_episode
     tint0 = bat.tint[0]
-    bat.reset(ts=ts, tint=tint0, tc_episode=tc_episode)
+    tc_episode = bat.tc_episode
+    wsize = bat.wsize
+    bat.reset(ts=ts, tint=tint0, tc_episode=tc_episode, wsize=wsize)
     while True:
         action = 0 if bat.i < limit else 1
         _, _, done, _ = bat.step(action)
@@ -79,25 +80,32 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
 @click.command()
 @click.option('--agent_type', type=click.Choice(AGENT_TYPES), prompt='comportement de l\'agent ?')
 @click.option('--random_ts', type=bool, default=False, prompt='timestamp de démarrage aléatoire ?')
-@click.option('--mode', type=click.Choice(MODES), prompt='type d\'épisode : période de non-occupation, semaine ?')
+@click.option('--mode', type=click.Choice(MODES), prompt='occupation permanente, non-occupation, intermittence ?')
+@click.option('--size', type=click.Choice(SIZES), prompt='longueur des épisodes ?')
 @click.option('--model', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--stepbystep', type=bool, default=False, prompt='jouer l\'épisode pas à pas ?')
 @click.option('--mirrorplay', type=bool, default=False, prompt='jouer le mirrorplay après avoir joué l\'épisode ?')
 @click.option('--nbh', type=float, default=None)
 @click.option('--pastsize', type=int, default=None)
-def main(agent_type, random_ts, mode, model, stepbystep, mirrorplay, nbh, pastsize):
+def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, nbh, pastsize):
     """main command"""
     model = MODELS[model]
+    wsize = SIZES[size]
     if pastsize:
         model["pastsize"] = pastsize
     if nbh:
         model["nbh"] = nbh
-    if mode == "week":
-        text, agenda = get_truth(CIRCUIT, visual_check=False)
-        bat = Building(text, agenda, MAX_POWER, 20, 0.9, **model)
-    if mode == "vacancy":
-        text = get_feed(CIRCUIT["Text"], CIRCUIT["interval"], path=CIRCUIT["dir"])
+    agenda = None
+    text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
+    if size == "week":
+        agenda = biosAgenda(text.shape[0], INTERVAL, text.start, [], schedule=SCHEDULE)
+
+    if mode == "Hyst":
+        bat = Hyst(text, MAX_POWER, 20, 0.9, **model)
+    if mode == "NonOcc":
         bat = Vacancy(text, MAX_POWER, 20, 0.9, **model)
+    if mode == "Intermittence":
+        bat = Building(text, agenda, MAX_POWER, 20, 0.9, **model)
 
     # demande à l'utilisateur un nom de réseau
     if agent_type != "random":
@@ -111,7 +119,7 @@ def main(agent_type, random_ts, mode, model, stepbystep, mirrorplay, nbh, pastsi
     signal.signal(signal.SIGINT, sig_handler)
     signal.signal(signal.SIGTERM, sig_handler)
     for _ in range(nbepisodes):
-        state = bat.reset(ts=ts)
+        state = bat.reset(ts=ts, wsize=wsize)
         rewardtot = 0
         while True :
             if stepbystep:
