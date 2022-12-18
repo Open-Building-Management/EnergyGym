@@ -16,6 +16,25 @@ from .heatgym import covering, MODELRC
 MAX_EPISODES = 900
 PRIMO_AGENT_LAYERS = ['states', 'dense', 'dense_1']
 
+def sim2target(env, pos, tint0, nbh, action=True):
+    """simulation suivant la méthode des trapèzes
+    on est à la position pos dans env.text
+    on veut calculer la température intérieure dans nbh heures
+    soit en chauffant en continu soit sans chauffer
+    """
+    # nombre d'intervalles pour le calcul
+    target = int(nbh * 3600 / env.text.step)
+    # ON VEUT CONNAITRE LA TEMPERATURE INTERIEURE A pos+target
+    text = env.text[pos: pos+target+1]
+    tint = np.zeros(text.shape[0])
+    tint[0] = tint0
+    power = action * env.max_power
+    for j in range(1, text.shape[0]):
+        delta = env.cte * (power / env.model["C"] + text[j-1] / env.tcte)
+        delta += power / env.model["C"] + text[j] / env.tcte
+        tint[j] = tint[j-1] * env.cte + env.text.step * 0.5 * delta
+    return tint
+
 
 def get_config(agent):
     """
@@ -70,8 +89,8 @@ class Environnement:
         self.hh = hh
         print(f'environnement initialisé avec Tc={self.tc}, hh={self.hh}')
         self.model = model if model else MODELRC
-        self._tcte = self.model["R"] * self.model["C"]
-        self._cte = math.exp(-self.interval / self._tcte)
+        self.tcte = self.model["R"] * self.model["C"]
+        self.cte = math.exp(-self.interval / self.tcte)
         self.pos = None
         self.tsvrai = None
 
@@ -136,16 +155,13 @@ class Environnement:
         return datas
 
     def sim(self, datas, i):
-        """
-        calcule la température à l'étape i
-        avec la méthode des trapèzes
-        """
-        q_c = datas[i-1, 0]
-        text = datas[i-1:i+1, 1]
-        tint = datas[i-1, 2]
-        delta = self._cte * (q_c / self.model["C"] + text[0] / self._tcte)
-        delta += q_c / self.model["C"] + text[1] / self._tcte
-        return tint * self._cte + self.interval * 0.5 * delta
+        """calcule la température à l'étape i"""
+        result = sim2target(self,
+                            self.pos+i-1,
+                            datas[i-1, 2],
+                            self.text.step/3600,
+                            action=datas[i-1, 0]/self.max_power)
+        return result[-1]
 
 
     def sim2target(self, datas, i):
@@ -153,18 +169,7 @@ class Environnement:
         on est à l'étape i et on veut calculer la température à l'ouverture des locaux,
         en chauffant dès à présent en permanence
         """
-        # pour pouvoir se balader dans les vecteurs et calculer à la cible, on repasse en nombre d'intervalles
-        tof = int(datas[i, 4] * 3600 / self.interval)
-        # ON VEUT CONNAITRE LA TEMPERATURE INTERIEURE A self.pos+i+tof
-        # datas[i,1] correspond à text[i+pos]
-        text = self.text[self.pos+i: self.pos+i+tof+1]
-        tint = np.zeros(text.shape[0])
-        tint[0] = datas[i, 2]
-        for j in range(1, text.shape[0]):
-            delta = self._cte * (self.max_power / self.model["C"] + text[j-1] / self._tcte)
-            delta += self.max_power / self.model["C"] + text[j] / self._tcte
-            tint[j] = tint[j-1] * self._cte + self.interval * 0.5 * delta
-        return tint
+        return sim2target(self, self.pos+i, datas[i, 2], datas[i, 4])
 
     def play(self, datas):
         """

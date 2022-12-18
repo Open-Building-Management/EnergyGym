@@ -99,14 +99,14 @@ class Env(gym.Env):
         self.action = None
         # nombre de pas de temps sans conso énergétique pour l'épisode
         self.tot_eko = 0
-        self._max_power = max_power
+        self.max_power = max_power
         self._tc = tc
         self.tc_episode = None
         self._k = k
         self.model = model if model else MODELRC
         # la constante de temps du modèle électrique équivalent
-        self._tcte = self.model["R"] * self.model["C"]
-        self._cte = math.exp(-self._interval/self._tcte)
+        self.tcte = self.model["R"] * self.model["C"]
+        self.cte = math.exp(-self._interval/self.tcte)
         # current state in the observation space
         self.state = None
         # labels
@@ -156,17 +156,17 @@ class Env(gym.Env):
             tint = self.tc_episode + random.randint(-3, 0)
         self.tint_past[0] = tint
         action = self.tint_past[0] <= self.tc_episode
-        q_c = action * self._max_power
+        q_c = action * self.max_power
         self.text_past = self.text[self.pos - self.pastsize + 1: self.pos + 1]
         for i in range(1, self.pastsize):
             self.q_c_past[i-1] = q_c
             pos = self.pos - self.pastsize + 1 + i
-            delta = self._cte * (q_c / self.model["C"] + self.text[pos-1] / self._tcte)
-            delta += q_c / self.model["C"] + self.text[pos] / self._tcte
-            self.tint_past[i] = self.tint_past[i-1] * self._cte + self._interval * 0.5 * delta
+            delta = self.cte * (q_c / self.model["C"] + self.text[pos-1] / self.tcte)
+            delta += q_c / self.model["C"] + self.text[pos] / self.tcte
+            self.tint_past[i] = self.tint_past[i-1] * self.cte + self._interval * 0.5 * delta
             if self.tint_past[i] >= self.tc_episode + 1 or self.tint_past[i] <= self.tc_episode - 1:
                 action = self.tint_past[i] <= self.tc_episode
-            q_c = action * self._max_power
+            q_c = action * self.max_power
         # on vient de s'arrêter à self.pos
         # on a donc notre condition initiale en température intérieure
         self.tint[0] = self.tint_past[-1]
@@ -213,13 +213,13 @@ class Env(gym.Env):
         reward = self.reward(action)
         self._tot_reward += reward
         # Qc at state
-        q_c = action * self._max_power
+        q_c = action * self.max_power
         self.action[self.i] = action
         # indoor temp at next state
         text = self.text[self.pos+self.i:self.pos+self.i+2]
-        delta = self._cte * (q_c / self.model["C"] + text[0] / self._tcte)
-        delta += q_c / self.model["C"] + text[1] / self._tcte
-        tint = self.tint[self.i] * self._cte + self._interval * 0.5 * delta
+        delta = self.cte * (q_c / self.model["C"] + text[0] / self.tcte)
+        delta += q_c / self.model["C"] + text[1] / self.tcte
+        tint = self.tint[self.i] * self.cte + self._interval * 0.5 * delta
         self.i += 1
         self.tint[self.i] = tint
         # on met à jour state avec les données de next state
