@@ -30,9 +30,14 @@ paramètre |  description
 --|--
 agent_type | random = décision aléatoire<br>deterministic = argmax<br>stochastic = softmax
 random_ts | True = joue jusqu'à 200 épisodes<br>False = joue un seul épisode sur le timestamp 1609104740
-mode | vacancy = joue des périodes de non-occupation<br>week = joue une semaine type
+mode | hyst: hysteresis<br>vacancy: non-occupation<br>intermittence: alternance de période d'occupation et de non-occupation
+size | week: 8 jours + 1 point<br>weekend: 63 heures
 model | le nom d'une des configurations de [conf.py](conf.py)
 stepbystep | True = joue en mode pas à pas
+pastsize | nombre de pas que l'on peut remonter dans l'histoire passée
+nbh | nombre d'heures que l'on peut remonter dans l'histoire passée
+
+si pastsize et nbh sont fournis, c'est nbh qui fixe la taille de l'historique 
 
 ## play
 
