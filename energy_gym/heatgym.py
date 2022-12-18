@@ -13,7 +13,16 @@ from .planning import get_random_start, get_level_duration
 #MODELRC = {"R": 2.54061406e-04, "C": 9.01650468e+08}
 MODELRC = {"R": 5.94419964e-04, "C": 5.40132642e+07}
 
-def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation=None, xr=None):
+def confort(xr, tc, hh):
+    """construit le rectangle vert de la zone de confort thermique
+    facecolor='g': green color
+    """
+    return Rectangle((xr[0], tc-hh), xr[-1]-xr[0], 2 * hh,
+                     facecolor='g', alpha=0.5, edgecolor='None',
+                     label="zone de confort")
+
+
+def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
     """
     permet l'habillage du graphique d'un épisode
     avec la zone de confort et les périodes d'occupation
@@ -33,9 +42,7 @@ def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation=None, xr=None):
         xrs = np.arange(ts, ts + wsize * interval, interval)
         xr = np.array(xrs, dtype='datetime64[s]')
 
-    zone_confort = Rectangle((xr[0], tc-hh), xr[-1]-xr[0], 2 * hh,
-                             facecolor='g', alpha=0.5, edgecolor='None',
-                             label="zone de confort")
+    zone_confort = confort(xr, tc, hh)
     changes = []
     for i in range(wsize):
         if occupation[i] == 0 and occupation[i+1] != 0:
@@ -293,10 +300,7 @@ class Hyst(Env):
     def render(self, stepbystep=True, label=None):
         """avec affichage de la zone de confort"""
         if self.i:
-            xr = self._xr
-            zone_confort = Rectangle((xr[0], self.tc_episode-1), xr[-1]-xr[0], 2,
-                                     facecolor='g', alpha=0.5, edgecolor='None',
-                                     label="zone de confort")
+            zone_confort = confort(self._xr, self.tc_episode, 1)
             self._render(zone_confort=zone_confort, stepbystep=stepbystep, label=label)
         else:
             self._render(stepbystep=stepbystep, label=label)
