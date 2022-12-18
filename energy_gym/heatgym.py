@@ -22,27 +22,8 @@ def confort(xr, tc, hh):
                      label="zone de confort")
 
 
-def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
-    """
-    permet l'habillage du graphique d'un épisode
-    avec la zone de confort et les périodes d'occupation
-    utilise la fonction Rectangle de matplotlib
-
-    - tmin : température minimale
-    - tmax : température maximale
-    - tc : température de consigne
-    - hh : demi-intervalle de la zone de confort
-    - nombre de points dans l'épisode
-    - interval : pas de temps
-    - occupation : agenda d'occupation avec 4 jours supplémentaires pour calculer les durées d'occupation
-
-    retourne les objets matérialisant les zones de confort et d'occupation
-    """
-    if xr is None:
-        xrs = np.arange(ts, ts + wsize * interval, interval)
-        xr = np.array(xrs, dtype='datetime64[s]')
-
-    zone_confort = confort(xr, tc, hh)
+def presence(xr, occupation, wsize, tmin, tmax, tc, hh):
+    """construit les rectangles orange matérialisant l'occupation"""
     changes = []
     for i in range(wsize):
         if occupation[i] == 0 and occupation[i+1] != 0:
@@ -55,7 +36,32 @@ def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
             occ = Rectangle((xr[i], tmin), largeur, hauteur,
                             facecolor='orange', alpha=0.5, edgecolor='None')
             zones_occ.append(occ)
+    return zones_occ
 
+
+def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
+    """
+    permet l'habillage du graphique d'un épisode
+    avec la zone de confort et les périodes d'occupation
+    utilise la fonction Rectangle de matplotlib
+
+    - tmin : température minimale
+    - tmax : température maximale
+    - tc : température de consigne
+    - hh : demi-intervalle de la zone de confort
+    - wsize : nombre de points dans l'épisode
+    - interval : pas de temps
+    - occupation : agenda d'occupation avec 4 jours supplémentaires
+    pour calculer les nombres de pas jusqu'au prochain cgt d'occupation
+
+    retourne les objets matérialisant les zones de confort et d'occupation
+    """
+    if xr is None:
+        xrs = np.arange(ts, ts + wsize * interval, interval)
+        xr = np.array(xrs, dtype='datetime64[s]')
+
+    zone_confort = confort(xr, tc, hh)
+    zones_occ = presence(xr, occupation, wsize, tmin, tmax, tc, hh)
     return xr, zone_confort, zones_occ
 
 class Env(gym.Env):
@@ -116,6 +122,7 @@ class Env(gym.Env):
         self._ax1 = None
         self._ax2 = None
         self._ax3 = None
+        self.agenda = None
 
     def _reset(self, ts=None, tint=None, tc_episode=None):
         """
@@ -242,6 +249,22 @@ class Env(gym.Env):
                          *self.q_c_past,
                          tc], dtype=np.float32)
 
+    def _covering(self):
+        """retourne la zone de confort
+        et les éventuelles zones d'occupation si un agenda est en place"""
+        zone_confort = confort(self._xr, self.tc_episode, 1)
+        zones_occ = None
+        if self.agenda is not None:
+            tmin = np.min(self.tint[0: self.i])
+            tmax = np.max(self.tint[0: self.i])
+            occupation = self.agenda[self.pos:self.pos+self.wsize+4*24*3600//self._interval]
+            zones_occ = presence(self._xr, occupation, self.wsize, tmin, tmax, self.tc_episode, 1)
+        return zone_confort, zones_occ
+
+    def set_agenda(self, agenda):
+        """définit l'agenda d'occupation"""
+        self.agenda = agenda
+
     def reward(self, action):
         """récompense hystéresis
         à surcharger dans classe fille"""
@@ -300,8 +323,8 @@ class Hyst(Env):
     def render(self, stepbystep=True, label=None):
         """avec affichage de la zone de confort"""
         if self.i:
-            zone_confort = confort(self._xr, self.tc_episode, 1)
-            self._render(zone_confort=zone_confort, stepbystep=stepbystep, label=label)
+            zone_confort, zones_occ = self._covering()
+            self._render(zone_confort=zone_confort, zones_occ=zones_occ, stepbystep=stepbystep, label=label)
         else:
             self._render(stepbystep=stepbystep, label=label)
 
@@ -361,15 +384,15 @@ class Building(Vacancy):
     """
     def __init__(self, text, agenda, max_power, tc, k, **model):
         super().__init__(text, max_power, tc, k, **model)
-        self._agenda = agenda
+        self.agenda = agenda
         self.label = "week"
 
     def _state(self):
         """return the current state after all calculations are done"""
         pos1 = self.pos + self.i
-        tc = self._agenda[pos1] * self.tc_episode
+        tc = self.agenda[pos1] * self.tc_episode
         pos2 = self.pos + self.i + self.wsize + 4 * 24 * 3600 // self._interval
-        occupation = self._agenda[pos1:pos2]
+        occupation = self.agenda[pos1:pos2]
         nbh = get_level_duration(occupation, 0) * self._interval / 3600
         return np.array([*self.text_past,
                          *self.tint_past,
@@ -383,7 +406,7 @@ class Building(Vacancy):
             tc = self.state[-2]
             tint = self.tint[self.i]
             reward -= abs(tint - tc) * self._interval / 3600
-            if self._agenda[self.pos+self.i-1] == 0:
+            if self.agenda[self.pos+self.i-1] == 0:
                 # was the building empty at previous state ?
                 if tc - 3 <= tint <= tc + 1 :
                     reward += self.tot_eko * self._k * self._interval / 3600
@@ -410,12 +433,7 @@ class Building(Vacancy):
 
     def render(self, stepbystep=True, label=None):
         if self.i:
-            tmin = np.min(self.tint[0: self.i])
-            tmax = np.max(self.tint[0: self.i])
-            occupation = self._agenda[self.pos:self.pos+self.wsize+4*24*3600//self._interval]
-            _, zone_confort, zones_occ = covering(tmin, tmax, self._tc, 1,
-                                                  self.tsvrai, self.wsize, self._interval,
-                                                  occupation, self._xr)
+            zone_confort, zones_occ = self._covering()
             self._render(zone_confort=zone_confort, zones_occ=zones_occ, stepbystep=stepbystep)
         else:
             self._render(stepbystep=stepbystep)
