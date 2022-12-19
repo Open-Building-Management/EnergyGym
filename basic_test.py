@@ -1,19 +1,10 @@
 """les basiques de energy_gym"""
-import numpy as np
 import click
 
 import energy_gym
 
+from basicplay import PATH, SCHEDULE, MAX_POWER, TEXT_FEED
 INTERVAL = 1800
-# nombre d'intervalles sur lequel la simulation sera menée
-WSIZE = 1 + 8*24*3600//INTERVAL
-PATH = "datas"
-
-SCHEDULE = np.array([[7, 17], [7, 17], [7, 17], [7, 17], [7, 17], [-1, -1], [-1, -1]])
-CW = 1162.5 #Wh/m3/K
-MAX_POWER = 5 * CW * 15
-
-TEXT_FEED = 1
 
 MODES = ["Hyst", "Vacancy"]
 
