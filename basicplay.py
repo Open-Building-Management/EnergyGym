@@ -9,10 +9,10 @@ from energy_gym import get_feed, biosAgenda, pick_name
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
 
-INTERVAL = 3600
+INTERVAL = 900
 AGENT_TYPES = ["random", "deterministic", "stochastic"]
 SIZES = {"weekend": 63 * 3600 // INTERVAL, "week" : 1 + 8*24*3600 // INTERVAL}
-MODES = ["hyst", "vacancy", "building"]
+MODES = ["hyst", "reduce", "vacancy", "building"]
 
 # pylint: disable=no-value-for-parameter
 WSIZE = 1 + 8*24*3600 // INTERVAL
@@ -22,6 +22,7 @@ CW = 1162.5 #Wh/m3/K
 # debit de 5m3/h et deltaT entre départ et retour de 15°C
 MAX_POWER = 5 * CW * 15
 TEXT_FEED = 1
+REDUCE = 2
 
 
 def flc(name):
@@ -91,11 +92,11 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
 @click.command()
 @click.option('--agent_type', type=click.Choice(AGENT_TYPES), prompt='comportement de l\'agent ?')
 @click.option('--random_ts', type=bool, default=False, prompt='timestamp de démarrage aléatoire ?')
-@click.option('--mode', type=click.Choice(MODES), prompt='occupation permanente, non-occupation, intermittence ?')
+@click.option('--mode', type=click.Choice(MODES), prompt='mode de jeu ?')
 @click.option('--size', type=click.Choice(SIZES), prompt='longueur des épisodes ?')
 @click.option('--model', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--stepbystep', type=bool, default=False, prompt='jouer l\'épisode pas à pas ?')
-@click.option('--mirrorplay', type=bool, default=False, prompt='jouer le mirrorplay après avoir joué l\'épisode ?')
+@click.option('--mirrorplay', type=bool, default=False, prompt='jouer le mirror play après avoir joué l\'épisode ?')
 @click.option('--nbh', type=float, default=None)
 @click.option('--pastsize', type=int, default=None)
 def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, nbh, pastsize):
@@ -113,6 +114,8 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, nbh, 
     if size == "week" or mode == "building":
         agenda = biosAgenda(text.shape[0], INTERVAL, text.start, [], schedule=SCHEDULE)
     bat.set_agenda(agenda)
+    if mode == "reduce":
+        bat.set_reduce(REDUCE)
 
     # demande à l'utilisateur un nom de réseau
     if agent_type != "random":

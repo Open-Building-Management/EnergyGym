@@ -101,6 +101,8 @@ class Env(gym.Env):
         self._tot_reward = None
         # tableau numpy des températures intérieures au cours de l'épisode
         # de taille wsize + 1
+        # dimensionné pour que tint[-1] soit la température à l'ouverture
+        # entre 0 et wsize, il y a wsize intervalles et wsize + 1 éléments
         self.tint = None
         # tableau numpy des actions énergétiques au cours de l'épisode
         # de taille wsize + 1
@@ -110,6 +112,7 @@ class Env(gym.Env):
         self.max_power = max_power
         self.tc = tc
         self.tc_episode = None
+        self.reduce = None
         self._k = k
         self.model = model if model else MODELRC
         # la constante de temps du modèle électrique équivalent
@@ -267,6 +270,10 @@ class Env(gym.Env):
         """définit l'agenda d'occupation"""
         self.agenda = agenda
 
+    def set_reduce(self, reduce):
+        """fixe le nombre de degrés en moins sur la température de consigne hors occupation"""
+        self.reduce = reduce
+
     def reward(self, action):
         """récompense hystéresis
         à surcharger dans classe fille"""
@@ -303,6 +310,7 @@ class Env(gym.Env):
         #plt.savefig("test.png")
         plt.close()
 
+
 class Hyst(Env):
     """mode hystéresis permanent"""
     def __init__(self, text, max_power, tc, k, **model):
@@ -329,6 +337,18 @@ class Hyst(Env):
             self._render(zone_confort=zone_confort, zones_occ=zones_occ, stepbystep=stepbystep, label=label)
         else:
             self._render(stepbystep=stepbystep, label=label)
+
+
+class Reduce(Hyst):
+    """mode hystérésis avec réduit hors occupation"""
+    def _state(self):
+        tc = self.tc_episode
+        if self.agenda[self.pos + self.i] == 0:
+            tc -= self.reduce
+        return np.array([*self.text_past,
+                         *self.tint_past,
+                         *self.q_c_past,
+                         tc], dtype=np.float32)
 
 
 class Vacancy(Env):
@@ -364,7 +384,7 @@ class Vacancy(Env):
 
     def reward(self, action):
         """reward at state action"""
-        self.reward_label = "final_reward_only"
+        self.reward_label = "final_reward_at opening"
         reward = 0
         tc = self.tc_episode
         tint = self.tint[self.i]
