@@ -205,7 +205,7 @@ def main(nbtext, modelkey, k, scenario, nbh, pastsize):
                 message = f'Tint min {tint_min:.2f} Tint moy {tint_moy:.2f}'
                 message = f'{message} Tint max {tint_max:.2f}'
                 print(message)
-                print(env.tint[-2:])
+                print(env.tint[-1:])
                 peko = (env.tot_eko * 100) // env.wsize
                 print(f'{peko}% d\'énergie économisée')
                 print("***********************************************************")

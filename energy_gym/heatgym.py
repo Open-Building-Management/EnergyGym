@@ -160,7 +160,7 @@ class Env(gym.Env):
         else:
             self.tc_episode = self.tc + random.randint(-2,2)
         # x axis = time for human
-        xrs = np.arange(self.tsvrai, self.tsvrai + self.wsize * self._interval, self._interval)
+        xrs = np.arange(self.tsvrai, self.tsvrai + (self.wsize+1) * self._interval, self._interval)
         self._xr = np.array(xrs, dtype='datetime64[s]')
         self.tint = np.zeros(self.wsize + 1)
         self.action = np.zeros(self.wsize + 1)
@@ -204,7 +204,7 @@ class Env(gym.Env):
         self._ax1.clear()
         self._ax2.clear()
         self._ax3.clear()
-        self._ax1.plot(self._xr, self.text[self.pos:self.pos+self.wsize])
+        self._ax1.plot(self._xr, self.text[self.pos:self.pos+self.wsize+1])
         self._ax2.plot(self._xr[0:self.i], self.tint[0:self.i])
         self._ax3.plot(self._xr[0:self.i], self.action[0:self.i])
         if self.i :
@@ -234,15 +234,20 @@ class Env(gym.Env):
         delta += q_c / self.model["C"] + text[1] / self.tcte
         tint = self.tint[self.i] * self.cte + self._interval * 0.5 * delta
         self.i += 1
-        self.tint[self.i] = tint
-        # on met à jour state avec les données de next state
-        self.tint_past = np.array([*self.tint_past[1:], tint])
-        self.text_past = np.array([*self.text_past[1:], text[1]])
-        if self.pastsize > 1:
-            self.q_c_past = np.array([*self.q_c_past[1:], q_c])
-        self.state = self._state()
-        # return reward at state
-        return reward
+        done = False
+        if self.i <= self.wsize:
+            self.tint[self.i] = tint
+            # on met à jour state avec les données de next state
+            self.tint_past = np.array([*self.tint_past[1:], tint])
+            self.text_past = np.array([*self.text_past[1:], text[1]])
+            if self.pastsize > 1:
+                self.q_c_past = np.array([*self.q_c_past[1:], q_c])
+            self.state = self._state()
+        else:
+            self.state = None
+            done = True
+        # return reward, done at state
+        return reward, done
 
     def _state(self):
         """return the current state after all calculations are done
@@ -297,8 +302,7 @@ class Env(gym.Env):
 
     def step(self, action):
         """return state, reward pour previous state, done, _"""
-        reward = self._step(action)
-        done = True if self.i == self.wsize else None
+        reward, done = self._step(action)
         return self.state, reward, done, {}
 
     def render(self, stepbystep=True, label=None):
@@ -375,7 +379,7 @@ class Vacancy(Env):
         tc = self.tc_episode
         # nbh -> occupation change (from occupied to empty and vice versa)
         # Note that 1h30 has to be coded as 1.5
-        nbh = (self.wsize - 1 - self.i) * self._interval / 3600
+        nbh = (self.wsize - self.i) * self._interval / 3600
         return np.array([*self.text_past,
                          *self.tint_past,
                          *self.q_c_past,
@@ -391,11 +395,12 @@ class Vacancy(Env):
         if self.state[-1] == 0 :
             # l'occupation du bâtiment commence
             # pour converger vers la température cible
+            #print(tint, tc, self.tot_eko, self._interval)
             reward = - 15 * abs(tint - tc) * self._interval / 3600
             # le bonus énergétique
             if tc - 3 <= tint <= tc + 1 :
                 reward += self.tot_eko * self._k * self._interval / 3600
-        if not action :
+        elif not action :
             self.tot_eko += 1
         return reward
 
@@ -435,22 +440,20 @@ class Building(Vacancy):
             else :
                 if self.tot_eko:
                     self.tot_eko = 0
-        else:
-            if not action :
-                self.tot_eko += 1
+        elif not action :
+            self.tot_eko += 1
         return reward
 
     def reset(self, ts=None, tint=None, tc_episode=None, wsize=None):
         if not isinstance(wsize, int):
-            self.wsize = 1 + 8*24*3600 // self._interval
+            self.wsize = 8*24*3600 // self._interval
         else :
             self.wsize = int(wsize)
         self.tot_eko = 0
         return self._reset(ts=ts, tint=tint, tc_episode=tc_episode)
 
     def step(self, action):
-        reward = self._step(action)
-        done = True if self.i == self.wsize - 1 else None
+        reward, done = self._step(action)
         return self.state, reward, done, {}
 
     def render(self, stepbystep=True, label=None):

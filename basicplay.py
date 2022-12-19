@@ -11,7 +11,7 @@ from conf import MODELS
 
 INTERVAL = 900
 AGENT_TYPES = ["random", "deterministic", "stochastic"]
-SIZES = {"weekend": 63 * 3600 // INTERVAL, "week" : 1 + 8*24*3600 // INTERVAL}
+SIZES = {"weekend": 63 * 3600 // INTERVAL, "week" : 8*24*3600 // INTERVAL}
 MODES = ["hyst", "reduce", "vacancy", "building"]
 
 # pylint: disable=no-value-for-parameter
@@ -60,7 +60,7 @@ def mirror_play(bat):
             print("MIRROR PLAY")
             stats(bat)
             label = f'chauffage arrêté pendant {np.sum(bat.tot_eko)} pas'
-            label = f'{label} - Tint à l\'ouverture {bat.tint[-2]:.2f}°C'
+            label = f'{label} - Tint à l\'ouverture {bat.tint[-1]:.2f}°C'
             bat.render(stepbystep=False, label=label)
             break
 
@@ -76,7 +76,7 @@ def stats(bat):
     print(f'Text min {text_min:.2f} Text moy {text_moy:.2f} Text max {text_max:.2f}')
     print(f'Tint min {tint_min:.2f} Tint moy {tint_moy:.2f} Tint max {tint_max:.2f}')
     if bat.label == "vacancy":
-        print(f'valeur de Tint à l\'ouverture : {bat.tint[-2]:.2f}')
+        print(f'valeur de Tint à l\'ouverture : {bat.tint[-1]:.2f}')
         peko = (bat.tot_eko * 100) // bat.wsize
         print(f'pas de chauffage pendant {bat.tot_eko} pas')
         print(f'{peko}% d\'énergie économisée')
@@ -159,7 +159,7 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, nbh, 
                     label = None
                     if mode == "vacancy":
                         label = f'chauffage arrêté pendant {bat.tot_eko} pas'
-                        label = f'{label} - Tint à l\'ouverture {bat.tint[-2]:.2f}°C'
+                        label = f'{label} - Tint à l\'ouverture {bat.tint[-1]:.2f}°C'
                     bat.render(stepbystep=False, label=label)
                     if mode == "vacancy" and mirrorplay:
                         mirror_play(bat)
