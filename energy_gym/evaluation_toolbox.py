@@ -16,11 +16,18 @@ from .heatgym import covering, MODELRC
 MAX_EPISODES = 900
 PRIMO_AGENT_LAYERS = ['states', 'dense', 'dense_1']
 
-def sim2target(env, pos, tint0, nbh, action=True):
+def sim(env, pos, tint0, nbh, action=True):
     """simulation suivant la méthode des trapèzes
+
     on est à la position pos dans env.text
     on veut calculer la température intérieure dans nbh heures
     soit en chauffant en continu soit sans chauffer
+
+    si on veut prévoir le point suivant seulement, donc à pos+1,
+    on doit donner à nbh la valeur env.text.step/3600
+
+    la fonction retourne le tableau tint des températures simulées
+    la valeur recherchée est tint[-1]
     """
     # nombre d'intervalles pour le calcul
     target = int(nbh * 3600 / env.text.step)
@@ -34,6 +41,51 @@ def sim2target(env, pos, tint0, nbh, action=True):
         delta += power / env.model["C"] + text[j] / env.tcte
         tint[j] = tint[j-1] * env.cte + env.text.step * 0.5 * delta
     return tint
+
+
+def play_hystnocc(env, pos, size, tint0, tc, hh):
+    """joue la politique optimale sur un scénario d'intermittence
+    avec un modèle déterministe contenu dans env
+
+    env doit contenir l'agenda d'occupation
+
+    retourne un tableau de 2 colonnes et de size lignes
+    colonne 1 : intensité de chauffage
+    colonne 2 : température intérieure
+    """
+    # how many hour(s) is an interval ?
+    # if text.step is 1800, ith will be 0.5
+    ith = env.text.step / 3600
+    datas = np.zeros((size, 2))
+    datas[0, 1] = tint0
+    # doit-on mettre en route le chauffage à l'étape 0 ?
+    if env.agenda[pos] == 0:
+        nbh = get_level_duration(env.agenda, pos) * ith
+        tint_sim = sim(env, pos, tint0, nbh)
+        action = tint_sim[-1] <= tc
+    else:
+        action = tint0 <= tc
+    datas[0, 0] = action
+    # itération
+    for i in range(1, size):
+        #  calcul de la température à l'étape i
+        tint_sim = sim(env, pos+i-1, datas[i-1, 1], ith, action)
+        datas[i, 1] = tint_sim[-1]
+        if env.agenda[pos+i] == 0:
+            # hors occupation : simulation à la cible
+            # vu qu'on chauffe tt le temps, on ne précise pas action !
+            nbh = get_level_duration(env.agenda, pos+i) * ith
+            tint_sim = sim(env, pos+i, datas[i, 1], nbh)
+            action = tint_sim[-1] <= tc
+        else:
+            # hystérésis classique
+            if datas[i, 1] > tc + hh or datas[i, 1] < tc - hh :
+                action = datas[i, 1] <= tc
+            else:
+                # on est dans la fenêtre > on ne change rien :-)
+                action = datas[i-1, 0]
+        datas[i, 0] = action
+    return datas
 
 
 def get_config(agent):
@@ -156,11 +208,8 @@ class Environnement:
 
     def sim(self, datas, i):
         """calcule la température à l'étape i"""
-        result = sim2target(self,
-                            self.pos+i-1,
-                            datas[i-1, 2],
-                            self.text.step/3600,
-                            action=datas[i-1, 0]/self.max_power)
+        result = sim(self, self.pos+i-1, datas[i-1, 2],
+                     self.text.step/3600, action=datas[i-1, 0]/self.max_power)
         return result[-1]
 
 
@@ -169,7 +218,7 @@ class Environnement:
         on est à l'étape i et on veut calculer la température à l'ouverture des locaux,
         en chauffant dès à présent en permanence
         """
-        return sim2target(self, self.pos+i, datas[i, 2], datas[i, 4])
+        return sim(self, self.pos+i, datas[i, 2], datas[i, 4])
 
     def play(self, datas):
         """

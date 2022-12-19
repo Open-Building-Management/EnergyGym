@@ -83,7 +83,8 @@ class EnvHystNocc(Environnement):
                 else:
                     # on est dans la fenêtre > on ne change rien :-)
                     datas[i, 0] = datas[i-1, 0]
-
+        # les mêmes calculs avec la fonction play_hystnocc
+        #datas2 = play_hystnocc(self, self.pos, self.wsize, datas[0, 2], self.tc, self.hh)
         return datas
 
 

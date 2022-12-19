@@ -4,14 +4,15 @@ import sys
 import click
 import numpy as np
 import tensorflow as tf
-from energy_gym import get_feed, biosAgenda, pick_name, Hyst, Vacancy, Building
+import energy_gym
+from energy_gym import get_feed, biosAgenda, pick_name
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
 
 INTERVAL = 3600
 AGENT_TYPES = ["random", "deterministic", "stochastic"]
 SIZES = {"weekend": 63 * 3600 // INTERVAL, "week" : 1 + 8*24*3600 // INTERVAL}
-MODES = ["hyst", "vacancy", "intermittence"]
+MODES = ["hyst", "vacancy", "building"]
 
 # pylint: disable=no-value-for-parameter
 WSIZE = 1 + 8*24*3600 // INTERVAL
@@ -22,11 +23,18 @@ CW = 1162.5 #Wh/m3/K
 MAX_POWER = 5 * CW * 15
 TEXT_FEED = 1
 
+
+def flc(name):
+    """first letter in capital"""
+    return f'{name[0].upper()}{name[1:]}'
+
+
 def load(agent_path):
     """load tensorflow network"""
     # custom_objects est nécessaire pour charger certains réseaux entrainés sur le cloud, via les github actions
     agent = tf.keras.models.load_model(agent_path, compile=False, custom_objects={'Functional':tf.keras.models.Model})
     return agent
+
 
 def mirror_play(bat):
     """
@@ -55,6 +63,7 @@ def mirror_play(bat):
             bat.render(stepbystep=False, label=label)
             break
 
+
 def stats(bat):
     """some basic stats"""
     tint_min = np.amin(bat.tint[:-1])
@@ -72,10 +81,12 @@ def stats(bat):
         print(f'{peko}% d\'énergie économisée')
     print("***********************************************************")
 
+
 def sig_handler(signum, frame):  # pylint: disable=unused-argument
     """Réception du signal de fermeture"""
     print(f'signal de fermeture ({signum}) reçu')
     sys.exit(0)
+
 
 @click.command()
 @click.option('--agent_type', type=click.Choice(AGENT_TYPES), prompt='comportement de l\'agent ?')
@@ -95,17 +106,13 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, nbh, 
         model["pastsize"] = pastsize
     if nbh:
         model["nbh"] = nbh
-    agenda = None
-    text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
-    if size == "week":
-        agenda = biosAgenda(text.shape[0], INTERVAL, text.start, [], schedule=SCHEDULE)
 
-    if mode == "hyst":
-        bat = Hyst(text, MAX_POWER, 20, 0.9, **model)
-    if mode == "vacancy":
-        bat = Vacancy(text, MAX_POWER, 20, 0.9, **model)
-    if mode == "intermittence":
-        bat = Building(text, agenda, MAX_POWER, 20, 0.9, **model)
+    text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
+    bat = getattr(energy_gym, flc(mode))(text, MAX_POWER, 20, 0.9, **model)
+    agenda = None
+    if size == "week" or mode == "building":
+        agenda = biosAgenda(text.shape[0], INTERVAL, text.start, [], schedule=SCHEDULE)
+    bat.set_agenda(agenda)
 
     # demande à l'utilisateur un nom de réseau
     if agent_type != "random":

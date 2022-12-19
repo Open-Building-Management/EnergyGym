@@ -13,6 +13,7 @@ from .planning import get_random_start, get_level_duration
 #MODELRC = {"R": 2.54061406e-04, "C": 9.01650468e+08}
 MODELRC = {"R": 5.94419964e-04, "C": 5.40132642e+07}
 
+
 def confort(xr, tc, hh):
     """construit le rectangle vert de la zone de confort thermique
     facecolor='g': green color
@@ -64,6 +65,7 @@ def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
     zones_occ = presence(xr, occupation, wsize, tmin, tmax, tc, hh)
     return xr, zone_confort, zones_occ
 
+
 class Env(gym.Env):
     """base environnement"""
     def __init__(self, text, max_power, tc, k, **model):
@@ -106,7 +108,7 @@ class Env(gym.Env):
         # nombre de pas de temps sans conso énergétique pour l'épisode
         self.tot_eko = 0
         self.max_power = max_power
-        self._tc = tc
+        self.tc = tc
         self.tc_episode = None
         self._k = k
         self.model = model if model else MODELRC
@@ -148,11 +150,12 @@ class Env(gym.Env):
         self.pos = (ts - self._tss) // self._interval
         self.tsvrai = self._tss + self.pos * self._interval
         #print("episode timestamp : {}".format(self.tsvrai))
-        # on fixe la température de consigne (à la cible) de notre épisode
+        # on fixe la température de consigne de notre épisode,
+        # c'est-à-dire la température qu'il doit faire quant le bâtiment est occupé
         if isinstance(tc_episode, (int, float)):
             self.tc_episode = tc_episode
         else:
-            self.tc_episode = self._tc + random.randint(-2,2)
+            self.tc_episode = self.tc + random.randint(-2,2)
         # x axis = time for human
         xrs = np.arange(self.tsvrai, self.tsvrai + self.wsize * self._interval, self._interval)
         self._xr = np.array(xrs, dtype='datetime64[s]')
@@ -240,8 +243,7 @@ class Env(gym.Env):
 
     def _state(self):
         """return the current state after all calculations are done
-        example de state
-        pour une température de consigne maintenue constante sur l'épisode
+        example de state pour une température de consigne tc
         à surcharger dans classe fille"""
         tc = self.tc_episode
         return np.array([*self.text_past,
@@ -362,7 +364,7 @@ class Vacancy(Env):
 
     def reward(self, action):
         """reward at state action"""
-        self.reward_label = "Vote_final_reward_only"
+        self.reward_label = "final_reward_only"
         reward = 0
         tc = self.tc_episode
         tint = self.tint[self.i]
@@ -382,10 +384,10 @@ class Building(Vacancy):
     """mode universel - alternance d'occupation et de non-occupation
     needed for tests, not really for trainings
     """
-    def __init__(self, text, agenda, max_power, tc, k, **model):
+    def __init__(self, text, max_power, tc, k, **model):
         super().__init__(text, max_power, tc, k, **model)
-        self.agenda = agenda
         self.label = "week"
+        self.reward_label = "nice_name_for_the_network_and_to_find_it_in_tensorboard"
 
     def _state(self):
         """return the current state after all calculations are done"""
