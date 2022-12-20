@@ -288,7 +288,7 @@ class Env(gym.Env):
         # pour l'instant, cette pondération a peu d'influence car on entraine surtout à l'heure
         # cette pondération n'a pas d'influence sur la convergence à priori
         # mais celà permet, pour une performance donnée, de rester sur des niveaux de récompenses équivalents,
-        # même si on décide de changer le pas de temps lors des entrainements 
+        # même si on décide de changer le pas de temps lors des entrainements
         reward = - abs(tint - tc) * self._interval / 3600
         # calcul de l'énergie économisée
         if not action :
