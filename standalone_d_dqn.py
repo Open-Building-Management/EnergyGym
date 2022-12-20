@@ -120,9 +120,11 @@ def train(primary_network, mem, state_size, target_network=None):
 @click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--k', type=float, default=0.9, prompt='paramètre énergie')
 @click.option('--scenario', type=click.Choice(SCENARIOS), default="Vacancy", prompt='scénario ?')
+@click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
+@click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
 @click.option('--nbh', type=float, default=None)
 @click.option('--pastsize', type=int, default=None)
-def main(nbtext, modelkey, k, scenario, nbh, pastsize):
+def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, pastsize):
     """main command"""
     text = get_feed(nbtext, INTERVAL, "./datas")
     model = MODELS[modelkey]
@@ -131,9 +133,9 @@ def main(nbtext, modelkey, k, scenario, nbh, pastsize):
     if nbh:
         model["nbh"] = nbh
     if scenario == "Hyst":
-        env = Hyst(text, MAX_POWER, 20, k, **model)
+        env = Hyst(text, MAX_POWER, tc, k, **model)
     else:
-        env = Vacancy(text, MAX_POWER, 20, k, **model)
+        env = Vacancy(text, MAX_POWER, tc, k, **model)
     print(env.model)
     state_size = env.observation_space.shape[0]
     num_actions = env.action_space.n
@@ -159,7 +161,8 @@ def main(nbtext, modelkey, k, scenario, nbh, pastsize):
         return str(num).replace(".", "dot")
 
     for i in range(NUM_EPISODES):
-        state = env.reset()
+        tc_episode = tc + random.randint(-halfrange, halfrange)
+        state = env.reset(tc_episode=tc_episode)
         cnt = 0
         avg_loss = 0
         while True:
@@ -170,7 +173,8 @@ def main(nbtext, modelkey, k, scenario, nbh, pastsize):
             if i == 0 and env.i == 1:
                 # première étape du premier épisode : reward_label existe
                 suffix = f'{modelkey}_k={dot(k)}_GAMMA={dot(GAMMA)}_{env.reward_label}'
-                train_writer = tf.summary.create_file_writer(STORE_PATH + f"/{NOW}_{suffix}")
+                tw_path = f'{STORE_PATH}/{scenario}_{NOW}_{suffix}'
+                train_writer = tf.summary.create_file_writer(tw_path)
 
             if done:
                 next_state = None
@@ -220,7 +224,7 @@ def main(nbtext, modelkey, k, scenario, nbh, pastsize):
 
     save = input("save ? Y=yes")
     if save == "Y":
-        primary_network.save(f'{DIR}/{GAME}_aimlDDQN_{NOW}_{suffix}')
+        primary_network.save(f'{STORE_PATH}_{scenario}_{NOW}_{suffix}')
 
 
 if __name__ == "__main__":

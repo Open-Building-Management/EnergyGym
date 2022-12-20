@@ -1,5 +1,6 @@
 """a basic sandbox to play with Heatgym"""
 import signal
+import random
 import sys
 import click
 import numpy as np
@@ -97,9 +98,11 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
 @click.option('--model', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--stepbystep', type=bool, default=False, prompt='jouer l\'épisode pas à pas ?')
 @click.option('--mirrorplay', type=bool, default=False, prompt='jouer le mirror play après avoir joué l\'épisode ?')
+@click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
+@click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
 @click.option('--nbh', type=float, default=None)
 @click.option('--pastsize', type=int, default=None)
-def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, nbh, pastsize):
+def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, halfrange, nbh, pastsize):
     """main command"""
     model = MODELS[model]
     wsize = SIZES[size]
@@ -129,7 +132,8 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, nbh, 
     signal.signal(signal.SIGINT, sig_handler)
     signal.signal(signal.SIGTERM, sig_handler)
     for _ in range(nbepisodes):
-        state = bat.reset(ts=ts, wsize=wsize)
+        tc_episode = tc + random.randint(-halfrange, halfrange)
+        state = bat.reset(ts=ts, wsize=wsize, tc_episode=tc_episode)
         rewardtot = 0
         while True :
             if stepbystep:

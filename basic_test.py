@@ -10,7 +10,7 @@ MODES = ["Hyst", "Vacancy"]
 
 
 @click.command()
-@click.option('--mode', type=click.Choice(MODES), prompt='hystérésis, non-occupation avec température à atteindre à la fin ?')
+@click.option('--mode', type=click.Choice(MODES), prompt='mode ?')
 def main(mode):
     """main command"""
     text = energy_gym.get_feed(TEXT_FEED, INTERVAL, path=PATH)

@@ -155,10 +155,9 @@ class Env(gym.Env):
         #print("episode timestamp : {}".format(self.tsvrai))
         # on fixe la température de consigne de notre épisode,
         # c'est-à-dire la température qu'il doit faire quant le bâtiment est occupé
+        self.tc_episode = self.tc
         if isinstance(tc_episode, (int, float)):
             self.tc_episode = tc_episode
-        else:
-            self.tc_episode = self.tc + random.randint(-2,2)
         # x axis = time for human
         xrs = np.arange(self.tsvrai, self.tsvrai + (self.wsize+1) * self._interval, self._interval)
         self._xr = np.array(xrs, dtype='datetime64[s]')
@@ -285,6 +284,11 @@ class Env(gym.Env):
         reward = 0
         tc = self.tc_episode
         tint = self.tint[self.i]
+        # on pondère car on peut entrainer à des pas de temps différents
+        # pour l'instant, cette pondération a peu d'influence car on entraine surtout à l'heure
+        # cette pondération n'a pas d'influence sur la convergence à priori
+        # mais celà permet, pour une performance donnée, de rester sur des niveaux de récompenses équivalents,
+        # même si on décide de changer le pas de temps lors des entrainements 
         reward = - abs(tint - tc) * self._interval / 3600
         # calcul de l'énergie économisée
         if not action :
@@ -396,8 +400,12 @@ class Vacancy(Env):
             # l'occupation du bâtiment commence
             # pour converger vers la température cible
             #print(tint, tc, self.tot_eko, self._interval)
-            reward = - 15 * abs(tint - tc) * self._interval / 3600
+            # on ne pondère pas la récompense en température
+            # car elle est purement ponctuelle, acquise uniquement à l'ouverture
+            reward = - 15 * abs(tint - tc)
             # le bonus énergétique
+            # on pondère car même s'il s'agit d'une récompense finale,
+            # elle est acquise sur toute la durée de l'épisode
             if tc - 3 <= tint <= tc + 1 :
                 reward += self.tot_eko * self._k * self._interval / 3600
         elif not action :
