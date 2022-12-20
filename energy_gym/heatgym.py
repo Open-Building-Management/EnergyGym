@@ -452,10 +452,6 @@ class Building(Vacancy):
         self.tot_eko = 0
         return self._reset(ts=ts, tint=tint, tc_episode=tc_episode)
 
-    def step(self, action):
-        reward, done = self._step(action)
-        return self.state, reward, done, {}
-
     def render(self, stepbystep=True, label=None):
         if self.i:
             zone_confort, zones_occ = self._covering()
