@@ -22,8 +22,14 @@ play et basicplay utilisent l'autocomplétion en ligne de commande pour choisir 
 
 ## basicplay
 
+Pour un espace d'observation sans historique :
 ```
 python3 basicplay.py
+python3 basicplay.py --pastsize=1
+```
+Pour un espace d'observation avec un historique de 4 heures :
+```
+python3 basicplay.py --nbh=4
 ```
 
 paramètre |  description
@@ -31,15 +37,17 @@ paramètre |  description
 agent_type | random = décision aléatoire<br>deterministic = argmax<br>stochastic = softmax
 random_ts | True = joue jusqu'à 200 épisodes<br>False = joue un seul épisode sur le timestamp 1609104740
 mode | hyst: hysteresis<br>vacancy: non-occupation<br>intermittence: alternance de période d'occupation et de non-occupation
-size | week: 8 jours + 1 point<br>weekend: 63 heures
+size | week: 8 jours<br>weekend: 63 heures
 model | le nom d'une des configurations de [conf.py](conf.py)
 stepbystep | True = joue en mode pas à pas
 pastsize | nombre de pas que l'on peut remonter dans l'histoire passée
 nbh | nombre d'heures que l'on peut remonter dans l'histoire passée
 
-si pastsize et nbh sont fournis, c'est nbh qui fixe la taille de l'historique 
+si pastsize et nbh sont tous les 2 fournis en paramètres à basicplay.py, c'est nbh qui fixe la taille de l'historique 
 
 ## play
+
+Attention : espace d'observation sans historique seulement 
 
 possibilité :
 * de faire jouer simultanément l'agent et la politique optimale de l'environnement,
