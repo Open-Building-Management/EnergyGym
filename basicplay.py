@@ -55,7 +55,7 @@ def mirror_play(bat):
     wsize = bat.wsize
     bat.reset(ts=ts, tint=tint0, tc_episode=tc_episode, wsize=wsize)
     while True:
-        action = 0 if bat.i < limit else 1
+        action = 0 if bat.i < limit else bat.action_space.n - 1
         _, _, done, _ = bat.step(action)
         if done:
             print("MIRROR PLAY")
@@ -79,7 +79,7 @@ def stats(bat):
     if bat.label == "vacancy":
         print(f'valeur de Tint à l\'ouverture : {bat.tint[-1]:.2f}')
         peko = (bat.tot_eko * 100) / bat.wsize
-        print(f'pas de chauffage pendant {bat.tot_eko} pas')
+        print(f'pas de chauffage pendant {bat.tot_eko:.2f} pas')
         print(f'{peko:.2f}% d\'énergie économisée')
     print("***********************************************************")
 
@@ -102,7 +102,8 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
 @click.option('--nbh', type=float, default=None)
 @click.option('--pastsize', type=int, default=None)
-def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, halfrange, nbh, pastsize):
+@click.option('--action_space', type=int, default=2)
+def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, halfrange, nbh, pastsize, action_space):
     """main command"""
     model = MODELS[model]
     wsize = SIZES[size]
@@ -110,6 +111,7 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
         model["pastsize"] = pastsize
     if nbh:
         model["nbh"] = nbh
+    model["action_space"] = action_space
 
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
     bat = getattr(energy_gym, flc(mode))(text, MAX_POWER, 20, 0.9, **model)
@@ -152,7 +154,6 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
                     # stochastic policy
                     act_probs = tf.nn.softmax(result, axis=1)
                     action = np.random.choice(act_probs.shape[1], p=act_probs.numpy()[0])
-            action = action / (bat.action_space.n - 1)
             state, reward, done, _ = bat.step(action)
             rewardtot += reward
             if done:
@@ -163,7 +164,7 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
                 if not stepbystep:
                     label = None
                     if mode == "vacancy":
-                        label = f'chauffage arrêté pendant {bat.tot_eko} pas'
+                        label = f'chauffage arrêté pendant {bat.tot_eko:.2f} pas'
                         label = f'{label} - Tint à l\'ouverture {bat.tint[-1]:.2f}°C'
                     bat.render(stepbystep=False, label=label)
                     if mode == "vacancy" and mirrorplay:

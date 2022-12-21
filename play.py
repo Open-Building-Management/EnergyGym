@@ -236,8 +236,8 @@ def main(nbtext, modelkey, powerlimit, tc, nbepisodes, optimalpolicy,
                 os.mkdir(storage)
             snapshots(storage, agent_name, sandbox, suffix=suffix)
         else:
-            sandbox.play(silent=False, ts=1641828600) # 10 janvier 2022
-
+            #sandbox.play(silent=False, ts=1641828600) # 10 janvier 2022
+            sandbox.play(silent=False, ts=1577259140)
             #sandbox.play(silent=False, ts=1576559067) # 2019-12-17 06:04:27:+0100
             #sandbox.play(silent=False, ts=1577269940) # 2019-12-25 11:32:20:+0100
             #sandbox.play(silent=False, ts=1578983540) # 14 janvier 2020

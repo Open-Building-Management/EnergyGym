@@ -84,6 +84,7 @@ class Env(gym.Env):
         pastsize = model.get("pastsize", 1)
         if "nbh" in model:
             pastsize = model["nbh"] * 3600 // self._interval
+        self.action_space = spaces.Discrete(model.get("action_space", 2))
         self.pastsize = int(pastsize)
         # tableau numpy des températures passées
         self.tint_past = np.zeros(self.pastsize)
@@ -227,7 +228,7 @@ class Env(gym.Env):
         reward = self.reward(action)
         self._tot_reward += reward
         # Qc at state
-        q_c = action * self.max_power
+        q_c = action * self.max_power / (self.action_space.n - 1)
         self.action[self.i] = action
         # indoor temp at next state
         text = self.text[self.pos+self.i:self.pos+self.i+2]
@@ -272,6 +273,10 @@ class Env(gym.Env):
             zones_occ = presence(self._xr, occupation, self.wsize, tmin, tmax, self.tc_episode, 1)
         return zone_confort, zones_occ
 
+    def _eko(self, action):
+        """économie d'énergie associée à une action"""
+        return round(1 - action / (self.action_space.n - 1), 1)
+
     def set_agenda(self, agenda):
         """définit l'agenda d'occupation"""
         self.agenda = agenda
@@ -294,7 +299,7 @@ class Env(gym.Env):
         # même si on décide de changer le pas de temps lors des entrainements
         reward = - abs(tint - tc) * self._interval / 3600
         # calcul de l'énergie économisée
-        self.tot_eko += round(1 - action, 1)
+        self.tot_eko += self._eko(action)
         return reward
 
     def reset(self, ts=None, tint=None, tc_episode=None, wsize=None):  # pylint: disable=W0221
@@ -336,7 +341,6 @@ class Hyst(Env):
         avec n=1, l'espace d'observation est de taille 3
         """
         super().__init__(text, max_power, tc, k, **model)
-        self.action_space = spaces.Discrete(2)
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high, (3*self.pastsize,), dtype=np.float32)
         # labels
@@ -376,7 +380,6 @@ class Vacancy(Env):
         - nb hours -> occupation change (from occupied to empty and vice versa)
         """
         super().__init__(text, max_power, tc, k, **model)
-        self.action_space = spaces.Discrete(2)
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high, (3*self.pastsize+1,), dtype=np.float32)
         #print(self.observation_space)
@@ -414,7 +417,7 @@ class Vacancy(Env):
             if tc - 3 <= tint <= tc + 1 :
                 reward += self.tot_eko * self._k * self._interval / 3600
         else :
-            self.tot_eko += round(1 - action, 1)
+            self.tot_eko += self._eko(action)
         return reward
 
 
@@ -454,7 +457,7 @@ class Building(Vacancy):
                 if self.tot_eko:
                     self.tot_eko = 0
         else :
-            self.tot_eko += round(1 - action, 1)
+            self.tot_eko += self._eko(action)
         return reward
 
     def reset(self, ts=None, tint=None, tc_episode=None, wsize=None):

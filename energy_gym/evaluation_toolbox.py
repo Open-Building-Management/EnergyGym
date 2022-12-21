@@ -16,7 +16,7 @@ from .heatgym import covering, MODELRC
 MAX_EPISODES = 900
 PRIMO_AGENT_LAYERS = ['states', 'dense', 'dense_1']
 
-def sim(env, pos, tint0, nbh, action=True):
+def sim(env, pos, tint0, nbh, action=1):
     """simulation suivant la méthode des trapèzes
 
     on est à la position pos dans env.text
