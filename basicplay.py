@@ -48,7 +48,7 @@ def mirror_play(bat):
     - en arrêtant de chauffer pendant un nombre de pas égal à bat.tot_eko,
     - puis en chauffant de manière continue à partir de bat.tot_eko
     """
-    limit = bat.tot_eko
+    limit = int(bat.tot_eko)
     ts = bat.tsvrai
     tint0 = bat.tint[0]
     tc_episode = bat.tc_episode
@@ -78,9 +78,9 @@ def stats(bat):
     print(f'Tint min {tint_min:.2f} Tint moy {tint_moy:.2f} Tint max {tint_max:.2f}')
     if bat.label == "vacancy":
         print(f'valeur de Tint à l\'ouverture : {bat.tint[-1]:.2f}')
-        peko = (bat.tot_eko * 100) // bat.wsize
+        peko = (bat.tot_eko * 100) / bat.wsize
         print(f'pas de chauffage pendant {bat.tot_eko} pas')
-        print(f'{peko}% d\'énergie économisée')
+        print(f'{peko:.2f}% d\'énergie économisée')
     print("***********************************************************")
 
 
@@ -152,6 +152,7 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
                     # stochastic policy
                     act_probs = tf.nn.softmax(result, axis=1)
                     action = np.random.choice(act_probs.shape[1], p=act_probs.numpy()[0])
+            action = action / (bat.action_space.n - 1)
             state, reward, done, _ = bat.step(action)
             rewardtot += reward
             if done:

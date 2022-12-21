@@ -155,6 +155,8 @@ class Env(gym.Env):
         #print("episode timestamp : {}".format(self.tsvrai))
         # on fixe la température de consigne de notre épisode,
         # c'est-à-dire la température qu'il doit faire quant le bâtiment est occupé
+        # si on veut fonctionner/entrainer à consigne variable,
+        # on tire au sort un valeur et on la passe en argument à reset()
         self.tc_episode = self.tc
         if isinstance(tc_episode, (int, float)):
             self.tc_episode = tc_episode
@@ -251,7 +253,7 @@ class Env(gym.Env):
     def _state(self):
         """return the current state after all calculations are done
         example de state pour une température de consigne tc
-        à surcharger dans classe fille"""
+        A SURCHARGER DANS CLASSE FILLE"""
         tc = self.tc_episode
         return np.array([*self.text_past,
                          *self.tint_past,
@@ -280,19 +282,19 @@ class Env(gym.Env):
 
     def reward(self, action):
         """récompense hystéresis
-        à surcharger dans classe fille"""
+        A SURCHARGER DANS CLASSE FILLE"""
         reward = 0
         tc = self.tc_episode
         tint = self.tint[self.i]
         # on pondère car on peut entrainer à des pas de temps différents
-        # pour l'instant, cette pondération a peu d'influence car on entraine surtout à l'heure
+        # cette pondération n'a d'impact si on entraine tjrs à l'heure
         # cette pondération n'a pas d'influence sur la convergence à priori
-        # mais celà permet, pour une performance donnée, de rester sur des niveaux de récompenses équivalents,
+        # MAIS pour une performance donnée,
+        # celà permet de rester sur des niveaux de récompenses équivalents,
         # même si on décide de changer le pas de temps lors des entrainements
         reward = - abs(tint - tc) * self._interval / 3600
         # calcul de l'énergie économisée
-        if not action :
-            self.tot_eko += 1
+        self.tot_eko += round(1 - action, 1)
         return reward
 
     def reset(self, ts=None, tint=None, tc_episode=None, wsize=None):  # pylint: disable=W0221
@@ -318,7 +320,10 @@ class Env(gym.Env):
         #plt.savefig("test.png")
         plt.close()
 
-
+# --------------------------------------------------------------------------- #
+# ready to use implementations
+# il faut défnir les espaces d'action et d'observation
+# --------------------------------------------------------------------------- #
 class Hyst(Env):
     """mode hystéresis permanent"""
     def __init__(self, text, max_power, tc, k, **model):
@@ -408,8 +413,8 @@ class Vacancy(Env):
             # elle est acquise sur toute la durée de l'épisode
             if tc - 3 <= tint <= tc + 1 :
                 reward += self.tot_eko * self._k * self._interval / 3600
-        elif not action :
-            self.tot_eko += 1
+        else :
+            self.tot_eko += round(1 - action, 1)
         return reward
 
 
@@ -448,8 +453,8 @@ class Building(Vacancy):
             else :
                 if self.tot_eko:
                     self.tot_eko = 0
-        elif not action :
-            self.tot_eko += 1
+        else :
+            self.tot_eko += round(1 - action, 1)
         return reward
 
     def reset(self, ts=None, tint=None, tc_episode=None, wsize=None):

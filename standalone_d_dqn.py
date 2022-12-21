@@ -169,6 +169,7 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, pastsize):
             if RENDER:
                 env.render()
             action = choose_action(state, primary_network, eps, num_actions)
+            action = action / (num_actions - 1)
             next_state, reward, done, _ = env.step(action)
             if i == 0 and env.i == 1:
                 # première étape du premier épisode : reward_label existe
