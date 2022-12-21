@@ -36,7 +36,7 @@ paramètre |  description
 --|--
 agent_type | random = décision aléatoire<br>deterministic = argmax<br>stochastic = softmax
 random_ts | True = joue jusqu'à 200 épisodes<br>False = joue un seul épisode sur le timestamp 1609104740
-mode | hyst: hysteresis<br>vacancy: non-occupation<br>intermittence: alternance de période d'occupation et de non-occupation
+mode | type d'environnement, par exemple<br>hyst: hysteresis<br>vacancy: non-occupation<br>reduce: hysteresis avec réduit hors occupation
 size | week: 8 jours<br>weekend: 63 heures
 model | le nom d'une des configurations de [conf.py](conf.py)
 stepbystep | True = joue en mode pas à pas
