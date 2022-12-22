@@ -108,10 +108,18 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
 
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
     bat = getattr(energy_gym, mode)(text, MAX_POWER, tc, 0.9, **model)
+    
+    # définition de l'agenda d'occupation
     agenda = None
-    if size == "week" or mode == "building":
+    if size == "week" or mode == "Building":
         agenda = biosAgenda(text.shape[0], INTERVAL, text.start, [], schedule=SCHEDULE)
+    if mode == "Vacancy":
+        agenda = np.zeros(wsize)
+    if mode == "Hyst":
+        agenda = np.ones(wsize)
     bat.set_agenda(agenda)
+    
+    # réduit hors occupation
     if mode == "reduce":
         bat.set_reduce(REDUCE)
 
@@ -154,12 +162,13 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
                     print(f'récompense à l\'arrivée {reward:.2f}')
                 print(f'récompense cumulée {rewardtot:.2f}')
                 peko = stats(bat)
+                optimal_solution = play_hystnocc(bat, bat.pos, bat.wsize, bat.tint[0], bat.tc_episode, 1)
                 if not stepbystep:
                     label = None
                     if mode == "Vacancy":
                         label = f'{peko:.2f}% d\'énergie économisée'
                         label = f'{label} - Tint à l\'ouverture {bat.tint[-1]:.2f}°C'
-                    bat.render(stepbystep=False, label=label)
+                    bat.render(stepbystep=False, label=label, extra_datas=optimal_solution)
                     if mode == "Vacancy" and mirrorplay:
                         mirror_play(bat)
                 break

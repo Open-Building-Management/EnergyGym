@@ -212,7 +212,7 @@ class Env(gym.Env):
         self._ax1.plot(self._xr, self.text[self.pos:self.pos+self.wsize+1])
         self._ax2.plot(self._xr[0:self.i], self.tint[0:self.i])
         if extra_datas is not None and not stepbystep:
-            self._ax2.plot(self._xr[0:self.wsize], extra_datas[:,1])
+            self._ax2.plot(self._xr[0:self.wsize], extra_datas[:,1], color="orange")
         self._ax3.plot(self._xr[0:self.i], self.action[0:self.i])
         if self.i :
             if zone_confort is not None :
@@ -323,12 +323,12 @@ class Env(gym.Env):
         reward, done = self._step(action)
         return self.state, reward, done, {}
 
-    def render(self, stepbystep=True, label=None):
+    def render(self, stepbystep=True, label=None, extra_datas=None):
         """render realtime or not
         on ne fait pas appel à _covering car en mode Vacancy, on n'a besoin
         d'aucun zonage du graphique
         """
-        self._render(stepbystep=stepbystep, label=label)
+        self._render(stepbystep=stepbystep, label=label, extra_datas=extra_datas)
 
     def close(self):
         """closing"""
@@ -354,11 +354,12 @@ class Hyst(Env):
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high, (3*self.pastsize,), dtype=np.float32)
 
-    def render(self, stepbystep=True, label=None):
+    def render(self, stepbystep=True, label=None, extra_datas=None):
         """avec affichage de la zone de confort"""
         if self.i:
             zone_confort, zones_occ = self._covering()
-            self._render(zone_confort=zone_confort, zones_occ=zones_occ, stepbystep=stepbystep, label=label)
+            self._render(zone_confort=zone_confort, zones_occ=zones_occ, 
+                         stepbystep=stepbystep, label=label, extra_datas=extra_datas)
         else:
             self._render(stepbystep=stepbystep, label=label)
 
@@ -468,9 +469,10 @@ class Building(Vacancy):
         self.tot_eko = 0
         return self._reset(ts=ts, tint=tint, tc_episode=tc_episode)
 
-    def render(self, stepbystep=True, label=None):
+    def render(self, stepbystep=True, label=None, extra_datas=None):
         if self.i:
             zone_confort, zones_occ = self._covering()
-            self._render(zone_confort=zone_confort, zones_occ=zones_occ, stepbystep=stepbystep)
+            self._render(zone_confort=zone_confort, zones_occ=zones_occ, 
+                         stepbystep=stepbystep, label=label, extra_datas=extra_datas)
         else:
             self._render(stepbystep=stepbystep)
