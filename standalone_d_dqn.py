@@ -124,7 +124,8 @@ def train(primary_network, mem, state_size, target_network=None):
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
 @click.option('--nbh', type=float, default=None)
 @click.option('--pastsize', type=int, default=None)
-def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, pastsize):
+@click.option('--action_space', type=int, default=2)
+def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, pastsize, action_space):
     """main command"""
     text = get_feed(nbtext, INTERVAL, "./datas")
     model = MODELS[modelkey]
@@ -132,6 +133,8 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, pastsize):
         model["pastsize"] = pastsize
     if nbh:
         model["nbh"] = nbh
+    model["action_space"] = action_space
+
     if scenario == "Hyst":
         env = Hyst(text, MAX_POWER, tc, k, **model)
     else:
@@ -171,8 +174,8 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, pastsize):
             action = choose_action(state, primary_network, eps, num_actions)
             next_state, reward, done, _ = env.step(action)
             if i == 0 and env.i == 1:
-                # première étape du premier épisode : reward_label existe
-                suffix = f'{modelkey}_k={dot(k)}_GAMMA={dot(GAMMA)}_{env.reward_label}'
+                # première étape du premier épisode
+                suffix = f'{modelkey}_k={dot(k)}_GAMMA={dot(GAMMA)}_NBACTIONS={env.action_space.n}'
                 tw_path = f'{STORE_PATH}/{scenario}_{NOW}_{suffix}'
                 train_writer = tf.summary.create_file_writer(tw_path)
 

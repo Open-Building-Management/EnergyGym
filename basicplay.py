@@ -59,8 +59,8 @@ def mirror_play(bat):
         _, _, done, _ = bat.step(action)
         if done:
             print("MIRROR PLAY")
-            stats(bat)
-            label = f'chauffage arrêté pendant {np.sum(bat.tot_eko)} pas'
+            peko = stats(bat)
+            label = f'{peko:.2f}% d\'énergie économisée'
             label = f'{label} - Tint à l\'ouverture {bat.tint[-1]:.2f}°C'
             bat.render(stepbystep=False, label=label)
             break
@@ -76,12 +76,13 @@ def stats(bat):
     text_moy = np.mean(bat.text[bat.pos:bat.pos+bat.wsize])
     print(f'Text min {text_min:.2f} Text moy {text_moy:.2f} Text max {text_max:.2f}')
     print(f'Tint min {tint_min:.2f} Tint moy {tint_moy:.2f} Tint max {tint_max:.2f}')
-    if bat.label == "vacancy":
+    if type(bat).__name__ == "Vacancy":
         print(f'valeur de Tint à l\'ouverture : {bat.tint[-1]:.2f}')
         peko = (bat.tot_eko * 100) / bat.wsize
         print(f'pas de chauffage pendant {bat.tot_eko:.2f} pas')
         print(f'{peko:.2f}% d\'énergie économisée')
     print("***********************************************************")
+    return peko
 
 
 def sig_handler(signum, frame):  # pylint: disable=unused-argument
@@ -160,11 +161,11 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
                 if mode == "vacancy":
                     print(f'récompense à l\'arrivée {reward:.2f}')
                 print(f'récompense cumulée {rewardtot:.2f}')
-                stats(bat)
+                peko = stats(bat)
                 if not stepbystep:
                     label = None
                     if mode == "vacancy":
-                        label = f'chauffage arrêté pendant {bat.tot_eko:.2f} pas'
+                        label = f'{peko:.2f}% d\'énergie économisée'
                         label = f'{label} - Tint à l\'ouverture {bat.tint[-1]:.2f}°C'
                     bat.render(stepbystep=False, label=label)
                     if mode == "vacancy" and mirrorplay:

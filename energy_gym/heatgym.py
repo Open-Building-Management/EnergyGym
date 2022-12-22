@@ -71,6 +71,10 @@ class Env(gym.Env):
     def __init__(self, text, max_power, tc, k, **model):
         """
         text : objet PyFina de température extérieure
+        à l'initialisation on définit :
+        - l'étendue de l'historique
+        - la taille de l'espace d'actions
+        la taille de l'espace d'observation est à fixer dans la classe fille
         """
         super().__init__()
         self.text = text
@@ -121,13 +125,12 @@ class Env(gym.Env):
         self.cte = math.exp(-self._interval/self.tcte)
         # current state in the observation space
         self.state = None
-        # labels
-        self.reward_label = None
         # paramètres pour le rendu graphique
         self._fig = None
         self._ax1 = None
         self._ax2 = None
         self._ax3 = None
+        # agenda d'occupation
         self.agenda = None
 
     def _reset(self, ts=None, tint=None, tc_episode=None):
@@ -157,7 +160,7 @@ class Env(gym.Env):
         # on fixe la température de consigne de notre épisode,
         # c'est-à-dire la température qu'il doit faire quant le bâtiment est occupé
         # si on veut fonctionner/entrainer à consigne variable,
-        # on tire au sort un valeur et on la passe en argument à reset()
+        # on tire au sort une valeur et on la passe en argument à reset()
         self.tc_episode = self.tc
         if isinstance(tc_episode, (int, float)):
             self.tc_episode = tc_episode
@@ -274,7 +277,9 @@ class Env(gym.Env):
         return zone_confort, zones_occ
 
     def _eko(self, action):
-        """économie d'énergie associée à une action"""
+        """économie d'énergie associée à une action
+        exprimée en pourcentage d'un pas de temps mobilisant la puissance maxi
+        """
         return round(1 - action / (self.action_space.n - 1), 1)
 
     def set_agenda(self, agenda):
@@ -317,7 +322,10 @@ class Env(gym.Env):
         return self.state, reward, done, {}
 
     def render(self, stepbystep=True, label=None):
-        """render realtime or not"""
+        """render realtime or not
+        on ne fait pas appel à _covering car en mode Vacancy, on n'a besoin
+        d'aucun zonage du graphique
+        """
         self._render(stepbystep=stepbystep, label=label)
 
     def close(self):
@@ -327,7 +335,7 @@ class Env(gym.Env):
 
 # --------------------------------------------------------------------------- #
 # ready to use implementations
-# il faut défnir les espaces d'action et d'observation
+# il faut défnir l' espace d'observation
 # --------------------------------------------------------------------------- #
 class Hyst(Env):
     """mode hystéresis permanent"""
@@ -343,9 +351,6 @@ class Hyst(Env):
         super().__init__(text, max_power, tc, k, **model)
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high, (3*self.pastsize,), dtype=np.float32)
-        # labels
-        self.label = "hysteresis"
-        self.reward_label = "hysteresis"
 
     def render(self, stepbystep=True, label=None):
         """avec affichage de la zone de confort"""
@@ -383,8 +388,6 @@ class Vacancy(Env):
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high, (3*self.pastsize+1,), dtype=np.float32)
         #print(self.observation_space)
-        # labels
-        self.label = "vacancy"
 
     def _state(self):
         """return the current state after all calculations are done"""
@@ -400,7 +403,6 @@ class Vacancy(Env):
 
     def reward(self, action):
         """reward at state action"""
-        self.reward_label = "final_reward_at opening"
         reward = 0
         tc = self.tc_episode
         tint = self.tint[self.i]
@@ -425,10 +427,6 @@ class Building(Vacancy):
     """mode universel - alternance d'occupation et de non-occupation
     needed for tests, not really for trainings
     """
-    def __init__(self, text, max_power, tc, k, **model):
-        super().__init__(text, max_power, tc, k, **model)
-        self.label = "week"
-        self.reward_label = "nice_name_for_the_network_and_to_find_it_in_tensorboard"
 
     def _state(self):
         """return the current state after all calculations are done"""
