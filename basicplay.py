@@ -17,7 +17,6 @@ SIZES = {"weekend": 63 * 3600 // INTERVAL, "week" : 8*24*3600 // INTERVAL}
 MODES = ["Hyst", "Reduce", "Vacancy", "Building"]
 
 # pylint: disable=no-value-for-parameter
-WSIZE = 1 + 8*24*3600 // INTERVAL
 PATH = "datas"
 SCHEDULE = np.array([[7, 17], [7, 17], [7, 17], [7, 17], [7, 17], [-1, -1], [-1, -1]])
 CW = 1162.5 #Wh/m3/K
