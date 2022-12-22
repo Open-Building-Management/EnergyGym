@@ -6,7 +6,7 @@ import click
 import numpy as np
 import tensorflow as tf
 import energy_gym
-from energy_gym import get_feed, biosAgenda, pick_name
+from energy_gym import get_feed, biosAgenda, pick_name, play_hystnocc
 from standalone_d_dqn import set_extra_params
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
@@ -108,7 +108,7 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
 
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
     bat = getattr(energy_gym, mode)(text, MAX_POWER, tc, 0.9, **model)
-    
+
     # définition de l'agenda d'occupation
     agenda = None
     if size == "week" or mode == "Building":
@@ -118,7 +118,7 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
     if mode == "Hyst":
         agenda = np.ones(wsize)
     bat.set_agenda(agenda)
-    
+
     # réduit hors occupation
     if mode == "reduce":
         bat.set_reduce(REDUCE)

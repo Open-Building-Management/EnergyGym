@@ -358,7 +358,7 @@ class Hyst(Env):
         """avec affichage de la zone de confort"""
         if self.i:
             zone_confort, zones_occ = self._covering()
-            self._render(zone_confort=zone_confort, zones_occ=zones_occ, 
+            self._render(zone_confort=zone_confort, zones_occ=zones_occ,
                          stepbystep=stepbystep, label=label, extra_datas=extra_datas)
         else:
             self._render(stepbystep=stepbystep, label=label)
@@ -472,7 +472,7 @@ class Building(Vacancy):
     def render(self, stepbystep=True, label=None, extra_datas=None):
         if self.i:
             zone_confort, zones_occ = self._covering()
-            self._render(zone_confort=zone_confort, zones_occ=zones_occ, 
+            self._render(zone_confort=zone_confort, zones_occ=zones_occ,
                          stepbystep=stepbystep, label=label, extra_datas=extra_datas)
         else:
             self._render(stepbystep=stepbystep)
