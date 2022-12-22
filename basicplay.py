@@ -114,9 +114,9 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
     if size == "week" or mode == "Building":
         agenda = biosAgenda(text.shape[0], INTERVAL, text.start, [], schedule=SCHEDULE)
     if mode == "Vacancy":
-        agenda = np.zeros(wsize)
+        agenda = np.zeros(text.shape[0])
     if mode == "Hyst":
-        agenda = np.ones(wsize)
+        agenda = np.ones(text.shape[0])
     bat.set_agenda(agenda)
 
     # réduit hors occupation
