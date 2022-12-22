@@ -10,11 +10,37 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .planning import tsToHuman, get_random_start, get_level_duration
-from .heatgym import covering, MODELRC
+from .heatgym import confort, presence, MODELRC
 
 # nombre d'épisodes que l'on souhaite jouer
 MAX_EPISODES = 900
 PRIMO_AGENT_LAYERS = ['states', 'dense', 'dense_1']
+
+def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
+    """
+    permet l'habillage du graphique d'un épisode
+    avec la zone de confort et les périodes d'occupation
+    utilise la fonction Rectangle de matplotlib
+
+    - tmin : température minimale
+    - tmax : température maximale
+    - tc : température de consigne
+    - hh : demi-intervalle de la zone de confort
+    - wsize : nombre de points dans l'épisode
+    - interval : pas de temps
+    - occupation : agenda d'occupation avec 4 jours supplémentaires
+    pour calculer les nombres de pas jusqu'au prochain cgt d'occupation
+
+    retourne les objets matérialisant les zones de confort et d'occupation
+    """
+    if xr is None:
+        xrs = np.arange(ts, ts + wsize * interval, interval)
+        xr = np.array(xrs, dtype='datetime64[s]')
+
+    zone_confort = confort(xr, tc, hh)
+    zones_occ = presence(xr, occupation, wsize, tmin, tmax, tc, hh)
+    return xr, zone_confort, zones_occ
+
 
 def sim(env, pos, tint0, nbh, action=1):
     """simulation suivant la méthode des trapèzes
@@ -43,7 +69,7 @@ def sim(env, pos, tint0, nbh, action=1):
     return tint
 
 
-def play_hystnocc(env, pos, size, tint0, tc, hh):
+def play_hystnocc(env, pos, size, tint0, tc, hh, agenda=None):
     """joue la politique optimale sur un scénario d'intermittence
     avec un modèle déterministe contenu dans env
 
@@ -58,9 +84,11 @@ def play_hystnocc(env, pos, size, tint0, tc, hh):
     ith = env.text.step / 3600
     datas = np.zeros((size, 2))
     datas[0, 1] = tint0
+    if agenda is None:
+        agenda = env.agenda[pos: pos+size+4*24*3600//env.text.step]
     # doit-on mettre en route le chauffage à l'étape 0 ?
-    if env.agenda[pos] == 0:
-        nbh = get_level_duration(env.agenda, pos) * ith
+    if agenda[0] == 0:
+        nbh = get_level_duration(agenda, 0) * ith
         tint_sim = sim(env, pos, tint0, nbh)
         action = tint_sim[-1] <= tc
     else:
@@ -71,10 +99,10 @@ def play_hystnocc(env, pos, size, tint0, tc, hh):
         #  calcul de la température à l'étape i
         tint_sim = sim(env, pos+i-1, datas[i-1, 1], ith, action)
         datas[i, 1] = tint_sim[-1]
-        if env.agenda[pos+i] == 0:
+        if agenda[i] == 0:
             # hors occupation : simulation à la cible
             # vu qu'on chauffe tt le temps, on ne précise pas action !
-            nbh = get_level_duration(env.agenda, pos+i) * ith
+            nbh = get_level_duration(agenda, i) * ith
             tint_sim = sim(env, pos+i, datas[i, 1], nbh)
             action = tint_sim[-1] <= tc
         else:

@@ -40,32 +40,6 @@ def presence(xr, occupation, wsize, tmin, tmax, tc, hh):
     return zones_occ
 
 
-def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
-    """
-    permet l'habillage du graphique d'un épisode
-    avec la zone de confort et les périodes d'occupation
-    utilise la fonction Rectangle de matplotlib
-
-    - tmin : température minimale
-    - tmax : température maximale
-    - tc : température de consigne
-    - hh : demi-intervalle de la zone de confort
-    - wsize : nombre de points dans l'épisode
-    - interval : pas de temps
-    - occupation : agenda d'occupation avec 4 jours supplémentaires
-    pour calculer les nombres de pas jusqu'au prochain cgt d'occupation
-
-    retourne les objets matérialisant les zones de confort et d'occupation
-    """
-    if xr is None:
-        xrs = np.arange(ts, ts + wsize * interval, interval)
-        xr = np.array(xrs, dtype='datetime64[s]')
-
-    zone_confort = confort(xr, tc, hh)
-    zones_occ = presence(xr, occupation, wsize, tmin, tmax, tc, hh)
-    return xr, zone_confort, zones_occ
-
-
 class Env(gym.Env):
     """base environnement"""
     def __init__(self, text, max_power, tc, k, **model):
@@ -211,9 +185,12 @@ class Env(gym.Env):
         self._ax3.clear()
         self._ax1.plot(self._xr, self.text[self.pos:self.pos+self.wsize+1])
         self._ax2.plot(self._xr[0:self.i], self.tint[0:self.i])
+        self._ax3.plot(self._xr[0:self.i], self.action[0:self.i])
+        # données externes
         if extra_datas is not None and not stepbystep:
             self._ax2.plot(self._xr[0:self.wsize], extra_datas[:,1], color="orange")
-        self._ax3.plot(self._xr[0:self.i], self.action[0:self.i])
+            energy = extra_datas[:,0] * (self.action_space.n - 1)
+            self._ax3.plot(self._xr[0:self.wsize], energy, color="orange")
         if self.i :
             if zone_confort is not None :
                 self._ax2.add_patch(zone_confort)
@@ -450,15 +427,7 @@ class Building(Vacancy):
             tc = self.state[-2]
             tint = self.tint[self.i]
             reward -= abs(tint - tc) * self._interval / 3600
-            if self.agenda[self.pos+self.i-1] == 0:
-                # was the building empty at previous state ?
-                if tc - 3 <= tint <= tc + 1 :
-                    reward += self.tot_eko * self._k * self._interval / 3600
-            else :
-                if self.tot_eko:
-                    self.tot_eko = 0
-        else :
-            self.tot_eko += self._eko(action)
+        self.tot_eko += self._eko(action)
         return reward
 
     def reset(self, ts=None, tint=None, tc_episode=None, wsize=None):

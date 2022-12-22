@@ -181,7 +181,7 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, pastsize, action_spa
             next_state, reward, done, _ = env.step(action)
             if i == 0 and env.i == 1:
                 # première étape du premier épisode
-                suffix = f'{modelkey}_k={dot(k)}_GAMMA={dot(GAMMA)}_NBACTIONS={env.action_space.n}'
+                suffix = f'{modelkey}_k={dot(k)}_GAMMA={dot(GAMMA)}_NBACTIONS={env.action_space.n}_tc={tc}+ou-{halfrange}'
                 tw_path = f'{STORE_PATH}/{scenario}_{NOW}_{suffix}'
                 train_writer = tf.summary.create_file_writer(tw_path)
 

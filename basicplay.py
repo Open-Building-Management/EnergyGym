@@ -72,11 +72,11 @@ def stats(bat):
     text_moy = np.mean(bat.text[bat.pos:bat.pos+bat.wsize])
     print(f'Text min {text_min:.2f} Text moy {text_moy:.2f} Text max {text_max:.2f}')
     print(f'Tint min {tint_min:.2f} Tint moy {tint_moy:.2f} Tint max {tint_max:.2f}')
+    peko = (bat.tot_eko * 100) / bat.wsize
+    print(f'pas de chauffage pendant {bat.tot_eko:.2f} pas')
+    print(f'{peko:.2f}% d\'énergie économisée')
     if type(bat).__name__ == "Vacancy":
         print(f'valeur de Tint à l\'ouverture : {bat.tint[-1]:.2f}')
-        peko = (bat.tot_eko * 100) / bat.wsize
-        print(f'pas de chauffage pendant {bat.tot_eko:.2f} pas')
-        print(f'{peko:.2f}% d\'énergie économisée')
     print("***********************************************************")
     return peko
 
@@ -110,17 +110,18 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
     bat = getattr(energy_gym, mode)(text, MAX_POWER, tc, 0.9, **model)
 
     # définition de l'agenda d'occupation
-    agenda = None
     if size == "week" or mode == "Building":
         agenda = biosAgenda(text.shape[0], INTERVAL, text.start, [], schedule=SCHEDULE)
+        bat.set_agenda(agenda)
+    agenda = None
     if mode == "Vacancy":
-        agenda = np.zeros(text.shape[0])
+        agenda = np.zeros(wsize+1)
+        agenda[wsize] = 1
     if mode == "Hyst":
-        agenda = np.ones(text.shape[0])
-    bat.set_agenda(agenda)
+        agenda = np.ones(wsize+1)
 
     # réduit hors occupation
-    if mode == "reduce":
+    if mode == "Reduce":
         bat.set_reduce(REDUCE)
 
     # demande à l'utilisateur un nom de réseau
@@ -162,11 +163,13 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
                     print(f'récompense à l\'arrivée {reward:.2f}')
                 print(f'récompense cumulée {rewardtot:.2f}')
                 peko = stats(bat)
-                optimal_solution = play_hystnocc(bat, bat.pos, bat.wsize, bat.tint[0], bat.tc_episode, 1)
                 if not stepbystep:
-                    label = None
+                    optimal_solution = play_hystnocc(bat, bat.pos, bat.wsize,
+                                                     bat.tint[0], bat.tc_episode, 1,
+                                                     agenda=agenda)
+                    model_eko = (1 - np.sum(optimal_solution[:,0]) / bat.wsize) * 100
+                    label = f'énergie économisée - agent : {peko:.2f}% - modèle : {model_eko:.2f}%'
                     if mode == "Vacancy":
-                        label = f'{peko:.2f}% d\'énergie économisée'
                         label = f'{label} - Tint à l\'ouverture {bat.tint[-1]:.2f}°C'
                     bat.render(stepbystep=False, label=label, extra_datas=optimal_solution)
                     if mode == "Vacancy" and mirrorplay:
