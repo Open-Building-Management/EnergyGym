@@ -193,7 +193,7 @@ class Env(gym.Env):
         self._tot_reward = 0
         return self.state
 
-    def _render(self, zone_confort=None, zones_occ=None, stepbystep=True, label=None):
+    def _render(self, zone_confort=None, zones_occ=None, stepbystep=True, label=None, extra_datas=None):
         """generic render method"""
         if self.i == 0 or not stepbystep:
             self._fig = plt.figure()
@@ -211,6 +211,8 @@ class Env(gym.Env):
         self._ax3.clear()
         self._ax1.plot(self._xr, self.text[self.pos:self.pos+self.wsize+1])
         self._ax2.plot(self._xr[0:self.i], self.tint[0:self.i])
+        if extra_datas is not None and not stepbystep:
+            self._ax2.plot(self._xr[0:self.wsize], extra_datas[:,1])
         self._ax3.plot(self._xr[0:self.i], self.action[0:self.i])
         if self.i :
             if zone_confort is not None :
@@ -335,7 +337,7 @@ class Env(gym.Env):
 
 # --------------------------------------------------------------------------- #
 # ready to use implementations
-# il faut défnir l' espace d'observation
+# il faut définir l' espace d'observation
 # --------------------------------------------------------------------------- #
 class Hyst(Env):
     """mode hystéresis permanent"""

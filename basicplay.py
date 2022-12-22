@@ -7,13 +7,14 @@ import numpy as np
 import tensorflow as tf
 import energy_gym
 from energy_gym import get_feed, biosAgenda, pick_name
+from standalone_d_dqn import set_extra_params
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
 
 INTERVAL = 900
 AGENT_TYPES = ["random", "deterministic", "stochastic"]
 SIZES = {"weekend": 63 * 3600 // INTERVAL, "week" : 8*24*3600 // INTERVAL}
-MODES = ["hyst", "reduce", "vacancy", "building"]
+MODES = ["Hyst", "Reduce", "Vacancy", "Building"]
 
 # pylint: disable=no-value-for-parameter
 WSIZE = 1 + 8*24*3600 // INTERVAL
@@ -24,11 +25,6 @@ CW = 1162.5 #Wh/m3/K
 MAX_POWER = 5 * CW * 15
 TEXT_FEED = 1
 REDUCE = 2
-
-
-def flc(name):
-    """first letter in capital"""
-    return f'{name[0].upper()}{name[1:]}'
 
 
 def load(agent_path):
@@ -108,14 +104,10 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
     """main command"""
     model = MODELS[model]
     wsize = SIZES[size]
-    if pastsize:
-        model["pastsize"] = pastsize
-    if nbh:
-        model["nbh"] = nbh
-    model["action_space"] = action_space
+    model = set_extra_params(model, action_space, pastsize=pastsize, nbh=nbh)
 
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
-    bat = getattr(energy_gym, flc(mode))(text, MAX_POWER, 20, 0.9, **model)
+    bat = getattr(energy_gym, mode)(text, MAX_POWER, tc, 0.9, **model)
     agenda = None
     if size == "week" or mode == "building":
         agenda = biosAgenda(text.shape[0], INTERVAL, text.start, [], schedule=SCHEDULE)
@@ -158,17 +150,17 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
             state, reward, done, _ = bat.step(action)
             rewardtot += reward
             if done:
-                if mode == "vacancy":
+                if mode == "Vacancy":
                     print(f'récompense à l\'arrivée {reward:.2f}')
                 print(f'récompense cumulée {rewardtot:.2f}')
                 peko = stats(bat)
                 if not stepbystep:
                     label = None
-                    if mode == "vacancy":
+                    if mode == "Vacancy":
                         label = f'{peko:.2f}% d\'énergie économisée'
                         label = f'{label} - Tint à l\'ouverture {bat.tint[-1]:.2f}°C'
                     bat.render(stepbystep=False, label=label)
-                    if mode == "vacancy" and mirrorplay:
+                    if mode == "Vacancy" and mirrorplay:
                         mirror_play(bat)
                 break
 

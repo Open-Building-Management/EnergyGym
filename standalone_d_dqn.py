@@ -115,6 +115,16 @@ def train(primary_network, mem, state_size, target_network=None):
     return loss
 
 
+def set_extra_params(model, action_space, pastsize=None, nbh=None):
+    """définit d'éventuels paramètres additionnels dans le modèle"""
+    if pastsize:
+        model["pastsize"] = pastsize
+    if nbh:
+        model["nbh"] = nbh
+    model["action_space"] = action_space
+    return model
+
+
 @click.command()
 @click.option('--nbtext', type=int, default=1, prompt='numéro du flux temp. extérieure ?')
 @click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ?')
@@ -129,11 +139,7 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, pastsize, action_spa
     """main command"""
     text = get_feed(nbtext, INTERVAL, "./datas")
     model = MODELS[modelkey]
-    if pastsize:
-        model["pastsize"] = pastsize
-    if nbh:
-        model["nbh"] = nbh
-    model["action_space"] = action_space
+    model = set_extra_params(model, action_space, pastsize=pastsize, nbh=nbh)
 
     if scenario == "Hyst":
         env = Hyst(text, MAX_POWER, tc, k, **model)
