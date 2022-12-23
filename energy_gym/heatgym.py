@@ -253,7 +253,7 @@ class Env(gym.Env):
             occupation = self.agenda[self.pos:self.pos+self.wsize+4*24*3600//self._interval]
             zones_occ = presence(self._xr, occupation, self.wsize, tmin, tmax, self.tc_episode, 1)
         return zone_confort, zones_occ
-        
+
     def _update_cte_tcte(self):
         self.tcte = self.model["R"] * self.model["C"]
         self.cte = math.exp(-self._interval/self.tcte)
