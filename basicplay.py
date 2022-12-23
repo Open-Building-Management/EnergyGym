@@ -6,7 +6,7 @@ import click
 import numpy as np
 import tensorflow as tf
 import energy_gym
-from energy_gym import get_feed, biosAgenda, pick_name, play_hystnocc
+from energy_gym import get_feed, biosAgenda, pick_name, play_hystnvacancy
 from standalone_d_dqn import set_extra_params
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
@@ -163,9 +163,9 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
                 print(f'récompense cumulée {rewardtot:.2f}')
                 peko = stats(bat)
                 if not stepbystep:
-                    optimal_solution = play_hystnocc(bat, bat.pos, bat.wsize,
-                                                     bat.tint[0], bat.tc_episode, 1,
-                                                     agenda=agenda)
+                    optimal_solution = play_hystnvacancy(bat, bat.pos, bat.wsize,
+                                                         bat.tint[0], bat.tc_episode, 1,
+                                                         agenda=agenda)
                     model_eko = (1 - np.sum(optimal_solution[:,0]) / bat.wsize) * 100
                     label = f'énergie économisée - agent : {peko:.2f}% - modèle : {model_eko:.2f}%'
                     if mode == "Vacancy":

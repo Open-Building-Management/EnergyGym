@@ -1,4 +1,8 @@
-"""banque de modèles R1C1"""
+"""banque de modèles R1C1
+la configuration nord est une sorte de hangar
+dans lequel on chauffe de petits bureaux
+avec un système de chauffage qui permet de remonter vite en température
+"""
 MODELS = {
     "unreal":  {"R" : 2e-04, "C": 2e+07},
     "extremeb":{"R" : 2e-04, "C": 9e+07},
@@ -11,3 +15,7 @@ MODELS = {
     "bloch1":  {"R" : 3.08814171e-04, "C" : 8.63446560e+08},
     "cells" :  {"R" : 2.59460660e-04, "C" : 1.31446233e+09}
 }
+
+TRAINING_LIST = {}
+for key in ["nord_10_01_2022", "tertiaire_peu_isolé", "tertiaire", "cells"]:
+    TRAINING_LIST[key] = MODELS[key]

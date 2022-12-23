@@ -94,9 +94,8 @@ class Env(gym.Env):
         self.reduce = None
         self._k = k
         self.model = model if model else MODELRC
-        # la constante de temps du modèle électrique équivalent
-        self.tcte = self.model["R"] * self.model["C"]
-        self.cte = math.exp(-self._interval/self.tcte)
+        # calcule les constantes du modèle électrique équivalent
+        self._update_cte_tcte()
         # current state in the observation space
         self.state = None
         # paramètres pour le rendu graphique
@@ -254,6 +253,10 @@ class Env(gym.Env):
             occupation = self.agenda[self.pos:self.pos+self.wsize+4*24*3600//self._interval]
             zones_occ = presence(self._xr, occupation, self.wsize, tmin, tmax, self.tc_episode, 1)
         return zone_confort, zones_occ
+        
+    def _update_cte_tcte(self):
+        self.tcte = self.model["R"] * self.model["C"]
+        self.cte = math.exp(-self._interval/self.tcte)
 
     def _eko(self, action):
         """économie d'énergie associée à une action
@@ -268,6 +271,13 @@ class Env(gym.Env):
     def set_reduce(self, reduce):
         """fixe le nombre de degrés en moins sur la température de consigne hors occupation"""
         self.reduce = reduce
+
+    def update_model(self, model):
+        """met à jour les paramètres R et C du modèle"""
+        original = self.model
+        for param in ["R", "C"]:
+            self.model[param] = model.get(param, original[param])
+        self._update_cte_tcte()
 
     def reward(self, action):
         """récompense hystéresis
@@ -404,8 +414,9 @@ class Vacancy(Env):
 
 
 class Building(Vacancy):
-    """mode universel - alternance d'occupation et de non-occupation
-    needed for tests, not really for trainings
+    """alternance d'occupation et de non-occupation
+    pour jouer avec l'agent 2021_09_23_07_42_32_hys20_retrained_k0dot9_hys20.h5
+    no real use for trainings
     """
 
     def _state(self):

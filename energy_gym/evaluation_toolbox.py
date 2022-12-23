@@ -69,7 +69,7 @@ def sim(env, pos, tint0, nbh, action=1):
     return tint
 
 
-def play_hystnocc(env, pos, size, tint0, tc, hh, agenda=None):
+def play_hystnvacancy(env, pos, size, tint0, tc, hh, agenda=None):
     """joue la politique optimale sur un scénario d'intermittence
     avec un modèle déterministe contenu dans env
 

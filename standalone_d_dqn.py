@@ -9,7 +9,7 @@ from tensorflow import keras
 
 
 # on importe les configurations existantes de modèles depuis le fichier conf
-from conf import MODELS
+from conf import MODELS, TRAINING_LIST
 from energy_gym import Hyst, Vacancy, get_feed
 
 # pylint: disable=no-value-for-parameter
@@ -132,10 +132,11 @@ def set_extra_params(model, action_space, pastsize=None, nbh=None):
 @click.option('--scenario', type=click.Choice(SCENARIOS), default="Vacancy", prompt='scénario ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
+@click.option('--random_model', type=bool, default=False, prompt='entrainer à modèle variable ?')
 @click.option('--nbh', type=float, default=None)
 @click.option('--pastsize', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
-def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, pastsize, action_space):
+def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, pastsize, action_space):
     """main command"""
     text = get_feed(nbtext, INTERVAL, "./datas")
     model = MODELS[modelkey]
@@ -171,6 +172,9 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, pastsize, action_spa
 
     for i in range(NUM_EPISODES):
         tc_episode = tc + random.randint(-halfrange, halfrange)
+        if random_model:
+            new_modelkey = random.choice(list(TRAINING_LIST))
+            env.update_model(MODELS[new_modelkey])
         state = env.reset(tc_episode=tc_episode)
         cnt = 0
         avg_loss = 0
