@@ -185,7 +185,11 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, pastsi
             next_state, reward, done, _ = env.step(action)
             if i == 0 and env.i == 1:
                 # première étape du premier épisode
-                suffix = f'{modelkey}_k={dot(k)}_GAMMA={dot(GAMMA)}_NBACTIONS={env.action_space.n}_tc={tc}+ou-{halfrange}'
+                suffix = f'{modelkey}_k={dot(k)}_GAMMA={dot(GAMMA)}'
+                suffix = f'{suffix}_NBACTIONS={env.action_space.n}'
+                suffix = f'{suffix}_tc={tc}+ou-{halfrange}'
+                if random_model:
+                    suffix = f'{suffix}_RND_MODEL'
                 tw_path = f'{STORE_PATH}/{scenario}_{NOW}_{suffix}'
                 train_writer = tf.summary.create_file_writer(tw_path)
 
