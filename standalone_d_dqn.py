@@ -185,13 +185,12 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, nbh_fo
             next_state, reward, done, _ = env.step(action)
             if i == 0 and env.i == 1:
                 # première étape du premier épisode
-                suffix = f'{modelkey}_k={dot(k)}_GAMMA={dot(GAMMA)}'
+                suffix = "RND_MODEL" if random_model else f'{modelkey}'
+                suffix = f'{suffix}_k={dot(k)}_GAMMA={dot(GAMMA)}'
                 suffix = f'{suffix}_NBACTIONS={env.action_space.n}'
                 suffix = f'{suffix}_tc={tc}'
                 if halfrange:
                     suffix = f'{suffix}+ou-{halfrange}'
-                if random_model:
-                    suffix = f'{suffix}_RND_MODEL'
                 if nbh:
                     suffix = f'{suffix}_past={nbh}h'
                 if nbh_forecast:
