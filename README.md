@@ -22,10 +22,9 @@ play et basicplay utilisent l'autocomplétion en ligne de commande pour choisir 
 
 ## basicplay
 
-Pour un espace d'observation sans historique :
+Pour un espace d'observation sans historique ni prévisions :
 ```
 python3 basicplay.py
-python3 basicplay.py --pastsize=1
 ```
 Pour un espace d'observation avec un historique de 4 heures :
 ```
@@ -40,14 +39,15 @@ mode | type d'environnement, par exemple<br>hyst: hysteresis<br>vacancy: non-occ
 size | week: 8 jours<br>weekend: 63 heures
 model | le nom d'une des configurations de [conf.py](conf.py)
 stepbystep | True = joue en mode pas à pas
-pastsize | nombre de pas que l'on peut remonter dans l'histoire passée
+tc | valeur de la consigne en °C
+halfrange | demi-étendue en °C pour rendre la consigne variable
 nbh | nombre d'heures que l'on peut remonter dans l'histoire passée
-
-si pastsize et nbh sont tous les 2 fournis en paramètres à basicplay.py, c'est nbh qui fixe la taille de l'historique 
+nbh_forecast | nombre d'heures de prévisions météo à donner à l'agent
+action_space | taille de l'espace d'actions
 
 ## play
 
-Attention : espace d'observation sans historique seulement 
+Attention : espace d'observation contenant seulement la situation courante
 
 possibilité :
 * de faire jouer simultanément l'agent et la politique optimale de l'environnement,
