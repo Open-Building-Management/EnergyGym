@@ -115,10 +115,10 @@ def train(primary_network, mem, state_size, target_network=None):
     return loss
 
 
-def set_extra_params(model, action_space, pastsize=None, nbh=None):
+def set_extra_params(model, action_space, nbh_forecast=None, nbh=None):
     """définit d'éventuels paramètres additionnels dans le modèle"""
-    if pastsize:
-        model["pastsize"] = pastsize
+    if nbh_forecast:
+        model["nbh_forecast"] = nbh_forecast
     if nbh:
         model["nbh"] = nbh
     model["action_space"] = action_space
@@ -133,14 +133,14 @@ def set_extra_params(model, action_space, pastsize=None, nbh=None):
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
 @click.option('--random_model', type=bool, default=False, prompt='entrainer à modèle variable ?')
-@click.option('--nbh', type=float, default=None)
-@click.option('--pastsize', type=int, default=None)
+@click.option('--nbh', type=int, default=None)
+@click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
-def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, pastsize, action_space):
+def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, nbh_forecast, action_space):
     """main command"""
     text = get_feed(nbtext, INTERVAL, "./datas")
     model = MODELS[modelkey]
-    model = set_extra_params(model, action_space, pastsize=pastsize, nbh=nbh)
+    model = set_extra_params(model, action_space, nbh_forecast=nbh_forecast, nbh=nbh)
 
     if scenario == "Hyst":
         env = Hyst(text, MAX_POWER, tc, k, **model)
@@ -173,7 +173,7 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, pastsi
     for i in range(NUM_EPISODES):
         tc_episode = tc + random.randint(-halfrange, halfrange)
         if random_model:
-            new_modelkey = random.choice(list(TRAINING_LIST))
+            new_modelkey = random.choice(TRAINING_LIST)
             env.update_model(MODELS[new_modelkey])
         state = env.reset(tc_episode=tc_episode)
         cnt = 0
@@ -187,9 +187,15 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, pastsi
                 # première étape du premier épisode
                 suffix = f'{modelkey}_k={dot(k)}_GAMMA={dot(GAMMA)}'
                 suffix = f'{suffix}_NBACTIONS={env.action_space.n}'
-                suffix = f'{suffix}_tc={tc}+ou-{halfrange}'
+                suffix = f'{suffix}_tc={tc}'
+                if halfrange:
+                    suffix = f'{suffix}+ou-{halfrange}'
                 if random_model:
                     suffix = f'{suffix}_RND_MODEL'
+                if nbh:
+                    suffix = f'{suffix}_past={nbh}h'
+                if nbh_forecast:
+                    suffix = f'{suffix}_future={nbh_forecast}h'
                 tw_path = f'{STORE_PATH}/{scenario}_{NOW}_{suffix}'
                 train_writer = tf.summary.create_file_writer(tw_path)
 

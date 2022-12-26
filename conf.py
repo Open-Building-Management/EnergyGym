@@ -16,6 +16,4 @@ MODELS = {
     "cells" :  {"R" : 2.59460660e-04, "C" : 1.31446233e+09}
 }
 
-TRAINING_LIST = {}
-for key in ["nord_10_01_2022", "tertiaire_peu_isolé", "tertiaire", "cells"]:
-    TRAINING_LIST[key] = MODELS[key]
+TRAINING_LIST = ["nord_10_01_2022", "tertiaire_peu_isolé", "tertiaire", "cells"]

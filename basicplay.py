@@ -96,14 +96,14 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
 @click.option('--mirrorplay', type=bool, default=False, prompt='jouer le mirror play après avoir joué l\'épisode ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
-@click.option('--nbh', type=float, default=None)
-@click.option('--pastsize', type=int, default=None)
+@click.option('--nbh', type=int, default=None)
+@click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
-def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, halfrange, nbh, pastsize, action_space):
+def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, halfrange, nbh, nbh_forecast, action_space):
     """main command"""
     model = MODELS[model]
     wsize = SIZES[size]
-    model = set_extra_params(model, action_space, pastsize=pastsize, nbh=nbh)
+    model = set_extra_params(model, action_space, nbh_forecast=nbh_forecast, nbh=nbh)
 
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
     bat = getattr(energy_gym, mode)(text, MAX_POWER, tc, 0.9, **model)

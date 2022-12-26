@@ -58,13 +58,16 @@ class Env(gym.Env):
         self._interval = text.step
         # nombre de pas dans un épisode (taille de la fenêtre)
         self.wsize = None
-        # nombre de pas que l'on peut remonter dans l'histoire passée
-        pastsize = model.get("pastsize", 1)
-        if "nbh" in model:
-            pastsize = model["nbh"] * 3600 // self._interval
+        # espace d'actions
         self.action_space = spaces.Discrete(model.get("action_space", 2))
-        self.pastsize = int(pastsize)
-        # tableau numpy des températures passées
+        # nbh est le nombre d'heures qu'on peut remonter dans le passé
+        self.nbh = int(model.get("nbh", 0))
+        # nombre de points de l'histoire passée y compris le point courant
+        self.pastsize = int(1 + self.nbh * 3600 // self._interval)
+        # nbh_forecast est le nombre d'heures qu'on peut prévoir dans le futur
+        self.nbh_forecast = int(model.get("nbh_forecast", 0))
+        # tableaux numpy des températures passées
+        # et de l'historique de consommation
         self.tint_past = np.zeros(self.pastsize)
         self.text_past = np.zeros(self.pastsize)
         self.q_c_past = np.zeros(self.pastsize - 1)
@@ -95,7 +98,7 @@ class Env(gym.Env):
         self._k = k
         self.model = model if model else MODELRC
         # calcule les constantes du modèle électrique équivalent
-        self._update_cte_tcte()
+        self.tcte, self.cte = self._update_cte_tcte()
         # current state in the observation space
         self.state = None
         # paramètres pour le rendu graphique
@@ -105,6 +108,26 @@ class Env(gym.Env):
         self._ax3 = None
         # agenda d'occupation
         self.agenda = None
+
+    def _get_future(self):
+        """retourne les indices à utiliser pour construire le futur
+        en utilisant directement text"""
+        hti = 3600 // self._interval
+        indexes = np.arange(0, self.nbh_forecast * hti, hti)
+        pos = self.pos + self.i + hti
+        return self.text[pos + indexes]
+
+    def _get_past(self):
+        """construit le passé horaire
+        en utilisant tint_past, text_past et q_c_past"""
+        hti = 3600 // self._interval
+        indexes = np.arange(0, 1 + self.nbh * hti, hti)
+        q_c_past_horaire = np.zeros(self.nbh)
+        for i in range(self.nbh):
+            pos = i * hti
+            val = np.mean(self.q_c_past[pos:pos+hti])
+            q_c_past_horaire[i] = val
+        return self.text_past[indexes], self.tint_past[indexes], q_c_past_horaire
 
     def _reset(self, ts=None, tint=None, tc_episode=None):
         """
@@ -148,7 +171,7 @@ class Env(gym.Env):
         self.tint_past[0] = tint
         action = self.tint_past[0] <= self.tc_episode
         q_c = action * self.max_power
-        self.text_past = self.text[self.pos - self.pastsize + 1: self.pos + 1]
+        self.text_past = self.text[self.pos + 1 - self.pastsize:self.pos + 1]
         for i in range(1, self.pastsize):
             self.q_c_past[i-1] = q_c
             pos = self.pos - self.pastsize + 1 + i
@@ -208,7 +231,7 @@ class Env(gym.Env):
         # reward at state
         reward = self.reward(action)
         self._tot_reward += reward
-        # Qc at state
+        # q_c at state
         q_c = action * self.max_power / (self.action_space.n - 1)
         self.action[self.i] = action
         # indoor temp at next state
@@ -232,14 +255,18 @@ class Env(gym.Env):
         # return reward, done at state
         return reward, done
 
-    def _state(self):
+    def _state(self, tc=None):
         """return the current state after all calculations are done
         example de state pour une température de consigne tc
         A SURCHARGER DANS CLASSE FILLE"""
-        tc = self.tc_episode
-        return np.array([*self.text_past,
-                         *self.tint_past,
-                         *self.q_c_past,
+        if tc is None:
+            tc=self.tc_episode
+        text_future_horaire = self._get_future()
+        text_past_horaire, tint_past_horaire, q_c_past_horaire = self._get_past()
+        return np.array([*text_past_horaire,
+                         *text_future_horaire,
+                         *tint_past_horaire,
+                         *q_c_past_horaire/self.max_power,
                          tc], dtype=np.float32)
 
     def _covering(self):
@@ -255,8 +282,10 @@ class Env(gym.Env):
         return zone_confort, zones_occ
 
     def _update_cte_tcte(self):
-        self.tcte = self.model["R"] * self.model["C"]
-        self.cte = math.exp(-self._interval/self.tcte)
+        """met à jour les constantes du modèle"""
+        tcte = self.model["R"] * self.model["C"]
+        cte = math.exp(-self._interval/tcte)
+        return tcte, cte
 
     def _eko(self, action):
         """économie d'énergie associée à une action
@@ -277,7 +306,7 @@ class Env(gym.Env):
         original = self.model
         for param in ["R", "C"]:
             self.model[param] = model.get(param, original[param])
-        self._update_cte_tcte()
+        self.tcte, self.cte = self._update_cte_tcte()
 
     def reward(self, action):
         """récompense hystéresis
@@ -331,15 +360,18 @@ class Hyst(Env):
     def __init__(self, text, max_power, tc, k, **model):
         """
         state : tableau numpy :
-        - historique de température extérieure de taille n
-        - historique de température intérieure de taille n
-        - historique de chauffage de taille n-1
+        - historique de température extérieure de taille self.nbh+1
+        - prévisions de température extérieure de taille self.nbh_forecast
+        - historique de température intérieure de taille self.nbh+1
+        - historique de chauffage de taille self.nbh
         - tc, consigne de température intérieure
-        avec n=1, l'espace d'observation est de taille 3
+        avec self.nbh=0 et self.nbh_forecast=0, l'espace d'observation est de taille 3
         """
         super().__init__(text, max_power, tc, k, **model)
         high = np.finfo(np.float32).max
-        self.observation_space = spaces.Box(-high, high, (3*self.pastsize,), dtype=np.float32)
+        self.observation_space = spaces.Box(-high, high,
+                                            (3*self.nbh+2+self.nbh_forecast+1,),
+                                            dtype=np.float32)
 
     def render(self, stepbystep=True, label=None, extra_datas=None):
         """avec affichage de la zone de confort"""
@@ -353,43 +385,33 @@ class Hyst(Env):
 
 class Reduce(Hyst):
     """mode hystérésis avec réduit hors occupation"""
-    def _state(self):
-        tc = self.tc_episode
+    def _state(self, tc=None):
+        if tc is None:
+            tc = self.tc_episode
         if self.agenda[self.pos + self.i] == 0:
             tc -= self.reduce
-        return np.array([*self.text_past,
-                         *self.tint_past,
-                         *self.q_c_past,
-                         tc], dtype=np.float32)
+        return super()._state(tc=tc)
 
 
 class Vacancy(Env):
     """mode hors occupation"""
     def __init__(self, text, max_power, tc, k, **model):
-        """
-        state : tableau numpy :
-        - historique de température extérieure de taille n
-        - historique de température intérieure de taille n
-        - historique de chauffage de taille n-1
-        - température de consigne à la cible
-        - nb hours -> occupation change (from occupied to empty and vice versa)
-        """
         super().__init__(text, max_power, tc, k, **model)
         high = np.finfo(np.float32).max
-        self.observation_space = spaces.Box(-high, high, (3*self.pastsize+1,), dtype=np.float32)
+        self.observation_space = spaces.Box(-high, high,
+                                            (3*self.nbh+2+self.nbh_forecast+2,),
+                                            dtype=np.float32)
         #print(self.observation_space)
 
-    def _state(self):
+    def _state(self, tc=None):
         """return the current state after all calculations are done"""
-        tc = self.tc_episode
+        if tc is None:
+            tc = self.tc_episode
         # nbh -> occupation change (from occupied to empty and vice versa)
         # Note that 1h30 has to be coded as 1.5
         nbh = (self.wsize - self.i) * self._interval / 3600
-        return np.array([*self.text_past,
-                         *self.tint_past,
-                         *self.q_c_past,
-                         tc,
-                         nbh], dtype=np.float32)
+        result = super()._state(tc=tc)
+        return np.array([*result, nbh], dtype=np.float32)
 
     def reward(self, action):
         """reward at state action"""
@@ -419,18 +441,16 @@ class Building(Vacancy):
     no real use for trainings
     """
 
-    def _state(self):
+    def _state(self, tc=None):
         """return the current state after all calculations are done"""
         pos1 = self.pos + self.i
-        tc = self.agenda[pos1] * self.tc_episode
+        if tc is None:
+            tc = self.agenda[pos1] * self.tc_episode
         pos2 = self.pos + self.i + self.wsize + 4 * 24 * 3600 // self._interval
         occupation = self.agenda[pos1:pos2]
         nbh = get_level_duration(occupation, 0) * self._interval / 3600
-        return np.array([*self.text_past,
-                         *self.tint_past,
-                         *self.q_c_past,
-                         tc,
-                         nbh], dtype=np.float32)
+        result = super()._state(tc=tc)
+        return np.array([*result[:-1], nbh], dtype=np.float32)
 
     def reward(self, action):
         reward = 0

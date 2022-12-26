@@ -73,9 +73,9 @@ def play_hystnvacancy(env, pos, size, tint0, tc, hh, agenda=None):
     """joue la politique optimale sur un scénario d'intermittence
     avec un modèle déterministe contenu dans env
 
-    env doit contenir l'agenda d'occupation
+    Utilise soit l'agenda fourni en paramètre, soit celui de l'environnement
 
-    retourne un tableau de 2 colonnes et de size lignes
+    Retourne un tableau de 2 colonnes et de size lignes
     colonne 1 : intensité de chauffage
     colonne 2 : température intérieure
     """

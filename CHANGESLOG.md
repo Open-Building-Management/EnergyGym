@@ -30,7 +30,7 @@ dans la version précédente, on était limité à des actions binaires :
 - soit on chauffait à fond
 - soit on coupait totalement le chauffage
 
-on peut désormais fixer la taille de l'espace d'actions à 11,
+on peut désormais fixer la taille de l'espace d'actions par exemple à 11,
 ce qui permet de mobiliser 0%, 10%, 20%...90% ou 100% de la puissance maxi dispo
 
 ```
@@ -38,13 +38,28 @@ python3 standalone_d_dqn.py --action_space=11
 python3 basicplay.py --action_space=11
 ```
 
-# introduction du paramètre pastsize dans l'environnement
+# fonctions sim et play_hystnvacancy de evaluation_toolbox.py
 
-l'espace d'observation peut désormais intégrer un historique passé
+sim permet de calculer la température intérieure dans nbh heures :
+- soit en chauffant en continu
+- soit sans chauffer
 
-pastsize représente le nombre de pas qu'on peut remonter dans l'historique
-- soit on passe sa valeur directement à l'environnement,
-- soit on donne un nombre d'heures (nbh) qui est converti en nombre de pas
+si on veut prévoir le point suivant seulement,
+on doit donner à nbh la valeur env.text.step/3600
 
-l'idée est de donner au réseau neurones des informations sur le modèle,
+play_hystnvacancy joue la politique optimale sur un scénario d'intermittence
+
+
+# introduction des paramètres nbh et nbh_forecast dans l'environnement
+
+l'espace d'observation peut désormais intégrer :
+- nbh heures d'histoire passée
+- nbh_forecast de prévisions météo
+
+lorsqu'on entraîne avec nbh > 0, on donne au réseau neurones des informations sur le modèle,
 ce qui permet d'envisager d'entraîner à modèle variable d'un épisode sur l'autre
+
+```
+python3 standalone_d_dqn.py --nbh_forecast=24 --action_space=11
+python3 basicplay.py --nbh_forecast=24 --action_space=11
+```
