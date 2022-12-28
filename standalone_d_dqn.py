@@ -219,6 +219,9 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, nbh_fo
                 print(message)
                 message = f'consigne de température intérieure: {env.tc_episode}°C'
                 print(message)
+                if random_model:
+                    message = f'R={env.model["R"]:.2e} C={env.model["C"]:.2e}'
+                    print(message)
                 tint_min = np.amin(env.tint)
                 tint_max = np.amax(env.tint)
                 tint_moy = np.mean(env.tint)
