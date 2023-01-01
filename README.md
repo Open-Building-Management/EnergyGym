@@ -35,9 +35,9 @@ paramètre |  description
 --|--
 agent_type | random = décision aléatoire<br>deterministic = argmax<br>stochastic = softmax
 random_ts | True = joue jusqu'à 200 épisodes<br>False = joue un seul épisode sur le timestamp 1609104740
-mode | type d'environnement, par exemple<br>hyst: hysteresis<br>vacancy: non-occupation<br>reduce: hysteresis avec réduit hors occupation
+scenario | type d'environnement, par exemple<br>hyst: hysteresis<br>vacancy: non-occupation<br>reduce: hysteresis avec réduit hors occupation
 size | week: 8 jours<br>weekend: 63 heures
-model | le nom d'une des configurations de [conf.py](conf.py)
+modelkey | le nom d'une des configurations de [conf.py](conf.py) - random pour jouer un modèle au hasard
 stepbystep | True = joue en mode pas à pas
 tc | valeur de la consigne en °C
 halfrange | demi-étendue en °C pour rendre la consigne variable
