@@ -164,7 +164,7 @@ def main(agent_type, random_ts, scenario, size, modelkey, stepbystep, mirrorplay
                 if "Vacancy" in scenario:
                     print(f'récompense à l\'arrivée {reward:.2f}')
                 print(f'récompense cumulée {rewardtot:.2f}')
-                print(f'{bat._tot_reward}')
+                print(f'{bat.tot_reward}')
                 peko = stats(bat)
                 if not stepbystep:
                     optimal_solution = play_hystnvacancy(bat, bat.pos, bat.wsize,

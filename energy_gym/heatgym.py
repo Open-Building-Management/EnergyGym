@@ -80,7 +80,7 @@ class Env(gym.Env):
         # échelle de temps de l'épisode au format humain
         self._xr = None
         # récompense accumulée au cours de l'épisode
-        self._tot_reward = None
+        self.tot_reward = None
         # tableau numpy des températures intérieures au cours de l'épisode
         # de taille wsize + 1
         # dimensionné pour que tint[-1] soit la température à l'ouverture
@@ -138,7 +138,7 @@ class Env(gym.Env):
         permet de définir self._xr, self.pos, self.tsvrai
         ces grandeurs sont des constantes de l'épisode
 
-        initialise self.i, self._tot_reward, self.tint, self.action
+        initialise self.i, self.tot_reward, self.tint, self.action
         ces grandeurs sont mises à jour à chaque pas de temps
 
         retourne self.state
@@ -186,7 +186,7 @@ class Env(gym.Env):
         self.tint[0] = self.tint_past[-1]
         # construction de state
         self.state = self._state()
-        self._tot_reward = 0
+        self.tot_reward = 0
         return self.state
 
     def _render(self, zone_confort=None, zones_occ=None, stepbystep=True, label=None, extra_datas=None):
@@ -198,7 +198,7 @@ class Env(gym.Env):
             self._ax3 = plt.subplot(313, sharex=self._ax1)
             if stepbystep :
                 plt.ion()
-        title = f'{self.tsvrai} - score: {self._tot_reward:.2f} - tc_episode: {self.tc_episode}°C'
+        title = f'{self.tsvrai} - score: {self.tot_reward:.2f} - tc_episode: {self.tc_episode}°C'
         if label is not None :
             title = f'{title}\n{label}'
         self._fig.suptitle(title)
@@ -230,7 +230,7 @@ class Env(gym.Env):
         assert self.state is not None, "Call reset before using step method."
         # reward at state
         reward = self.reward(action)
-        self._tot_reward += reward
+        self.tot_reward += reward
         # q_c at state
         q_c = action * self.max_power / (self.action_space.n - 1)
         self.action[self.i] = action
@@ -440,7 +440,7 @@ class StepRewardVacancy(Vacancy):
     def reward(self, action):
         reward = super().reward(action)
         if self.state[-1] :
-           reward -= self._eko(action) * self._k * self._interval / 3600
+            reward -= self._eko(action) * self._k * self._interval / 3600
         return reward
 
 
@@ -449,7 +449,7 @@ class TopLimitVacancy(Vacancy):
     def reward(self, action):
         reward = super().reward(action)
         if self.tint[self.i] > self.tc_episode + 1 :
-           reward -= (self.tint[self.i] - self.tc_episode - 1) * self._interval / 3600
+            reward -= (self.tint[self.i] - self.tc_episode - 1) * self._interval / 3600
         return reward
 
 

@@ -212,7 +212,7 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, nbh_forecast, action
 
             if done:
                 avg_loss /= cnt
-                message = f'Episode: {i}, Reward: {reward:.3f}, Total Reward: {env._tot_reward}'
+                message = f'Episode: {i}, Reward: {reward:.3f}, Total Reward: {env.tot_reward}'
                 message = f'{message}, avg loss: {avg_loss:.3f}, eps: {eps:.3f}'
                 print(message)
                 message = f'consigne de température intérieure: {env.tc_episode}°C'
