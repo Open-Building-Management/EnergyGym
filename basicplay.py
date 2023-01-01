@@ -9,12 +9,12 @@ import energy_gym
 from energy_gym import get_feed, biosAgenda, pick_name, play_hystnvacancy
 from standalone_d_dqn import set_extra_params
 # on importe les configurations existantes de modèles depuis le fichier conf
-from conf import MODELS
+from conf import MODELS, TRAINING_LIST
 
 INTERVAL = 900
 AGENT_TYPES = ["random", "deterministic", "stochastic"]
 SIZES = {"weekend": 63 * 3600 // INTERVAL, "week" : 8*24*3600 // INTERVAL}
-MODES = ["Hyst", "Reduce", "Vacancy", "Building"]
+SCENARIOS = ["Hyst", "Reduce", "Vacancy", "Building"]
 
 # pylint: disable=no-value-for-parameter
 PATH = "datas"
@@ -85,13 +85,13 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
     print(f'signal de fermeture ({signum}) reçu')
     sys.exit(0)
 
-
+MODELS["random"] = MODELS["cells"]
 @click.command()
 @click.option('--agent_type', type=click.Choice(AGENT_TYPES), prompt='comportement de l\'agent ?')
 @click.option('--random_ts', type=bool, default=False, prompt='timestamp de démarrage aléatoire ?')
-@click.option('--mode', type=click.Choice(MODES), prompt='mode de jeu ?')
+@click.option('--scenario', type=click.Choice(SCENARIOS), prompt='scénario ou mode de jeu ?')
 @click.option('--size', type=click.Choice(SIZES), prompt='longueur des épisodes ?')
-@click.option('--model', type=click.Choice(MODELS), prompt='modèle ?')
+@click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--stepbystep', type=bool, default=False, prompt='jouer l\'épisode pas à pas ?')
 @click.option('--mirrorplay', type=bool, default=False, prompt='jouer le mirror play après avoir joué l\'épisode ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
@@ -99,28 +99,28 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
-def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, halfrange, nbh, nbh_forecast, action_space):
+def main(agent_type, random_ts, scenario, size, modelkey, stepbystep, mirrorplay, tc, halfrange, nbh, nbh_forecast, action_space):
     """main command"""
-    model = MODELS[model]
+    model = MODELS[modelkey]
     wsize = SIZES[size]
     model = set_extra_params(model, action_space, nbh_forecast=nbh_forecast, nbh=nbh)
 
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
-    bat = getattr(energy_gym, mode)(text, MAX_POWER, tc, 0.9, **model)
+    bat = getattr(energy_gym, scenario)(text, MAX_POWER, tc, 0.9, **model)
 
     # définition de l'agenda d'occupation
-    if size == "week" or mode == "Building":
+    if size == "week" or scenario == "Building":
         agenda = biosAgenda(text.shape[0], INTERVAL, text.start, [], schedule=SCHEDULE)
         bat.set_agenda(agenda)
     agenda = None
-    if mode == "Vacancy":
+    if "Vacancy" in scenario:
         agenda = np.zeros(wsize+1)
         agenda[wsize] = 1
-    if mode == "Hyst":
+    if scenario == "Hyst":
         agenda = np.ones(wsize+1)
 
     # réduit hors occupation
-    if mode == "Reduce":
+    if scenario == "Reduce":
         bat.set_reduce(REDUCE)
 
     # demande à l'utilisateur un nom de réseau
@@ -136,6 +136,9 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
     signal.signal(signal.SIGTERM, sig_handler)
     for _ in range(nbepisodes):
         tc_episode = tc + random.randint(-halfrange, halfrange)
+        if modelkey == "random":
+            new_modelkey = random.choice(TRAINING_LIST)
+            bat.update_model(MODELS[new_modelkey])
         state = bat.reset(ts=ts, wsize=wsize, tc_episode=tc_episode)
         rewardtot = 0
         while True :
@@ -158,20 +161,22 @@ def main(agent_type, random_ts, mode, size, model, stepbystep, mirrorplay, tc, h
             state, reward, done, _ = bat.step(action)
             rewardtot += reward
             if done:
-                if mode == "Vacancy":
+                if "Vacancy" in scenario:
                     print(f'récompense à l\'arrivée {reward:.2f}')
                 print(f'récompense cumulée {rewardtot:.2f}')
+                print(f'{bat._tot_reward}')
                 peko = stats(bat)
                 if not stepbystep:
                     optimal_solution = play_hystnvacancy(bat, bat.pos, bat.wsize,
                                                          bat.tint[0], bat.tc_episode, 1,
                                                          agenda=agenda)
                     model_eko = (1 - np.sum(optimal_solution[:,0]) / bat.wsize) * 100
-                    label = f'énergie économisée - agent : {peko:.2f}% - modèle : {model_eko:.2f}%'
-                    if mode == "Vacancy":
-                        label = f'{label} - Tint à l\'ouverture {bat.tint[-1]:.2f}°C'
+                    label = f'EKO - modèle : {model_eko:.2f}% - agent : {peko:.2f}%'
+                    if "Vacancy" in scenario:
+                        label = f'{label} & Tint à l\'ouverture {bat.tint[-1]:.2f}°C'
+                    label = f'{label}\n R={bat.model["R"]:.2e} C={bat.model["C"]:.2e}'
                     bat.render(stepbystep=False, label=label, extra_datas=optimal_solution)
-                    if mode == "Vacancy" and mirrorplay:
+                    if "Vacancy" in scenario and mirrorplay:
                         mirror_play(bat)
                 break
 

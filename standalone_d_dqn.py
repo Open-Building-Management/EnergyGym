@@ -10,7 +10,8 @@ from tensorflow import keras
 
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS, TRAINING_LIST
-from energy_gym import Hyst, Vacancy, get_feed
+import energy_gym
+from energy_gym import get_feed
 
 # pylint: disable=no-value-for-parameter
 
@@ -32,7 +33,7 @@ CW = 1162.5 #Wh/m3/K
 MAX_POWER = 5 * CW * 15
 INTERVAL = 3600
 
-SCENARIOS = ["Hyst", "Vacancy"]
+SCENARIOS = ["Hyst", "Vacancy", "StepRewardVacancy", "TopLimitVacancy"]
 
 class Memory:
     """experience replay memory"""
@@ -124,28 +125,25 @@ def set_extra_params(model, action_space, nbh_forecast=None, nbh=None):
     model["action_space"] = action_space
     return model
 
-
+MODELS["random"] = MODELS["cells"]
 @click.command()
 @click.option('--nbtext', type=int, default=1, prompt='numéro du flux temp. extérieure ?')
-@click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ?')
+@click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ? random pour entrainer à modèle variable')
 @click.option('--k', type=float, default=0.9, prompt='paramètre énergie')
 @click.option('--scenario', type=click.Choice(SCENARIOS), default="Vacancy", prompt='scénario ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
-@click.option('--random_model', type=bool, default=False, prompt='entrainer à modèle variable ?')
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
-def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, nbh_forecast, action_space):
+def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, nbh_forecast, action_space):
     """main command"""
     text = get_feed(nbtext, INTERVAL, "./datas")
     model = MODELS[modelkey]
     model = set_extra_params(model, action_space, nbh_forecast=nbh_forecast, nbh=nbh)
 
-    if scenario == "Hyst":
-        env = Hyst(text, MAX_POWER, tc, k, **model)
-    else:
-        env = Vacancy(text, MAX_POWER, tc, k, **model)
+    env = getattr(energy_gym, scenario)(text, MAX_POWER, tc, k, **model)
+
     print(env.model)
     state_size = env.observation_space.shape[0]
     num_actions = env.action_space.n
@@ -172,7 +170,7 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, nbh_fo
 
     for i in range(NUM_EPISODES):
         tc_episode = tc + random.randint(-halfrange, halfrange)
-        if random_model:
+        if modelkey == "random":
             new_modelkey = random.choice(TRAINING_LIST)
             env.update_model(MODELS[new_modelkey])
         state = env.reset(tc_episode=tc_episode)
@@ -185,7 +183,7 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, nbh_fo
             next_state, reward, done, _ = env.step(action)
             if i == 0 and env.i == 1:
                 # première étape du premier épisode
-                suffix = "RND_MODEL" if random_model else f'{modelkey}'
+                suffix = "RND_MODEL" if modelkey == "random" else f'{modelkey}'
                 suffix = f'{suffix}_k={dot(k)}_GAMMA={dot(GAMMA)}'
                 suffix = f'{suffix}_NBACTIONS={env.action_space.n}'
                 suffix = f'{suffix}_tc={tc}'
@@ -195,7 +193,7 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, nbh_fo
                     suffix = f'{suffix}_past={nbh}h'
                 if nbh_forecast:
                     suffix = f'{suffix}_future={nbh_forecast}h'
-                tw_path = f'{STORE_PATH}/{scenario}_{NOW}_{suffix}'
+                tw_path = f'{STORE_PATH}/{scenario}{NUM_EPISODES}_{NOW}_{suffix}'
                 train_writer = tf.summary.create_file_writer(tw_path)
 
             if done:
@@ -214,12 +212,12 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, nbh_fo
 
             if done:
                 avg_loss /= cnt
-                message = f'Episode: {i}, Reward: {reward:.3f}'
+                message = f'Episode: {i}, Reward: {reward:.3f}, Total Reward: {env._tot_reward}'
                 message = f'{message}, avg loss: {avg_loss:.3f}, eps: {eps:.3f}'
                 print(message)
                 message = f'consigne de température intérieure: {env.tc_episode}°C'
                 print(message)
-                if random_model:
+                if modelkey == "random":
                     message = f'R={env.model["R"]:.2e} C={env.model["C"]:.2e}'
                     print(message)
                 tint_min = np.amin(env.tint)
@@ -249,7 +247,7 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, random_model, nbh, nbh_fo
 
     save = input("save ? Y=yes")
     if save == "Y":
-        primary_network.save(f'{STORE_PATH}_{scenario}_{NOW}_{suffix}')
+        primary_network.save(f'{STORE_PATH}_{scenario}{NUM_EPISODES}_{NOW}_{suffix}')
 
 
 if __name__ == "__main__":

@@ -435,6 +435,24 @@ class Vacancy(Env):
         return reward
 
 
+class StepRewardVacancy(Vacancy):
+    """récompense à chaque step et non plus seulement finale"""
+    def reward(self, action):
+        reward = super().reward(action)
+        if self.state[-1] :
+           reward -= self._eko(action) * self._k * self._interval / 3600
+        return reward
+
+
+class TopLimitVacancy(Vacancy):
+    """do not overheat"""
+    def reward(self, action):
+        reward = super().reward(action)
+        if self.tint[self.i] > self.tc_episode + 1 :
+           reward -= (self.tint[self.i] - self.tc_episode - 1) * self._interval / 3600
+        return reward
+
+
 class Building(Vacancy):
     """alternance d'occupation et de non-occupation
     pour jouer avec l'agent 2021_09_23_07_42_32_hys20_retrained_k0dot9_hys20.h5
