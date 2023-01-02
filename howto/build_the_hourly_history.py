@@ -1,5 +1,4 @@
 """ construction de l'histoire passée horaire """
-import random
 import numpy as np
 
 INTERVAL = 900
@@ -18,7 +17,7 @@ print(text_past)
 q_c_past = np.random.randint(0,2,size=PASTSIZE-1)*MAX_POWER
 print(q_c_past)
 
-# calcul des puissances de chauffage moyennes au pas horaire 
+# calcul des puissances de chauffage moyennes au pas horaire
 result = np.zeros(NBH)
 for i in range(NBH):
     pos = i * HTI
@@ -28,7 +27,7 @@ print(result)
 print(np.array([*result/MAX_POWER]))
 
 # pour la température,
-# on ne passe par par une valeur moyenne 
+# on ne passe par par une valeur moyenne
 # mais par un simple échantillonnage sur base horaire
 indexes = np.arange(0, 1 + NBH * HTI, HTI)
 print(indexes)
