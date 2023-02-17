@@ -20,6 +20,13 @@ play et basicplay utilisent l'autocomplétion en ligne de commande pour choisir 
 
 **Seul basicplay utilise l'environnement gym.**
 
+## standalone_d_dqn
+
+pour entrainer à modèle variable avec une histoire passée de 48 heures
+```
+python3 standalone_d_dqn.py --nbh=48
+```
+
 ## basicplay
 
 Pour un espace d'observation sans historique ni prévisions :
