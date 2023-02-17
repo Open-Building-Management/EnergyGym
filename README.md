@@ -18,7 +18,7 @@ pip3 install --upgrade tensorflow
 
 play et basicplay utilisent l'autocomplétion en ligne de commande pour choisir le nom de l'agent
 
-**Seul basicplay utilise l'environnement gym.**
+**play n'utilise pas l'environnement gym pour l'instant**
 
 ## standalone_d_dqn
 
@@ -28,6 +28,8 @@ python3 standalone_d_dqn.py --nbh=48
 ```
 
 ## basicplay
+
+La variable globale `TEXT_FEED`, dont la valeur par défaut est 1, définit le numéro du flux de température extérieure.
 
 Pour un espace d'observation sans historique ni prévisions :
 ```
