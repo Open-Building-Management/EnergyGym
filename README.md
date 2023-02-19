@@ -24,6 +24,12 @@ Les exécutables documentés ci-dessous utilisent l'autocomplétion en ligne de 
 
 met en oeuvre un algorithme de type double DQN
 
+### scénario de type hystérésis
+
+### scénario de type vacancy, pour jouer une période de non-occupation
+
+L'objectif est d'utiliser le moins d'énergie possible et d'avoir la température souhaitée à l'ouverture des locaux
+
 pour entrainer à modèle variable avec une histoire passée de 48 heures
 ```
 python3 standalone_d_dqn.py --nbh=48
@@ -34,7 +40,7 @@ pour définir des paramètres de récompense personnalisés :
 python3 standalone_d_dqn.py --nbh=48 --k=1 --p_c=15 --vote_interval -1 1
 ```
 
-La récompense est la somme de 2 termes :
+Lorsqu'on joue un scénario de type vacancy, la récompense est la somme de 2 termes :
 - l'un positif représentant l'énergie totale économisée
 - l'autre négatif représentant le vote à l'ouverture du bâtiment
 
