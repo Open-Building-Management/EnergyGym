@@ -23,7 +23,7 @@ def main(mode):
 
     # l'utilisateur choisit le mode parmi une liste
     # ET une seule instruction suffit pour construire l'environnement
-    env = getattr(energy_gym, mode)(text, MAX_POWER, 20, 0.9)
+    env = getattr(energy_gym, mode)(text, MAX_POWER, 20)
     # on intègre l'agenda
     env.set_agenda(agenda)
 

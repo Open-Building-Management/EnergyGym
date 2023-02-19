@@ -116,35 +116,40 @@ def train(primary_network, mem, state_size, target_network=None):
     return loss
 
 
-def set_extra_params(model, action_space, nbh_forecast=None, nbh=None):
+def set_extra_params(model, **kwargs):
     """définit d'éventuels paramètres additionnels dans le modèle"""
-    if nbh_forecast:
-        model["nbh_forecast"] = nbh_forecast
-    if nbh:
-        model["nbh"] = nbh
-    model["action_space"] = action_space
+    fields = ["action_space", "k", "pc", "vote_interval", "nbh", "nbh_forecast"]
+    for field in fields:
+        if field in kwargs and kwargs[field]:
+            model[field] = kwargs[field]
     return model
 
 MODELS["random"] = MODELS["cells"]
 @click.command()
 @click.option('--nbtext', type=int, default=1, prompt='numéro du flux temp. extérieure ?')
 @click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ? random pour entrainer à modèle variable')
-@click.option('--k', type=float, default=0.9, prompt='paramètre énergie')
 @click.option('--scenario', type=click.Choice(SCENARIOS), default="Vacancy", prompt='scénario ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
+@click.option('--k', type=float, default=0.9)
+@click.option('--pc', type=int, default=15)
+@click.option('--vote_interval', type=int, nargs=2, default=(-3,1))
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
-def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, nbh_forecast, action_space):
+def main(nbtext, modelkey, scenario, tc, halfrange, k, pc, vote_interval, nbh, nbh_forecast, action_space):
     """main command"""
     text = get_feed(nbtext, INTERVAL, "./datas")
     model = MODELS[modelkey]
-    model = set_extra_params(model, action_space, nbh_forecast=nbh_forecast, nbh=nbh)
+    model = set_extra_params(model, action_space=action_space)
+    model = set_extra_params(model, k=k, pc=pc)
+    model = set_extra_params(model, vote_interval=vote_interval)
+    model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
 
-    env = getattr(energy_gym, scenario)(text, MAX_POWER, tc, k, **model)
+    env = getattr(energy_gym, scenario)(text, MAX_POWER, tc, **model)
 
     print(env.model)
+    input("press a key")
     state_size = env.observation_space.shape[0]
     num_actions = env.action_space.n
 
@@ -173,6 +178,7 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, nbh_forecast, action
         if modelkey == "random":
             new_modelkey = random.choice(TRAINING_LIST)
             env.update_model(MODELS[new_modelkey])
+        print(env.model)
         state = env.reset(tc_episode=tc_episode)
         cnt = 0
         avg_loss = 0
@@ -184,7 +190,7 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, nbh_forecast, action
             if i == 0 and env.i == 1:
                 # première étape du premier épisode
                 suffix = "RND_MODEL" if modelkey == "random" else f'{modelkey}'
-                suffix = f'{suffix}_k={dot(k)}_GAMMA={dot(GAMMA)}'
+                suffix = f'{suffix}_GAMMA={dot(GAMMA)}'
                 suffix = f'{suffix}_NBACTIONS={env.action_space.n}'
                 suffix = f'{suffix}_tc={tc}'
                 if halfrange:
@@ -193,6 +199,9 @@ def main(nbtext, modelkey, k, scenario, tc, halfrange, nbh, nbh_forecast, action
                     suffix = f'{suffix}_past={nbh}h'
                 if nbh_forecast:
                     suffix = f'{suffix}_future={nbh_forecast}h'
+                if "Vacancy" in scenario:
+                    suffix = f'{suffix}_k={dot(k)}_pc={pc}'
+                    suffix = f'{suffix}_vote_interval={vote_interval[0]}A{vote_interval[1]}'
                 tw_path = f'{STORE_PATH}/{scenario}{NUM_EPISODES}_{NOW}_{suffix}'
                 train_writer = tf.summary.create_file_writer(tw_path)
 

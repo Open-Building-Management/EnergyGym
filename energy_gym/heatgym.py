@@ -42,7 +42,7 @@ def presence(xr, occupation, wsize, tmin, tmax, tc, hh):
 
 class Env(gym.Env):
     """base environnement"""
-    def __init__(self, text, max_power, tc, k, **model):
+    def __init__(self, text, max_power, tc, **model):
         """
         text : objet PyFina de température extérieure
         à l'initialisation on définit :
@@ -95,7 +95,11 @@ class Env(gym.Env):
         self.tc = tc
         self.tc_episode = None
         self.reduce = None
-        self._k = k
+        # pc : pondération du confort
+        # k : coefficient énergie
+        self._pc = model.get("pc", 15)
+        self._vote_interval = model.get("vote_interval", (-3, 1))
+        self._k = model.get("k", 0.9)
         self.model = model if model else MODELRC
         # calcule les constantes du modèle électrique équivalent
         self.tcte, self.cte = self._update_cte_tcte()
@@ -357,7 +361,7 @@ class Env(gym.Env):
 # --------------------------------------------------------------------------- #
 class Hyst(Env):
     """mode hystéresis permanent"""
-    def __init__(self, text, max_power, tc, k, **model):
+    def __init__(self, text, max_power, tc, **model):
         """
         state : tableau numpy :
         - historique de température extérieure de taille self.nbh+1
@@ -367,7 +371,7 @@ class Hyst(Env):
         - tc, consigne de température intérieure
         avec self.nbh=0 et self.nbh_forecast=0, l'espace d'observation est de taille 3
         """
-        super().__init__(text, max_power, tc, k, **model)
+        super().__init__(text, max_power, tc, **model)
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high,
                                             (3*self.nbh+2+self.nbh_forecast+1,),
@@ -395,8 +399,8 @@ class Reduce(Hyst):
 
 class Vacancy(Env):
     """mode hors occupation"""
-    def __init__(self, text, max_power, tc, k, **model):
-        super().__init__(text, max_power, tc, k, **model)
+    def __init__(self, text, max_power, tc, **model):
+        super().__init__(text, max_power, tc, **model)
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high,
                                             (3*self.nbh+2+self.nbh_forecast+2,),
@@ -424,12 +428,15 @@ class Vacancy(Env):
             #print(tint, tc, self.tot_eko, self._interval)
             # on ne pondère pas la récompense en température
             # car elle est purement ponctuelle, acquise uniquement à l'ouverture
-            reward = - 15 * abs(tint - tc)
+            reward = - self._pc * abs(tint - tc)
             # le bonus énergétique
             # on pondère car même s'il s'agit d'une récompense finale,
             # elle est acquise sur toute la durée de l'épisode
-            if tc - 3 <= tint <= tc + 1 :
-                reward += self.tot_eko * self._k * self._interval / 3600
+            min = self._vote_interval[0]
+            max = self._vote_interval[1]
+            print(min, max)
+            if min <= tint - tc <=  max :
+                reward += self._k * self.tot_eko * self._interval / 3600
         else :
             self.tot_eko += self._eko(action)
         return reward
@@ -440,7 +447,7 @@ class StepRewardVacancy(Vacancy):
     def reward(self, action):
         reward = super().reward(action)
         if self.state[-1] :
-            reward -= self._eko(action) * self._k * self._interval / 3600
+            reward -= self._k * self._eko(action) * self._interval / 3600
         return reward
 
 
