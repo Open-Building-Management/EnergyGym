@@ -26,7 +26,7 @@ met en oeuvre un algorithme de type double DQN
 
 ### scénario de type hystérésis
 
-### scénario de type vacancy, pour jouer une période de non-occupation
+### scénario de type vacancy, pour entrainer à jouer une période de non-occupation
 
 L'objectif est d'utiliser le moins d'énergie possible et d'avoir la température souhaitée à l'ouverture des locaux
 
