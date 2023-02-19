@@ -33,8 +33,8 @@ python3 standalone_d_dqn.py --nbh=48 --k=1 --pc=15 --vote_interval -1 1
 ```
 
 la récompense est la somme de 2 termes : 
-- l'un positif représentant l'énergie économisée
-- l'autre négatif recprésentant le vote à l'ouverture du confort
+- l'un positif représentant l'énergie totale économisée
+- l'autre négatif représentant le vote à l'ouverture du confort
 
 k est le coefficient énergétique
 
