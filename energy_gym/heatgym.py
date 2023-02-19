@@ -95,9 +95,9 @@ class Env(gym.Env):
         self.tc = tc
         self.tc_episode = None
         self.reduce = None
-        # pc : pondération du confort
+        # p_c : pondération du confort
         # k : coefficient énergie
-        self._pc = model.get("pc", 15)
+        self._p_c = model.get("p_c", 15)
         self._vote_interval = model.get("vote_interval", (-3, 1))
         self._k = model.get("k", 0.9)
         self.model = model if model else MODELRC
@@ -428,14 +428,13 @@ class Vacancy(Env):
             #print(tint, tc, self.tot_eko, self._interval)
             # on ne pondère pas la récompense en température
             # car elle est purement ponctuelle, acquise uniquement à l'ouverture
-            reward = - self._pc * abs(tint - tc)
+            reward = - self._p_c * abs(tint - tc)
             # le bonus énergétique
             # on pondère car même s'il s'agit d'une récompense finale,
             # elle est acquise sur toute la durée de l'épisode
-            min = self._vote_interval[0]
-            max = self._vote_interval[1]
-            print(min, max)
-            if min <= tint - tc <=  max :
+            vmin = self._vote_interval[0]
+            vmax = self._vote_interval[1]
+            if vmin <= tint - tc <=  vmax :
                 reward += self._k * self.tot_eko * self._interval / 3600
         else :
             self.tot_eko += self._eko(action)

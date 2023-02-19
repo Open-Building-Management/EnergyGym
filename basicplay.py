@@ -97,19 +97,19 @@ MODELS["random"] = MODELS["cells"]
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
 @click.option('--k', type=float, default=0.9)
-@click.option('--pc', type=int, default=15)
+@click.option('--p_c', type=int, default=15)
 @click.option('--vote_interval', type=int, nargs=2, default=(-3,1))
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
 def main(agent_type, random_ts, scenario, size, modelkey,
          stepbystep, mirrorplay, tc, halfrange,
-         k, pc, vote_interval, nbh, nbh_forecast, action_space):
+         k, p_c, vote_interval, nbh, nbh_forecast, action_space):
     """main command"""
     model = MODELS[modelkey]
     wsize = SIZES[size]
     model = set_extra_params(model, action_space=action_space)
-    model = set_extra_params(model, k=k, pc=pc)
+    model = set_extra_params(model, k=k, p_c=p_c)
     model = set_extra_params(model, vote_interval=vote_interval)
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
 

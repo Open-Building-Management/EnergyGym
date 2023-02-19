@@ -118,7 +118,7 @@ def train(primary_network, mem, state_size, target_network=None):
 
 def set_extra_params(model, **kwargs):
     """définit d'éventuels paramètres additionnels dans le modèle"""
-    fields = ["action_space", "k", "pc", "vote_interval", "nbh", "nbh_forecast"]
+    fields = ["action_space", "k", "p_c", "vote_interval", "nbh", "nbh_forecast"]
     for field in fields:
         if field in kwargs and kwargs[field]:
             model[field] = kwargs[field]
@@ -132,17 +132,17 @@ MODELS["random"] = MODELS["cells"]
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
 @click.option('--k', type=float, default=0.9)
-@click.option('--pc', type=int, default=15)
+@click.option('--p_c', type=int, default=15)
 @click.option('--vote_interval', type=int, nargs=2, default=(-3,1))
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
-def main(nbtext, modelkey, scenario, tc, halfrange, k, pc, vote_interval, nbh, nbh_forecast, action_space):
+def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, nbh_forecast, action_space):
     """main command"""
     text = get_feed(nbtext, INTERVAL, "./datas")
     model = MODELS[modelkey]
     model = set_extra_params(model, action_space=action_space)
-    model = set_extra_params(model, k=k, pc=pc)
+    model = set_extra_params(model, k=k, p_c=p_c)
     model = set_extra_params(model, vote_interval=vote_interval)
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
 
@@ -200,7 +200,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, k, pc, vote_interval, nbh, n
                 if nbh_forecast:
                     suffix = f'{suffix}_future={nbh_forecast}h'
                 if "Vacancy" in scenario:
-                    suffix = f'{suffix}_k={dot(k)}_pc={pc}'
+                    suffix = f'{suffix}_k={dot(k)}_p_c={p_c}'
                     suffix = f'{suffix}_vote_interval={vote_interval[0]}A{vote_interval[1]}'
                 tw_path = f'{STORE_PATH}/{scenario}{NUM_EPISODES}_{NOW}_{suffix}'
                 train_writer = tf.summary.create_file_writer(tw_path)

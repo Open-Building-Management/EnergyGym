@@ -43,7 +43,7 @@ class LocalTimezone(tzinfo):
         args = time.localtime(stamp)[:6]
         dst_diff = DSTDIFF // SECOND
         # Detect fold
-        fold = (args == time.localtime(stamp - dst_diff))
+        fold = args == time.localtime(stamp - dst_diff)
         return datetime(*args, microsecond=dt.microsecond,
                         tzinfo=self, fold=fold)
 
