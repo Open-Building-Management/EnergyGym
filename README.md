@@ -22,6 +22,8 @@ tous les exécutables utilisent l'autocomplétion en ligne de commande pour choi
 
 ## standalone_d_dqn
 
+met en oeuvre un algorithme de type double DQN
+
 pour entrainer à modèle variable avec une histoire passée de 48 heures
 ```
 python3 standalone_d_dqn.py --nbh=48
@@ -44,7 +46,7 @@ vote_interval représente l'intervalle dans lequel la récompense énergétique 
 
 ## basicplay
 
-La variable globale `TEXT_FEED`, dont la valeur par défaut est 1, définit le numéro du flux de température extérieure.
+La variable globale `TEXT_FEED`, dont la valeur par défaut est 1, définit le numéro du flux de température extérieure. Si on utilise les données du répertoire datas, on n'a pas besoin de changer ce paramètre.
 
 Pour un espace d'observation sans historique ni prévisions :
 ```
