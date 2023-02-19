@@ -26,6 +26,21 @@ pour entrainer à modèle variable avec une histoire passée de 48 heures
 ```
 python3 standalone_d_dqn.py --nbh=48
 ```
+pour définir des paramètres de récompense personnalisés :
+
+```
+python3 standalone_d_dqn.py --nbh=48 --k=1 --pc=15 --vote_interval -1 1
+```
+
+la récompense est la somme de 2 termes : 
+- l'un positif représentant l'énergie économisée
+- l'autre négatif recprésentant le vote à l'ouverture du confort
+
+k est le coefficient énergétique
+
+pc est la pondération à appliquer sur le confort à l'ouverture des locaux, c'est-à-dire sur la valeur absolue de l'écart entre la température à l'ouverture des locaux et la température de consigne
+
+vote_interval représente l'intervalle dans lequel la récompense énergétique positive est attribuée. si vote_interval vaut (-1, 1), on attribue le bonus énergétique si et seulement si l'écart entre la température à l'ouverture des locaux et la température de consigne est compris entre -1 et 1 
 
 ## basicplay
 
@@ -35,9 +50,9 @@ Pour un espace d'observation sans historique ni prévisions :
 ```
 python3 basicplay.py
 ```
-Pour un espace d'observation avec un historique de 4 heures :
+Pour un espace d'observation avec un historique de 48 heures :
 ```
-python3 basicplay.py --nbh=4
+python3 basicplay.py --nbh=48
 ```
 
 paramètre |  description
