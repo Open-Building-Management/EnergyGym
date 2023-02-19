@@ -16,7 +16,7 @@ pip3 install PyFina
 pip3 install --upgrade tensorflow
 ```
 
-play et basicplay utilisent l'autocomplétion en ligne de commande pour choisir le nom de l'agent
+tous les exécutables utilisent l'autocomplétion en ligne de commande pour choisir le nom de l'agent
 
 **play n'utilise pas l'environnement gym pour l'instant**
 
