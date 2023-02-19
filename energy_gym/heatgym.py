@@ -422,7 +422,7 @@ class Vacancy(Env):
         reward = 0
         tc = self.tc_episode
         tint = self.tint[self.i]
-        if self.state[-1] == 0 :
+        if self.state[-1] == 0:
             # l'occupation du bâtiment commence
             # pour converger vers la température cible
             #print(tint, tc, self.tot_eko, self._interval)
@@ -434,9 +434,9 @@ class Vacancy(Env):
             # elle est acquise sur toute la durée de l'épisode
             vmin = self._vote_interval[0]
             vmax = self._vote_interval[1]
-            if vmin <= tint - tc <=  vmax :
+            if vmin <= tint - tc <= vmax:
                 reward += self._k * self.tot_eko * self._interval / 3600
-        else :
+        else:
             self.tot_eko += self._eko(action)
         return reward
 
@@ -445,7 +445,7 @@ class StepRewardVacancy(Vacancy):
     """récompense à chaque step et non plus seulement finale"""
     def reward(self, action):
         reward = super().reward(action)
-        if self.state[-1] :
+        if self.state[-1]:
             reward -= self._k * self._eko(action) * self._interval / 3600
         return reward
 
@@ -454,7 +454,7 @@ class TopLimitVacancy(Vacancy):
     """do not overheat"""
     def reward(self, action):
         reward = super().reward(action)
-        if self.tint[self.i] > self.tc_episode + 1 :
+        if self.tint[self.i] > self.tc_episode + 1:
             reward -= (self.tint[self.i] - self.tc_episode - 1) * self._interval / 3600
         return reward
 
