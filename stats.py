@@ -3,7 +3,7 @@ import click
 import numpy as np
 import energy_gym
 from energy_gym import Evaluate
-from energy_gym import get_feed, biosAgenda, pick_name, play_hystnvacancy
+from energy_gym import get_feed, biosAgenda, pick_name
 from conf import MODELS
 from basicplay import load
 from standalone_d_dqn import set_extra_params
