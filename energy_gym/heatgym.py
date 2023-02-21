@@ -93,6 +93,7 @@ class Env(gym.Env):
         self.tot_eko = 0
         self.max_power = max_power
         self.tc = tc
+        # tc_episode permet d'entrainer à consigne variable
         self.tc_episode = None
         self.reduce = None
         # p_c : pondération du confort
@@ -133,11 +134,12 @@ class Env(gym.Env):
             q_c_past_horaire[i] = val
         return self.text_past[indexes], self.tint_past[indexes], q_c_past_horaire
 
-    def _reset(self, ts=None, tint=None, tc_episode=None):
+    def _reset(self, ts=None, tint=None, tc_episode=None, tc_step=None):
         """
-        generic reset method
-
-        Avant d'appeler cette méthode, il faut fixer la taille de l'épisode wsize !
+        generic reset method - private
+        la méthode publique reset :
+        - fixe la taille de l'épisode wsize,
+        - puis exécute _reset
 
         permet de définir self._xr, self.pos, self.tsvrai
         ces grandeurs sont des constantes de l'épisode
@@ -165,7 +167,9 @@ class Env(gym.Env):
         if isinstance(tc_episode, (int, float)):
             self.tc_episode = tc_episode
         # x axis = time for human
-        xrs = np.arange(self.tsvrai, self.tsvrai + (self.wsize+1) * self._interval, self._interval)
+        xrs = np.arange(self.tsvrai,
+                        self.tsvrai + (self.wsize+1) * self._interval,
+                        self._interval)
         self._xr = np.array(xrs, dtype='datetime64[s]')
         self.tint = np.zeros(self.wsize + 1)
         self.action = np.zeros(self.wsize + 1)
@@ -189,14 +193,17 @@ class Env(gym.Env):
         # on a donc notre condition initiale en température intérieure
         self.tint[0] = self.tint_past[-1]
         # construction de state
-        self.state = self._state()
+        self.state = self._state(tc=tc_step)
         self.tot_reward = 0
         return self.state
 
-    def _render(self, zone_confort=None, zones_occ=None, stepbystep=True, label=None, extra_datas=None):
+    def _render(self, zone_confort=None, zones_occ=None,
+                stepbystep=True,
+                label=None, extra_datas=None,
+                snapshot=False):
         """generic render method"""
         if self.i == 0 or not stepbystep:
-            self._fig = plt.figure()
+            self._fig = plt.figure(figsize=(20,10))
             self._ax1 = plt.subplot(311)
             self._ax2 = plt.subplot(312, sharex=self._ax1)
             self._ax3 = plt.subplot(313, sharex=self._ax1)
@@ -223,11 +230,12 @@ class Env(gym.Env):
             if zones_occ is not None :
                 for occ in zones_occ:
                     self._ax2.add_patch(occ)
-        plt.show()
+        if not snapshot:
+            plt.show()
         if stepbystep:
             plt.pause(0.0001)
 
-    def _step(self, action):
+    def _step(self, action, tc_step=None):
         """generic step method"""
         err_msg = f'{action} is not a valid action'
         assert self.action_space.contains(action), err_msg
@@ -252,7 +260,7 @@ class Env(gym.Env):
             self.text_past = np.array([*self.text_past[1:], text[1]])
             if self.pastsize > 1:
                 self.q_c_past = np.array([*self.q_c_past[1:], q_c])
-            self.state = self._state()
+            self.state = self._state(tc=tc_step)
         else:
             self.state = None
             done = True
@@ -282,7 +290,8 @@ class Env(gym.Env):
             tmin = np.min(self.tint[0: self.i])
             tmax = np.max(self.tint[0: self.i])
             occupation = self.agenda[self.pos:self.pos+self.wsize+4*24*3600//self._interval]
-            zones_occ = presence(self._xr, occupation, self.wsize, tmin, tmax, self.tc_episode, 1)
+            zones_occ = presence(self._xr, occupation, self.wsize,
+                                 tmin, tmax, self.tc_episode, 1)
         return zone_confort, zones_occ
 
     def _update_cte_tcte(self):
@@ -302,7 +311,7 @@ class Env(gym.Env):
         self.agenda = agenda
 
     def set_reduce(self, reduce):
-        """fixe le nombre de degrés en moins sur la température de consigne hors occupation"""
+        """fixe le nombre de degrés en moins sur la consigne hors occupation"""
         self.reduce = reduce
 
     def update_model(self, model):
@@ -314,7 +323,7 @@ class Env(gym.Env):
 
     def reward(self, action):
         """récompense hystéresis
-        A SURCHARGER DANS CLASSE FILLE"""
+        ACCORDEE A CHAQUE PAS DE TEMPS"""
         reward = 0
         tc = self.tc_episode
         tint = self.tint[self.i]
@@ -329,26 +338,32 @@ class Env(gym.Env):
         self.tot_eko += self._eko(action)
         return reward
 
-    def reset(self, ts=None, tint=None, tc_episode=None, wsize=None):  # pylint: disable=W0221
+    def reset(self, ts=None,
+              tint=None, tc_episode=None, tc_step=None,
+              wsize=None):  # pylint: disable=W0221
         """episode reset"""
         if not isinstance(wsize, int):
             self.wsize = 63 * 3600 // self._interval
         else :
             self.wsize = int(wsize)
         self.tot_eko = 0
-        return self._reset(ts=ts, tint=tint, tc_episode=tc_episode)
+        return self._reset(ts=ts, tint=tint, tc_episode=tc_episode, tc_step=tc_step)
 
-    def step(self, action):
+    def step(self, action, tc_step=None):
         """return state, reward pour previous state, done, _"""
-        reward, done = self._step(action)
+        reward, done = self._step(action, tc_step=tc_step)
         return self.state, reward, done, {}
 
-    def render(self, stepbystep=True, label=None, extra_datas=None):
+    def render(self, stepbystep=True,
+               label=None, extra_datas=None,
+               snapshot=False):
         """render realtime or not
         on ne fait pas appel à _covering car en mode Vacancy, on n'a besoin
         d'aucun zonage du graphique
         """
-        self._render(stepbystep=stepbystep, label=label, extra_datas=extra_datas)
+        self._render(stepbystep=stepbystep,
+                     label=label, extra_datas=extra_datas,
+                     snapshot=snapshot)
 
     def close(self):
         """closing"""
@@ -377,12 +392,16 @@ class Hyst(Env):
                                             (3*self.nbh+2+self.nbh_forecast+1,),
                                             dtype=np.float32)
 
-    def render(self, stepbystep=True, label=None, extra_datas=None):
+    def render(self, stepbystep=True,
+               label=None, extra_datas=None,
+               snapshot=False):
         """avec affichage de la zone de confort"""
         if self.i:
             zone_confort, zones_occ = self._covering()
             self._render(zone_confort=zone_confort, zones_occ=zones_occ,
-                         stepbystep=stepbystep, label=label, extra_datas=extra_datas)
+                         stepbystep=stepbystep,
+                         label=label, extra_datas=extra_datas,
+                         snapshot=snapshot)
         else:
             self._render(stepbystep=stepbystep, label=label)
 
@@ -485,18 +504,22 @@ class Building(Vacancy):
         self.tot_eko += self._eko(action)
         return reward
 
-    def reset(self, ts=None, tint=None, tc_episode=None, wsize=None):
+    def reset(self, ts=None, tint=None, tc_episode=None, tc_step=None, wsize=None):
         if not isinstance(wsize, int):
             self.wsize = 8*24*3600 // self._interval
         else :
             self.wsize = int(wsize)
         self.tot_eko = 0
-        return self._reset(ts=ts, tint=tint, tc_episode=tc_episode)
+        return self._reset(ts=ts, tint=tint, tc_episode=tc_episode, tc_step=tc_step)
 
-    def render(self, stepbystep=True, label=None, extra_datas=None):
+    def render(self, stepbystep=True,
+               label=None, extra_datas=None,
+               snapshot=False):
         if self.i:
             zone_confort, zones_occ = self._covering()
             self._render(zone_confort=zone_confort, zones_occ=zones_occ,
-                         stepbystep=stepbystep, label=label, extra_datas=extra_datas)
+                         stepbystep=stepbystep,
+                         label=label, extra_datas=extra_datas,
+                         snapshot=snapshot)
         else:
             self._render(stepbystep=stepbystep)

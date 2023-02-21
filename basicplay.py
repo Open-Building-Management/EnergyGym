@@ -176,10 +176,14 @@ def main(agent_type, random_ts, scenario, size, modelkey,
                 print(f'{bat.tot_reward}')
                 peko = stats(bat)
                 if not stepbystep:
+                    # pour les scénarios de type Hyst/Vacancy,
+                    # on a des custom agendas
+                    # qui ne sont pas de la taille de text
+                    # on précise donc l'agenda en paramètre
                     optimal_solution = play_hystnvacancy(bat, bat.pos, bat.wsize,
                                                          bat.tint[0], bat.tc_episode, 1,
                                                          agenda=agenda)
-                    model_eko = (1 - np.sum(optimal_solution[:,0]) / bat.wsize) * 100
+                    model_eko = (1 - np.mean(optimal_solution[:,0])) * 100
                     label = f'EKO - modèle : {model_eko:.2f}% - agent : {peko:.2f}%'
                     if "Vacancy" in scenario:
                         label = f'{label} & Tint à l\'ouverture {bat.tint[-1]:.2f}°C'

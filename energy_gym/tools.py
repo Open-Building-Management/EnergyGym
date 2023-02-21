@@ -30,7 +30,7 @@ def simple_path_completer(text, state):
     return list(glob.glob(text + '*'))[state]
 
 
-def pick_name(name=None, autocomplete=True):
+def pick_name(name=None, autocomplete=True, question="nom du réseau ?"):
     """
     vérifie un chemin ou un nom de fichier fourni en argument ou saisi en autocomplétion par l'utilisateur
     """
@@ -38,7 +38,7 @@ def pick_name(name=None, autocomplete=True):
         readline.set_completer_delims('\t')
         readline.parse_and_bind("tab: complete")
         readline.set_completer(simple_path_completer)
-        name = input("nom du réseau ?")
+        name = input(question)
         if not name:
             name = "RL.h5"
 

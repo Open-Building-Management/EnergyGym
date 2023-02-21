@@ -115,6 +115,17 @@ def play_hystnvacancy(env, pos, size, tint0, tc, hh, agenda=None):
         datas[i, 0] = action
     return datas
 
+def stats(tc, tint, occ, interval):
+    """basic stats on temperature datas"""
+    idx = occ != 0
+    tint_occ = tint[idx]
+    # NumPy's built-in Fancy indexing
+    inc = tint_occ[tint_occ < tc - 1]
+    luxe = tint_occ[tint_occ > tc + 1]
+    tocc_moy = round(np.mean(tint_occ), 2)
+    nbinc = inc.shape[0] * interval / 3600
+    nbluxe = luxe.shape[0] * interval / 3600
+    return tocc_moy, nbinc, nbluxe
 
 def get_config(agent):
     """
@@ -274,6 +285,7 @@ class Evaluate:
     - 1 à 4 : agent température intérieure moyenne, nb pts luxe, nb pts inconfort, consommation
     - 5 à 8 : modèle idem
     - 9 à 10 : récompense agent puis modèle
+    DOC A REVOIR CAR ON VA STOCKER les économies plus que les consos
     """
     def __init__(self, name, env, agent, **params):
         self._n = params.get("N", MAX_EPISODES)
@@ -315,6 +327,53 @@ class Evaluate:
         nbinc = inc.shape[0] * self._env.interval // 3600
         nbluxe = luxe.shape[0] * self._env.interval // 3600
         return tocc_moy, nbinc, nbluxe
+
+    def play_gym(self, silent, ts=None, snapshot=False, tint=None, wsize=None):
+        """joue un épisode de type semaine
+        avec l'environnement gym"""
+        tc = self._env.tc
+        state = self._env.reset(ts=ts, tc_step=tc, tint=tint, wsize=wsize)
+        while True:
+            pos1 = self._env.i
+            pos2 = self._env.pos + pos1
+            if self._env.agenda[pos2] != 0 and self._multi_agent:
+                hyststate = np.array([
+                    self._env.text[pos2],
+                    self._env.tint[pos1],
+                    tc])
+                result = self._occupancy_agent(hyststate.reshape(1, hyststate.shape[0]))
+            else:
+                result = self._agent(state.reshape(1, state.shape[0]))
+            action = np.argmax(result)
+            state, _, done, _ = self._env.step(action, tc_step=tc)
+            if done:
+                break
+        tint = self._env.tint[:-1]
+        occ = self._env.agenda[self._env.pos: self._env.pos+self._env.wsize]
+        interval = self._env.text.step
+        atocc_moy, anbinc, anbluxe = stats(tc, tint, occ, interval)
+        optimal_solution = play_hystnvacancy(self._env,
+                                             self._env.pos,
+                                             self._env.wsize,
+                                             tint[0], tc, 1)
+        mtocc_moy, mnbinc, mnbluxe = stats(tc, optimal_solution[:,1], occ, interval)
+        aeko = 100 * self._env.tot_eko / self._env.wsize
+        meko = 100 * (1 - np.mean(optimal_solution[:,0]))
+        line = np.array([self._env.tsvrai,
+                         atocc_moy, anbluxe, anbinc, aeko,
+                         mtocc_moy, mnbluxe, mnbinc, meko,
+                         0, 0])
+        self._stats[self._steps, :] = line
+        if not silent or snapshot:
+            label = f'EKO - modèle : {meko:.2f}% - agent : {aeko:.2f}%'
+            label = f'{label} {self._modlabel}'
+            label = f'{label}\n Tocc moyenne modèle : {mtocc_moy} agent : {atocc_moy}'
+            label = f'{label}\n nb heures inconfort modèle : {mnbinc} agent : {anbinc}'
+            self._env.render(stepbystep=False,
+                             label=label,
+                             extra_datas=optimal_solution,
+                             snapshot=snapshot)
+
 
     def play(self, silent, ts=None, snapshot=False, tint=None):
         """
