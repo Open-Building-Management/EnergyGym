@@ -17,6 +17,7 @@ CW = 1162.5 #Wh/m3/K
 MAX_POWER = 5 * CW * 15
 TEXT_FEED = 1
 
+# pylint: disable=no-value-for-parameter
 @click.command()
 @click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--nbh', type=int, default=None)
