@@ -1,12 +1,11 @@
 """joue des épisodes d'une semaine et produit des stats"""
 import click
-import numpy as np
 import energy_gym
 from energy_gym import Evaluate
 from energy_gym import get_feed, biosAgenda, pick_name
 from conf import MODELS
-from basicplay import load
 from standalone_d_dqn import set_extra_params
+from basicplay import load
 from basicplay import PATH, SCHEDULE, MAX_POWER, TEXT_FEED
 
 INTERVAL = 3600
