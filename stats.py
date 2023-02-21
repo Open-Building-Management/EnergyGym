@@ -7,15 +7,10 @@ from energy_gym import get_feed, biosAgenda, pick_name
 from conf import MODELS
 from basicplay import load
 from standalone_d_dqn import set_extra_params
+from basicplay import PATH, SCHEDULE, MAX_POWER, TEXT_FEED
 
 INTERVAL = 3600
 WSIZE = 8*24*3600 // INTERVAL
-PATH = "datas"
-SCHEDULE = np.array([[7, 17], [7, 17], [7, 17], [7, 17], [7, 17], [-1, -1], [-1, -1]])
-CW = 1162.5 #Wh/m3/K
-# debit de 5m3/h et deltaT entre départ et retour de 15°C
-MAX_POWER = 5 * CW * 15
-TEXT_FEED = 1
 
 # pylint: disable=no-value-for-parameter
 @click.command()
