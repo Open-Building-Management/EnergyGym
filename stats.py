@@ -1,4 +1,5 @@
 """joue des épisodes d'une semaine et produit des stats"""
+import random
 import click
 import energy_gym
 from energy_gym import Evaluate
@@ -16,7 +17,9 @@ WSIZE = 8*24*3600 // INTERVAL
 @click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
-def main(modelkey, nbh, nbh_forecast):
+@click.option('--generate_stats', type=bool, default=True, prompt='generer les stats ?')
+@click.option('--holiday', type=int, default=0, prompt='nbr jours fériés à intégrer ?')
+def main(modelkey, nbh, nbh_forecast, generate_stats, holiday):
     """main command"""
     model = MODELS[modelkey]
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
@@ -28,6 +31,17 @@ def main(modelkey, nbh, nbh_forecast):
     if saved:
         scenario = "Hyst" if "Hyst" in agent_path else "Building"
         bat = getattr(energy_gym, scenario)(text, MAX_POWER, 20, **model)
+        # modification de SCHEDULE pour intégrer des jours chomés
+        if holiday:
+            days = [0, 4] if holiday == 1 else [0, 1, 2, 3, 4]
+            holidays = []
+            for i in range(holiday):
+                tirage = random.choice(days)
+                if tirage not in holidays:
+                    holidays.append(tirage)
+            for i in holidays:
+                SCHEDULE[i] = [-1, -1]
+        # génération de l'agenda
         agenda = biosAgenda(text.shape[0], INTERVAL, text.start, [], schedule=SCHEDULE)
         bat.set_agenda(agenda)
         print(bat.model)
@@ -36,10 +50,10 @@ def main(modelkey, nbh, nbh_forecast):
         if saved_hyst:
             hyst = load(hyst_path)
             sandbox.set_occupancy_agent(hyst)
-        while True:
-            # on passe en paramètre la taille de l'épisode
-            # nécessaire si on veut jouer un hystérésis sur toute une semaine
-            sandbox.play_gym(silent=False, wsize=WSIZE)
+        # on passe en paramètre la taille de l'épisode
+        # nécessaire si on veut jouer un hystérésis sur toute une semaine
+        sandbox.run_gym(silent=generate_stats, wsize=WSIZE)
+        sandbox.close(suffix=modelkey)
 
 if __name__ == "__main__":
     main()

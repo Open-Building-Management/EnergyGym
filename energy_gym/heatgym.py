@@ -16,8 +16,12 @@ MODELRC = {"R": 5.94419964e-04, "C": 5.40132642e+07}
 
 def confort(xr, tc, hh):
     """construit le rectangle vert de la zone de confort thermique
-    facecolor='g': green color
+
+    xr : échelle de temps de l'épisode au format humain,
+    tc : température de consigne,
+    hh : demi-intervalle de la zone de confort
     """
+    # facecolor='g': green color
     return Rectangle((xr[0], tc-hh), xr[-1]-xr[0], 2 * hh,
                      facecolor='g', alpha=0.5, edgecolor='None',
                      label="zone de confort")
@@ -45,10 +49,23 @@ class Env(gym.Env):
     def __init__(self, text, max_power, tc, **model):
         """
         text : objet PyFina de température extérieure
-        à l'initialisation on définit :
-        - l'étendue de l'historique
-        - la taille de l'espace d'actions
-        la taille de l'espace d'observation est à fixer dans la classe fille
+
+        max_power : puissance max de chauffage dispo en W
+
+        tc : température de consigne
+
+        model : dictionnaire du modèle d'environnement avec
+        ses paramètres électriques R et C,
+        action_space (taille de l'espace d'actions),
+        nbh (nombre d'heures de l'historique),
+        nbh_forecast (nombre d'heures de prévisions météo),
+        k (coefficient énergétique),
+        p_c (pondération sur le confort),
+        vote_interval (intervalle de température autour de la coonsigne
+        dans lequel la récompense énergétique est attribuée)
+
+        la taille de l'espace d'observation est calculée à partir de nbh
+        et nbh_forecast, dans les classes filles
         """
         super().__init__()
         self.text = text

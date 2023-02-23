@@ -284,8 +284,7 @@ class Evaluate:
     - 0 : timestamp de l'épisode,
     - 1 à 4 : agent température intérieure moyenne, nb pts luxe, nb pts inconfort, consommation
     - 5 à 8 : modèle idem
-    - 9 à 10 : récompense agent puis modèle
-    DOC A REVOIR CAR ON VA STOCKER les économies plus que les consos
+    - 9 à 10 : récompense agent puis modèle : INUTILE
     """
     def __init__(self, name, env, agent, **params):
         self._n = params.get("N", MAX_EPISODES)
@@ -357,11 +356,13 @@ class Evaluate:
                                              self._env.wsize,
                                              tint[0], tc, 1)
         mtocc_moy, mnbinc, mnbluxe = stats(tc, optimal_solution[:,1], occ, interval)
+        aconso = self._env.wsize - self._env.tot_eko
+        mconso = np.sum(optimal_solution[:,0])
         aeko = 100 * self._env.tot_eko / self._env.wsize
         meko = 100 * (1 - np.mean(optimal_solution[:,0]))
         line = np.array([self._env.tsvrai,
-                         atocc_moy, anbluxe, anbinc, aeko,
-                         mtocc_moy, mnbluxe, mnbinc, meko,
+                         atocc_moy, anbluxe, anbinc, aconso,
+                         mtocc_moy, mnbluxe, mnbinc, mconso,
                          0, 0])
         self._stats[self._steps, :] = line
         if not silent or snapshot:
@@ -549,6 +550,20 @@ class Evaluate:
 
             time.sleep(0.1)
 
+    def run_gym(self, silent=False, wsize=None):
+        """boucle d'exécution"""
+        signal.signal(signal.SIGINT, self._sig_handler)
+        signal.signal(signal.SIGTERM, self._sig_handler)
+
+        while not self._exit:
+            if self._steps >= self._n - 1:
+                self._exit = True
+
+            self.play_gym(silent=silent, wsize=wsize)
+            self._steps += 1
+
+            time.sleep(0.1)
+
     def close(self, suffix=None):
         """
         enregistre les statistiques (csv + png) si on est arrivé au bout du nombre d'épisodes
@@ -565,7 +580,8 @@ class Evaluate:
         # on utilise le suffixe pour indiquer le mode de jeu du modèle
         if self._steps == self._n :
 
-            title = f'modèle {self._modlabel} jouant la politique optimale {suffix}\n' if suffix is not None else ""
+            title = f'modèle {self._modlabel}'
+            #' jouant la politique optimale {suffix}\n' if suffix is not None else ""
             title = f'{title} Conso moyenne agent : {stats_moy[4]} / Conso moyenne modèle : {stats_moy[8]}\n'
 
             pct = round(100*(stats_moy[8]-stats_moy[4])/stats_moy[8], 2)
@@ -580,13 +596,13 @@ class Evaluate:
             plt.legend()
 
             plt.subplot(412, sharex=ax1)
-            label = f'nombre heures > {self._env.tc + self._env.hh}°C'
+            label = f'nombre heures > {self._env.tc + 1}°C'
             plt.plot(self._stats[:, 2], color="blue", label=f'{label} agent')
             plt.plot(self._stats[:, 6], color="red", label=f'{label} modèle')
             plt.legend()
 
             plt.subplot(413, sharex=ax1)
-            label = f'nombre heures < {self._env.tc - self._env.hh}°C'
+            label = f'nombre heures < {self._env.tc - 1}°C'
             plt.plot(self._stats[:, 3], color="blue", label=f'{label} agent')
             plt.plot(self._stats[:, 7], color="red", label=f'{label} modèle')
             plt.legend()
@@ -600,7 +616,13 @@ class Evaluate:
             ts = time.time()
             now = tsToHuman(ts, fmt="%Y_%m_%d_%H_%M")
             label = f'played_{suffix}' if suffix is not None else "played"
-            name = f'{self._name.replace(".h5","")}_{label}_{now}'
+            # si on est arrivé jusqu'içi,
+            # c'est que l'utilisateur a chargé un réseau de neurones
+            # donc pas la peine de faire des tests compliqués
+            if ".h5" not in self._name:
+                name = f'{self._name}/{label}_{now}'
+            else:
+                name = f'{self._name.replace(".h5","")}_{label}_{now}'
             plt.savefig(name)
             header = "ts"
             for player in ["agent", "modèle"]:
