@@ -331,13 +331,14 @@ class Evaluate:
         """joue un épisode de type semaine
         avec l'environnement gym
 
-        silent : si True, n'affiche pas les replays et produit des stats
+        silent : si True, ne construit pas l'image du replay.
+        C'est le mode pour les exploitations statistiques
 
         ts : int - timestamp que l'on veut rejouer.
         si None, un tirage aléatoire est réalisé
 
-        snapshot : si True, l'image de l'épisode n'est pas affichée
-        et un fichier tiers utilisant la classe peut l'enregistrer
+        snapshot : si True, le replay est construit mais pas affiché.
+        Un fichier tiers utilisant la classe peut donc l'enregistrer
 
         tint : condition initiale de température intérieure
         si on veut la fixer
@@ -558,8 +559,9 @@ class Evaluate:
     def run_gym(self, silent=False, wsize=None):
         """boucle d'exécution
 
-        silent : si True, n'affiche pas les replays et produit des stats
-
+        silent : si True, ne construit pas les images des replays
+        et produit des stats
+        
         wsize : nombre de points dans l'épisode (facultatif)
         """
         signal.signal(signal.SIGINT, self._sig_handler)
