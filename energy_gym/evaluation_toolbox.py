@@ -380,9 +380,6 @@ class Evaluate:
 
     def play_gym(self, ts=None, snapshot=False, tint=None, wsize=None):
         """
-        silent : si True, ne construit pas l'image du replay.
-        C'est le mode pour les exploitations statistiques
-
         snapshot : si True, le replay est construit mais pas affiché.
         Un fichier tiers utilisant la classe peut donc l'enregistrer
         """
