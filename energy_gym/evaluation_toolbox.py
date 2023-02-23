@@ -329,7 +329,21 @@ class Evaluate:
 
     def play_gym(self, silent, ts=None, snapshot=False, tint=None, wsize=None):
         """joue un épisode de type semaine
-        avec l'environnement gym"""
+        avec l'environnement gym
+
+        silent : si True, n'affiche pas les replays et produit des stats
+
+        ts : int - timestamp que l'on veut rejouer.
+        si None, un tirage aléatoire est réalisé
+
+        snapshot : si True, l'image de l'épisode n'est pas affichée
+        et un fichier tiers utilisant la classe peut l'enregistrer
+
+        tint : condition initiale de température intérieure
+        si on veut la fixer
+
+        wsize : nombre de points dans l'épisode
+        """
         tc = self._env.tc
         state = self._env.reset(ts=ts, tc_step=tc, tint=tint, wsize=wsize)
         while True:
@@ -355,11 +369,11 @@ class Evaluate:
                                              self._env.pos,
                                              self._env.wsize,
                                              tint[0], tc, 1)
-        mtocc_moy, mnbinc, mnbluxe = stats(tc, optimal_solution[:,1], occ, interval)
+        mtocc_moy, mnbinc, mnbluxe = stats(tc, optimal_solution[:, 1], occ, interval)
         aconso = self._env.wsize - self._env.tot_eko
-        mconso = np.sum(optimal_solution[:,0])
+        mconso = np.sum(optimal_solution[:, 0])
         aeko = 100 * self._env.tot_eko / self._env.wsize
-        meko = 100 * (1 - np.mean(optimal_solution[:,0]))
+        meko = 100 * (1 - np.mean(optimal_solution[:, 0]))
         line = np.array([self._env.tsvrai,
                          atocc_moy, anbluxe, anbinc, aconso,
                          mtocc_moy, mnbluxe, mnbinc, mconso,
@@ -381,15 +395,6 @@ class Evaluate:
         joue un épisode
 
         retourne le tenseur des données de l'agent, au cas où on souhaite y vérifier un détail
-
-        ts : int - timestamp que l'on veut rejouer
-        si None, un tirage alétaoire est réalisé
-
-        snapshot : boolean
-        si snapshot est True, l'image de l'épisode n'est pas affichée
-        et un fichier tiers utilisant la classe peut l'enregistrer
-
-        tint : condition initiale de température intérieure
         """
         self._env.set_start(ts)
         adatas = self._env.build_env(tint=tint)
@@ -551,7 +556,12 @@ class Evaluate:
             time.sleep(0.1)
 
     def run_gym(self, silent=False, wsize=None):
-        """boucle d'exécution"""
+        """boucle d'exécution
+
+        silent : si True, n'affiche pas les replays et produit des stats
+
+        wsize : nombre de points dans l'épisode (facultatif)
+        """
         signal.signal(signal.SIGINT, self._sig_handler)
         signal.signal(signal.SIGTERM, self._sig_handler)
 
