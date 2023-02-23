@@ -18,7 +18,7 @@ def freeze(nb_off):
     
     nb : nombre de jours chomés à injecter
     """
-    days = [0, 4] if nb == 1 else [0, 1, 2, 3, 4]
+    days = [0, 4] if nb_off == 1 else [0, 1, 2, 3, 4]
     holidays = []
     for _ in range(nb_off):
         tirage = random.choice(days)
