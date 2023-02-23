@@ -28,7 +28,17 @@ def confort(xr, tc, hh):
 
 
 def presence(xr, occupation, wsize, tmin, tmax, tc, hh):
-    """construit les rectangles orange matérialisant l'occupation"""
+    """construit les rectangles orange matérialisant l'occupation
+
+    xr : échelle de temps de l'épisode au format humain,
+    occupation : agenda d'occupation avec 4 jours supplémentaires
+    pour calculer les nombres de pas jusqu'au prochain cgt d'occupation,
+    wsize : nombre de points dans l'épisode,
+    tmin : température minimale,
+    tmax : température maximale,
+    tc : température de consigne,
+    hh : demi-intervalle de la zone de confort
+    """
     changes = []
     for i in range(wsize):
         if occupation[i] == 0 and occupation[i+1] != 0:
@@ -61,11 +71,33 @@ class Env(gym.Env):
         nbh_forecast (nombre d'heures de prévisions météo),
         k (coefficient énergétique),
         p_c (pondération sur le confort),
-        vote_interval (intervalle de température autour de la coonsigne
+        vote_interval (intervalle de température autour de la consigne
         dans lequel la récompense énergétique est attribuée)
 
         la taille de l'espace d'observation est calculée à partir de nbh
         et nbh_forecast, dans les classes filles
+
+        En scénario hystérésis, state est un tableau numpy de taille
+        3 * nbh + 2 + nbh_forecast + 1 :
+
+        - historique de température extérieure de taille nbh+1
+
+        - prévisions de température extérieure de taille nbh_forecast
+
+        - historique de température intérieure de taille nbh+1
+
+        - historique de chauffage de taille nbh
+
+        - tc, consigne de température intérieure
+
+        si nbh=0 et nbh_forecast=0, l'espace d'observation en scénario hystérésis
+        est de taille 3
+
+        En scénario non-occupation/vacancy, state est de taille
+        3 * nbh + 2 + nbh_forecast + 2
+
+        par rapport au cas hystérésis, on rajoute le nombre d'heures
+        d'içi le prochain changement d'occupation
         """
         super().__init__()
         self.text = text
@@ -154,7 +186,7 @@ class Env(gym.Env):
     def _reset(self, ts=None, tint=None, tc_episode=None, tc_step=None):
         """
         generic reset method - private
-        
+
         la méthode publique reset fixe la taille de l'épisode wsize,
         puis exécute _reset
 
@@ -285,22 +317,7 @@ class Env(gym.Env):
         return reward, done
 
     def _state(self, tc=None):
-        """return the current state after all calculations are done
-        
-        state : tableau numpy de taille 3 * nbh + 2 + nbh_forecast + 1
-        
-        - historique de température extérieure de taille self.nbh+1
-        
-        - prévisions de température extérieure de taille self.nbh_forecast
-        
-        - historique de température intérieure de taille self.nbh+1
-        
-        - historique de chauffage de taille self.nbh
-        
-        - tc, consigne de température intérieure
-        
-        avec self.nbh=0 et self.nbh_forecast=0, l'espace d'observation est de taille 3
-        """
+        """return the current state after all calculations are done"""
         if tc is None:
             tc=self.tc_episode
         text_future_horaire = self._get_future()
@@ -345,7 +362,8 @@ class Env(gym.Env):
         self.reduce = reduce
 
     def update_model(self, model):
-        """met à jour les paramètres R et C du modèle"""
+        """met à jour les paramètres R et C du modèle
+        et les constantes associées"""
         original = self.model
         for param in ["R", "C"]:
             self.model[param] = model.get(param, original[param])
@@ -380,14 +398,14 @@ class Env(gym.Env):
         return self._reset(ts=ts, tint=tint, tc_episode=tc_episode, tc_step=tc_step)
 
     def step(self, action, tc_step=None):
-        """retourne
-        
+        """retourne un tuple :
+
         - state,
-        
+
         - la récompense pour le previous state,
-        
+
         - un booléen done (true si l'épisode est fini, false sinon)
-        
+
         - un dictionnaire vide qui peut contenir des observations
         """
         reward, done = self._step(action, tc_step=tc_step)
@@ -397,7 +415,7 @@ class Env(gym.Env):
                label=None, extra_datas=None,
                snapshot=False):
         """render realtime or not
-        
+
         on ne fait pas appel à _covering car en mode Vacancy, on n'a besoin
         d'aucun zonage du graphique
         """
@@ -417,6 +435,7 @@ class Env(gym.Env):
 class Hyst(Env):
     """mode hystéresis permanent"""
     def __init__(self, text, max_power, tc, **model):
+        """ready to use gym environment"""
         super().__init__(text, max_power, tc, **model)
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high,
@@ -426,7 +445,7 @@ class Hyst(Env):
     def render(self, stepbystep=True,
                label=None, extra_datas=None,
                snapshot=False):
-        """avec affichage de la zone de confort"""
+        """avec affichage des zones de confort et d'occupation"""
         if self.i:
             zone_confort, zones_occ = self._covering()
             self._render(zone_confort=zone_confort, zones_occ=zones_occ,
@@ -450,6 +469,7 @@ class Reduce(Hyst):
 class Vacancy(Env):
     """mode hors occupation"""
     def __init__(self, text, max_power, tc, **model):
+        """ready to use gym environment"""
         super().__init__(text, max_power, tc, **model)
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high,
@@ -458,14 +478,6 @@ class Vacancy(Env):
         #print(self.observation_space)
 
     def _state(self, tc=None):
-        """return the current state after all calculations are done
-        
-        state : tableau numpy de taille 3 * nbh + 2 + nbh_forecast + 1
-        
-        par rapport au state retourné par la base class,
-        on rajoute le nombre d'heures d'içi le prochain changement d'occupation
-        
-        """
         if tc is None:
             tc = self.tc_episode
         # nbh -> occupation change (from occupied to empty and vice versa)
@@ -475,7 +487,7 @@ class Vacancy(Env):
         return np.array([*result, nbh], dtype=np.float32)
 
     def reward(self, action):
-        """reward at state action"""
+        """JUST A final reward mixing confort and energy"""
         reward = 0
         tc = self.tc_episode
         tint = self.tint[self.i]
@@ -499,8 +511,9 @@ class Vacancy(Env):
 
 
 class StepRewardVacancy(Vacancy):
-    """récompense à chaque step et non plus seulement finale"""
+    """do not overheat trial 1"""
     def reward(self, action):
+        """récompense à chaque step et non plus seulement finale"""
         reward = super().reward(action)
         if self.state[-1]:
             reward -= self._k * self._eko(action) * self._interval / 3600
@@ -508,7 +521,7 @@ class StepRewardVacancy(Vacancy):
 
 
 class TopLimitVacancy(Vacancy):
-    """do not overheat"""
+    """do not overheat trial 2"""
     def reward(self, action):
         reward = super().reward(action)
         if self.tint[self.i] > self.tc_episode + 1:
@@ -518,10 +531,10 @@ class TopLimitVacancy(Vacancy):
 
 class Building(Vacancy):
     """alternance d'occupation et de non-occupation
-    pour jouer avec l'agent 2021_09_23_07_42_32_hys20_retrained_k0dot9_hys20.h5
+    notamment pour jouer avec l'agent 2021_09_23_07_42_32_hys20_retrained_k0dot9_hys20.h5
+
     no real use for trainings
     """
-
     def _state(self, tc=None):
         pos1 = self.pos + self.i
         if tc is None:

@@ -1,18 +1,4 @@
-"""
-outils et méthodes autour des classes de RLtoolbox
-
-version beta : work in progress
-
-circuit : dictionnaire des paramètres du circuit / zone de bâtiment
-
-exemple :
-```
-import numpy as np
-schedule = np.array([[7,17], [7,17], [7,17], [7,17], [7,17], [-1,-1], [-1,-1]])
-circuit = {"Text":1, "dir": "/var/opt/emoncms/phpfina",
-           "schedule": schedule, "interval": 3600, "wsize": 1 + 8*24}
-```
-"""
+"""ouverture de réseaux neurones ou de timeseries de données"""
 import os
 import sys
 # pour l'autocompletion en ligne de commande
