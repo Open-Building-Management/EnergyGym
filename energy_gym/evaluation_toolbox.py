@@ -327,23 +327,21 @@ class Evaluate:
         nbluxe = luxe.shape[0] * self._env.interval // 3600
         return tocc_moy, nbinc, nbluxe
 
-    def play_gym(self, silent, ts=None, snapshot=False, tint=None, wsize=None):
-        """joue un épisode de type semaine
-        avec l'environnement gym
-
-        silent : si True, ne construit pas l'image du replay.
-        C'est le mode pour les exploitations statistiques
+    def play_base(self, ts=None, tint=None, wsize=None):
+        """fait jouer à l'agent un épisode de type semaine
+        avec l'environnement gym,
+        calcule la solution optimale,
+        établit les statistiques et les enregistre dans _stats
 
         ts : int - timestamp que l'on veut rejouer.
         si None, un tirage aléatoire est réalisé
-
-        snapshot : si True, le replay est construit mais pas affiché.
-        Un fichier tiers utilisant la classe peut donc l'enregistrer
 
         tint : condition initiale de température intérieure
         si on veut la fixer
 
         wsize : nombre de points dans l'épisode
+
+        retourne la solution optimale mais n'affiche pas le replay
         """
         tc = self._env.tc
         state = self._env.reset(ts=ts, tc_step=tc, tint=tint, wsize=wsize)
@@ -373,23 +371,36 @@ class Evaluate:
         mtocc_moy, mnbinc, mnbluxe = stats(tc, optimal_solution[:, 1], occ, interval)
         aconso = self._env.wsize - self._env.tot_eko
         mconso = np.sum(optimal_solution[:, 0])
-        aeko = 100 * self._env.tot_eko / self._env.wsize
-        meko = 100 * (1 - np.mean(optimal_solution[:, 0]))
         line = np.array([self._env.tsvrai,
                          atocc_moy, anbluxe, anbinc, aconso,
                          mtocc_moy, mnbluxe, mnbinc, mconso,
                          0, 0])
         self._stats[self._steps, :] = line
-        if not silent or snapshot:
-            label = f'EKO - modèle : {meko:.2f}% - agent : {aeko:.2f}%'
-            label = f'{label} {self._modlabel}'
-            label = f'{label}\n Tocc moyenne modèle : {mtocc_moy} agent : {atocc_moy}'
-            label = f'{label}\n nb heures inconfort modèle : {mnbinc} agent : {anbinc}'
-            self._env.render(stepbystep=False,
-                             label=label,
-                             extra_datas=optimal_solution,
-                             snapshot=snapshot)
+        return optimal_solution
 
+    def play_gym(self, ts=None, snapshot=False, tint=None, wsize=None):
+        """
+        silent : si True, ne construit pas l'image du replay.
+        C'est le mode pour les exploitations statistiques
+
+        snapshot : si True, le replay est construit mais pas affiché.
+        Un fichier tiers utilisant la classe peut donc l'enregistrer
+        """
+        optimal_solution = self.play_base(ts=ts, tint=tint, wsize=wsize)
+        aeko = 100 * self._env.tot_eko / self._env.wsize
+        meko = 100 * (1 - np.mean(optimal_solution[:, 0]))
+        label = f'EKO - modèle : {meko:.2f}% - agent : {aeko:.2f}%'
+        label = f'{label} {self._modlabel}'
+        label = f'{label}\n Tocc moyenne'
+        label = f'{label} modèle : {self._stats[self._steps, 5]}'
+        label = f'{label} agent : {self._stats[self._steps, 1]}'
+        label = f'{label}\n nb heures inconfort'
+        label = f'{label} modèle : {self._stats[self._steps, 7]}'
+        label = f'{label} agent : {self._stats[self._steps, 3]}'
+        self._env.render(stepbystep=False,
+                         label=label,
+                         extra_datas=optimal_solution,
+                         snapshot=snapshot)
 
     def play(self, silent, ts=None, snapshot=False, tint=None):
         """
@@ -570,8 +581,10 @@ class Evaluate:
         while not self._exit:
             if self._steps >= self._n - 1:
                 self._exit = True
-
-            self.play_gym(silent=silent, wsize=wsize)
+            if silent:
+                self.play_base(wsize=wsize)
+            else:
+                self.play_gym(wsize=wsize)
             self._steps += 1
 
             time.sleep(0.1)
