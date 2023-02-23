@@ -561,7 +561,7 @@ class Evaluate:
 
         silent : si True, ne construit pas les images des replays
         et produit des stats
-        
+
         wsize : nombre de points dans l'épisode (facultatif)
         """
         signal.signal(signal.SIGINT, self._sig_handler)
