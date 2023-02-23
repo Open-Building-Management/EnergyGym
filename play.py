@@ -11,6 +11,7 @@ from energy_gym import Environnement, Evaluate, get_truth, pick_name
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
 from basicplay import load
+from stats import freeze
 
 # pas de temps en secondes
 INTERVAL = 1800
@@ -201,13 +202,7 @@ def main(nbtext, modelkey, powerlimit, tc, nbepisodes, optimalpolicy,
     circuit = {"Text":1, "dir": PATH, "schedule": SCHEDULE, "interval": INTERVAL, "wsize": WSIZE}
     circuit["Text"] = nbtext
     if holiday:
-        days = [0, 4] if holiday == 1 else [0, 1, 2, 3, 4]
-        holidays = []
-        for i in range(holiday):
-            tirage = random.choice(days)
-            if tirage not in holidays:
-                holidays.append(tirage)
-        for i in holidays:
+        for i in freeze(holiday):
             circuit["schedule"][i] = [-1, -1]
 
     # demande à l'utilisateur un nom de réseau

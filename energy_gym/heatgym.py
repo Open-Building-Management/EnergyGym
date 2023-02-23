@@ -154,9 +154,9 @@ class Env(gym.Env):
     def _reset(self, ts=None, tint=None, tc_episode=None, tc_step=None):
         """
         generic reset method - private
-        la méthode publique reset :
-        - fixe la taille de l'épisode wsize,
-        - puis exécute _reset
+        
+        la méthode publique reset fixe la taille de l'épisode wsize,
+        puis exécute _reset
 
         permet de définir self._xr, self.pos, self.tsvrai
         ces grandeurs sont des constantes de l'épisode
@@ -164,7 +164,7 @@ class Env(gym.Env):
         initialise self.i, self.tot_reward, self.tint, self.action
         ces grandeurs sont mises à jour à chaque pas de temps
 
-        retourne self.state
+        retourne state
         """
         if ts is None:
             start = self._tss + self.pastsize * self._interval
@@ -286,8 +286,21 @@ class Env(gym.Env):
 
     def _state(self, tc=None):
         """return the current state after all calculations are done
-        example de state pour une température de consigne tc
-        A SURCHARGER DANS CLASSE FILLE"""
+        
+        state : tableau numpy de taille 3 * nbh + 2 + nbh_forecast + 1
+        
+        - historique de température extérieure de taille self.nbh+1
+        
+        - prévisions de température extérieure de taille self.nbh_forecast
+        
+        - historique de température intérieure de taille self.nbh+1
+        
+        - historique de chauffage de taille self.nbh
+        
+        - tc, consigne de température intérieure
+        
+        avec self.nbh=0 et self.nbh_forecast=0, l'espace d'observation est de taille 3
+        """
         if tc is None:
             tc=self.tc_episode
         text_future_horaire = self._get_future()
@@ -367,7 +380,16 @@ class Env(gym.Env):
         return self._reset(ts=ts, tint=tint, tc_episode=tc_episode, tc_step=tc_step)
 
     def step(self, action, tc_step=None):
-        """return state, reward pour previous state, done, _"""
+        """retourne
+        
+        - state,
+        
+        - la récompense pour le previous state,
+        
+        - un booléen done (true si l'épisode est fini, false sinon)
+        
+        - un dictionnaire vide qui peut contenir des observations
+        """
         reward, done = self._step(action, tc_step=tc_step)
         return self.state, reward, done, {}
 
@@ -375,6 +397,7 @@ class Env(gym.Env):
                label=None, extra_datas=None,
                snapshot=False):
         """render realtime or not
+        
         on ne fait pas appel à _covering car en mode Vacancy, on n'a besoin
         d'aucun zonage du graphique
         """
@@ -394,15 +417,6 @@ class Env(gym.Env):
 class Hyst(Env):
     """mode hystéresis permanent"""
     def __init__(self, text, max_power, tc, **model):
-        """
-        state : tableau numpy :
-        - historique de température extérieure de taille self.nbh+1
-        - prévisions de température extérieure de taille self.nbh_forecast
-        - historique de température intérieure de taille self.nbh+1
-        - historique de chauffage de taille self.nbh
-        - tc, consigne de température intérieure
-        avec self.nbh=0 et self.nbh_forecast=0, l'espace d'observation est de taille 3
-        """
         super().__init__(text, max_power, tc, **model)
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high,
@@ -444,7 +458,14 @@ class Vacancy(Env):
         #print(self.observation_space)
 
     def _state(self, tc=None):
-        """return the current state after all calculations are done"""
+        """return the current state after all calculations are done
+        
+        state : tableau numpy de taille 3 * nbh + 2 + nbh_forecast + 1
+        
+        par rapport au state retourné par la base class,
+        on rajoute le nombre d'heures d'içi le prochain changement d'occupation
+        
+        """
         if tc is None:
             tc = self.tc_episode
         # nbh -> occupation change (from occupied to empty and vice versa)
@@ -502,7 +523,6 @@ class Building(Vacancy):
     """
 
     def _state(self, tc=None):
-        """return the current state after all calculations are done"""
         pos1 = self.pos + self.i
         if tc is None:
             tc = self.agenda[pos1] * self.tc_episode
