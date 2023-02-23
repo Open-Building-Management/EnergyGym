@@ -12,7 +12,7 @@ from basicplay import PATH, SCHEDULE, MAX_POWER, TEXT_FEED
 INTERVAL = 3600
 WSIZE = 8*24*3600 // INTERVAL
 
-def freeze(nb):
+def freeze(nb_off):
     """retourne le tableau des numéros des jours
     chomés dans la semaine, en plus du week-end
     
@@ -20,7 +20,7 @@ def freeze(nb):
     """
     days = [0, 4] if nb == 1 else [0, 1, 2, 3, 4]
     holidays = []
-    for i in range(nb):
+    for _ in range(nb_off):
         tirage = random.choice(days)
         if tirage not in holidays:
             holidays.append(tirage)

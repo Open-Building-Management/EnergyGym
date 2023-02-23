@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """joue des épisodes et produit des stats"""
 import os
-import random
 from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt

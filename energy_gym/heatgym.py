@@ -132,7 +132,7 @@ class Env(gym.Env):
         self.agenda = None
 
     def _get_future(self):
-        """retourne les indices à utiliser pour construire le futur
+        """construit le futur horaire
         en utilisant directement text"""
         hti = 3600 // self._interval
         indexes = np.arange(0, self.nbh_forecast * hti, hti)
