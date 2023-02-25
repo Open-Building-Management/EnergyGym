@@ -51,7 +51,7 @@ pour entrainer à modèle variable avec une histoire passée de 48 heures
 ```
 python3 standalone_d_dqn.py --nbh=48
 ```
-pour définir des paramètres de récompense personnalisés :
+On peut définir des coefficients de pondération personnalisés pour la récompense :
 
 ```
 python3 standalone_d_dqn.py --nbh=48 --k=1 --p_c=15 --vote_interval -1 1
