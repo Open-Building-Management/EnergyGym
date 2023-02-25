@@ -37,6 +37,9 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install matplotlib
+          python3 -m pip install click
+          python3 -m pip install gym
+          python3 -m pip install PyFina
           python3 -m pip install pdoc3
           pdoc --html energy_gym
       - name: Upload artifact
