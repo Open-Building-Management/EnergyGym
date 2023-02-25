@@ -28,6 +28,13 @@ met en oeuvre un algorithme de type double DQN
 
 ### scénario de type hystérésis
 
+```
+python3 standalone_d_dqn.py
+```
+Pour entraîner à consigne variable autour de 20°C, on choisit :
+- tc = 20
+- halfrange = 2
+
 ### scénario de type vacancy, pour entrainer à jouer une période de non-occupation
 
 L'objectif est d'utiliser le moins d'énergie possible et d'avoir la température souhaitée à l'ouverture des locaux
