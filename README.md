@@ -24,9 +24,15 @@ play et basicplay utilisent l'autocomplétion en ligne de commande pour choisir 
 
 ## standalone_d_dqn
 
-met en oeuvre un algorithme de type double DQN
+Let en oeuvre un algorithme de type double DQN
+
+Les réseaux après entrainement sont enregistrés dans un répertoire `TensorBoard/DDQN`
+
+Les noms des réseaux entrainés commenceront par `Heat_SCENARIOXXXX_DDMMAAAA` avec SCENARIO valant `Hyst` ou `Vacancy`
 
 ### scénario de type hystérésis
+
+Ce scénario permet d'entrainer un réseau à maintenir une température constante autour d'une consigne donnée tc. C'est le réseau le plus simple, avec en entrée un vecteur de taille 3 : [Text, Tint, tc]
 
 ```
 python3 standalone_d_dqn.py
@@ -35,9 +41,11 @@ Pour entraîner à consigne variable autour de 20°C, on choisit :
 - tc = 20
 - halfrange = 2
 
+Choisir le modèle `cells` mais peu importe le modèle choisi pour l'entrainement, le réseau obtenu fonctionnera aussi avec les autres modèles.
+
 ### scénario de type vacancy, pour entrainer à jouer une période de non-occupation
 
-L'objectif est d'utiliser le moins d'énergie possible et d'avoir la température souhaitée à l'ouverture des locaux
+L'objectif est d'utiliser le moins d'énergie possible et d'avoir la température souhaitée à l'ouverture des locaux.
 
 pour entrainer à modèle variable avec une histoire passée de 48 heures
 ```
