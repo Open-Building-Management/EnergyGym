@@ -32,7 +32,7 @@ Les noms des réseaux entrainés commenceront par `Heat_SCENARIOXXXX_DDMMAAAA` a
 
 ### scénario de type hystérésis
 
-Ce scénario permet d'entrainer un réseau à maintenir une température constante autour d'une consigne donnée tc. C'est le réseau le plus simple, avec en entrée un vecteur de taille 3 : [Text, Tint, tc]
+Ce scénario permet d'entrainer un réseau à maintenir une température constante autour d'une consigne donnée tc. C'est le réseau le plus simple, avec une espace d'observation de taille 3 : [Text, Tint, tc]
 
 ```
 python3 standalone_d_dqn.py
@@ -77,6 +77,23 @@ Pour un espace d'observation sans historique ni prévisions :
 ```
 python3 basicplay.py
 ```
+On peut faire jouer des réduits d'innocupation à un agent hystérésis que l'on a entrainé à consigne variable :
+```
+comportement de l'agent : deterministic
+timestamp de démarrage aléatoire : True
+scénario ou mode de jeu : Reduce
+longueur des épisodes : week
+modèle : tertiaire
+jouer l'épisode pas à pas : False 
+jouer le mirror play après avoir joué l'épisode : False 
+consigne moyenne de confort en °C : 20 
+demi-étendue en °C pour travailler à consigne variable : 2
+nom du réseau : TensorBoard/DDQN/Heat_Hyst5400_200220232222_cells_GAMMA=0dot97_NBACTIONS=2_tc=20+ou-2
+```
+![](images/hyst_playing_reduce.png)
+
+Par défaut la hauteur du réduit est de 2°C, c'est-à-dire que la nuit ou le week-end, on n'acceptera pas de descendre en dessous de 18°C si la température de consigne est 20°C. On peut modifier la hauteur du réduit dans [conf.py](conf.py#L31)
+
 Pour un espace d'observation avec un historique de 48 heures :
 ```
 python3 basicplay.py --nbh=48
