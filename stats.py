@@ -1,7 +1,7 @@
 """joue des épisodes d'une semaine et produit des stats"""
 import click
 import energy_gym
-from energy_gym import Evaluate_Gym
+from energy_gym import EvaluateGym
 from energy_gym import get_feed, biosAgenda, pick_name
 from conf import MODELS, set_extra_params
 from conf import PATH, SCHEDULE, MAX_POWER, TEXT_FEED
@@ -39,7 +39,7 @@ def main(modelkey, nbh, nbh_forecast, generate_stats, nb_off):
         bat.set_agenda(agenda)
         print(bat.model)
         agent = load(agent_path)
-        sandbox = Evaluate_Gym(agent_path, bat, agent)
+        sandbox = EvaluateGym(agent_path, bat, agent)
         if saved_hyst:
             hyst = load(hyst_path)
             sandbox.set_occupancy_agent(hyst)

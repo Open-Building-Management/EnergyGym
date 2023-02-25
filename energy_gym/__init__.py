@@ -1,7 +1,7 @@
 """energy_gym module"""
 from .heatgym import Hyst, Reduce, Vacancy, StepRewardVacancy, TopLimitVacancy, Building
 from .evaluation_toolbox import sim, play_hystnvacancy
-from .evaluation_toolbox import Environnement, Evaluate, Evaluate_Gym
+from .evaluation_toolbox import Environnement, Evaluate, EvaluateGym
 from .tools import pick_name, get_feed, get_truth
 from .planning import biosAgenda
 
@@ -14,7 +14,7 @@ __all__ = [
     "play_hystnvacancy",
     "Environnement",
     "Evaluate",
-    "Evaluate_Gym",
+    "EvaluateGym",
     "pick_name",
     "get_feed",
     "get_truth",

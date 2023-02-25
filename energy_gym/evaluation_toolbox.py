@@ -244,7 +244,7 @@ class Environnement:
         retourne le tenseur de données sources complété par le scénario de chauffage et la température intérieure simulée
         """
 
-class Evaluate_Gym:
+class EvaluateGym:
     """base evaluation class"""
     def __init__(self, name, env, agent, **params):
         """
@@ -446,11 +446,11 @@ class Evaluate_Gym:
         plt.close()
         return stats_moy
 
-class Evaluate(Evaluate_Gym):
+class Evaluate(EvaluateGym):
     """evaluation class"""
     def __init__(self, name, env, agent, **params):
         """
-        DEPRECATED - use Evaluate_Gym
+        DEPRECATED - use EvaluateGym
 
         only used by play which is for old networks
 

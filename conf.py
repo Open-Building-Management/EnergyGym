@@ -59,6 +59,6 @@ def freeze(nb_off):
     frozen = []
     for _ in range(nb_off):
         tirage = random.choice(days)
-        if tirage not in holidays:
+        if tirage not in frozen:
             frozen.append(tirage)
     return frozen
