@@ -24,7 +24,7 @@ play et basicplay utilisent l'autocomplétion en ligne de commande pour choisir 
 
 ## standalone_d_dqn
 
-Let en oeuvre un algorithme de type double DQN
+Met en oeuvre un algorithme de type double DQN
 
 Les réseaux après entrainement sont enregistrés dans un répertoire `TensorBoard/DDQN`
 
