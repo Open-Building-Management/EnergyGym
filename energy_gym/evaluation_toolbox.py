@@ -261,8 +261,8 @@ class EvaluateGym:
 
         structure de la matrice _stats :
         colonne 0 = timestamp de l'épisode,
-        colonnes 1 à 4 = agent temp. int. moyenne, nbh luxe, nbh inconfort, conso,
-        colonnes 5 à 8 = modèle idem
+        colonnes 1 à 4 = temp. int. moyenne, nbh luxe, nbh inconfort, conso pour l'agent
+        colonnes 5 à 8 = les mêmes grandeurs pour le modèle
         """
         self._n = params.get("N", MAX_EPISODES)
         print(f'on va jouer {self._n} épisodes')
