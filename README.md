@@ -77,7 +77,7 @@ Pour un espace d'observation sans historique ni prévisions :
 ```
 python3 basicplay.py
 ```
-On peut faire jouer des réduits d'innocupation à un agent hystérésis que l'on a entrainé à consigne variable :
+On peut faire jouer des réduits d'inoccupation à un agent hystérésis que l'on a entrainé à consigne variable :
 ```
 comportement de l'agent : deterministic
 timestamp de démarrage aléatoire : True
@@ -92,7 +92,8 @@ nom du réseau : TensorBoard/DDQN/Heat_Hyst5400_200220232222_cells_GAMMA=0dot97_
 ```
 ![](images/hyst_playing_reduce.png)
 
-Par défaut la hauteur du réduit est de 2°C, c'est-à-dire que la nuit ou le week-end, on n'acceptera pas de descendre en dessous de 18°C si la température de consigne est 20°C. On peut modifier la hauteur du réduit dans [conf.py](conf.py#L31)
+Par défaut la hauteur du réduit est de 2°C, c'est-à-dire que la nuit ou le week-end, on n'acceptera pas de descendre en dessous de 18°C si la température de consigne est 20°C. 
+On peut moduler la hauteur du réduit en modifiant la valeur de la variable globale `REDUCE` dans [conf.py](conf.py#L31)
 
 Pour un espace d'observation avec un historique de 48 heures :
 ```
