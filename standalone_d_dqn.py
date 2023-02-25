@@ -9,7 +9,8 @@ from tensorflow import keras
 
 
 # on importe les configurations existantes de modèles depuis le fichier conf
-from conf import MODELS, TRAINING_LIST
+from conf import MODELS, TRAINING_LIST, set_extra_params
+from conf import MAX_POWER
 import energy_gym
 from energy_gym import get_feed
 
@@ -29,8 +30,6 @@ NUM_EPISODES = 5400
 RENDER = False
 NOW = dt.datetime.now().strftime('%d%m%Y%H%M')
 DOUBLE_Q = True
-CW = 1162.5 #Wh/m3/K
-MAX_POWER = 5 * CW * 15
 INTERVAL = 3600
 
 SCENARIOS = ["Hyst", "Vacancy", "StepRewardVacancy", "TopLimitVacancy"]
@@ -115,14 +114,6 @@ def train(primary_network, mem, state_size, target_network=None):
             t_tv.assign(t_tv * (1 - TAU) + p_tv * TAU)
     return loss
 
-
-def set_extra_params(model, **kwargs):
-    """définit d'éventuels paramètres additionnels dans le modèle"""
-    fields = ["action_space", "k", "p_c", "vote_interval", "nbh", "nbh_forecast"]
-    for field in fields:
-        if field in kwargs and kwargs[field]:
-            model[field] = kwargs[field]
-    return model
 
 MODELS["random"] = MODELS["cells"]
 @click.command()

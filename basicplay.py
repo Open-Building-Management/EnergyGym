@@ -7,9 +7,10 @@ import numpy as np
 import tensorflow as tf
 import energy_gym
 from energy_gym import get_feed, biosAgenda, pick_name, play_hystnvacancy
-from standalone_d_dqn import set_extra_params
 # on importe les configurations existantes de modèles depuis le fichier conf
-from conf import MODELS, TRAINING_LIST
+from conf import MODELS, TRAINING_LIST, set_extra_params
+from conf import PATH, SCHEDULE, MAX_POWER, TEXT_FEED, REDUCE
+from conf import load
 
 INTERVAL = 900
 AGENT_TYPES = ["random", "deterministic", "stochastic"]
@@ -17,21 +18,6 @@ SIZES = {"weekend": 63 * 3600 // INTERVAL, "week" : 8*24*3600 // INTERVAL}
 SCENARIOS = ["Hyst", "Reduce", "Vacancy", "Building"]
 
 # pylint: disable=no-value-for-parameter
-PATH = "datas"
-SCHEDULE = np.array([[7, 17], [7, 17], [7, 17], [7, 17], [7, 17], [-1, -1], [-1, -1]])
-CW = 1162.5 #Wh/m3/K
-# debit de 5m3/h et deltaT entre départ et retour de 15°C
-MAX_POWER = 5 * CW * 15
-TEXT_FEED = 1
-REDUCE = 2
-
-
-def load(agent_path):
-    """load tensorflow network"""
-    # custom_objects est nécessaire pour charger certains réseaux entrainés sur le cloud, via les github actions
-    agent = tf.keras.models.load_model(agent_path, compile=False, custom_objects={'Functional':tf.keras.models.Model})
-    return agent
-
 
 def mirror_play(bat):
     """

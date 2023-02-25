@@ -56,6 +56,8 @@ def get_feed(feedid, interval, path="/var/opt/emoncms/phpfina"):
 
 def get_truth(circuit, visual_check):
     """
+    DEPRECATED - only used by play which is only for old networks
+     
     circuit : dictionnaire des paramètres du circuit
 
     récupère la vérité terrain :

@@ -9,18 +9,13 @@ import click
 from energy_gym import Environnement, Evaluate, get_truth, pick_name
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
-from basicplay import load
-from stats import freeze
+from conf import PATH, SCHEDULE, MAX_POWER
+from conf import load, freeze
 
 # pas de temps en secondes
 INTERVAL = 1800
 # nombre d'intervalles sur lequel la simulation sera menée
 WSIZE = 1 + 8*24*3600//INTERVAL
-PATH = "datas"
-
-SCHEDULE = np.array([[7, 17], [7, 17], [7, 17], [7, 17], [7, 17], [-1, -1], [-1, -1]])
-CW = 1162.5 #Wh/m3/K
-MAX_POWER = 5 * CW * 15
 
 HH = 1
 OPTIMAL_POLICIES = ["intermittence", "occupation_permanente"]
@@ -230,6 +225,7 @@ def main(nbtext, modelkey, powerlimit, tc, nbepisodes, optimalpolicy,
                 os.mkdir(storage)
             snapshots(storage, agent_name, sandbox, suffix=suffix)
         else:
+            sandbox.play(silent=False, ts=1605821540)
             #sandbox.play(silent=False, ts=1641828600) # 10 janvier 2022
             sandbox.play(silent=False, ts=1577259140)
             #sandbox.play(silent=False, ts=1576559067) # 2019-12-17 06:04:27:+0100

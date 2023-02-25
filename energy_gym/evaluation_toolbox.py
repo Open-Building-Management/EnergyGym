@@ -16,32 +16,6 @@ from .heatgym import confort, presence, MODELRC
 MAX_EPISODES = 900
 PRIMO_AGENT_LAYERS = ['states', 'dense', 'dense_1']
 
-def covering(tmin, tmax, tc, hh, ts, wsize, interval, occupation, xr=None):
-    """
-    permet l'habillage du graphique d'un épisode
-    avec la zone de confort et les périodes d'occupation
-    utilise la fonction Rectangle de matplotlib
-
-    - tmin : température minimale
-    - tmax : température maximale
-    - tc : température de consigne
-    - hh : demi-intervalle de la zone de confort
-    - wsize : nombre de points dans l'épisode
-    - interval : pas de temps
-    - occupation : agenda d'occupation avec 4 jours supplémentaires
-    pour calculer les nombres de pas jusqu'au prochain cgt d'occupation
-
-    retourne les objets matérialisant les zones de confort et d'occupation
-    """
-    if xr is None:
-        xrs = np.arange(ts, ts + wsize * interval, interval)
-        xr = np.array(xrs, dtype='datetime64[s]')
-
-    zone_confort = confort(xr, tc, hh)
-    zones_occ = presence(xr, occupation, wsize, tmin, tmax, tc, hh)
-    return xr, zone_confort, zones_occ
-
-
 def sim(env, pos, tint0, nbh, action=1):
     """simulation suivant la méthode des trapèzes
 
@@ -129,6 +103,8 @@ def stats(tc, tint, occ, interval):
 
 def get_config(agent):
     """
+    DEPRECATED
+
     extrait la configuration du réseau
 
     - lnames : liste des noms des couches
@@ -155,6 +131,8 @@ def get_config(agent):
 
 class Environnement:
     """
+    DEPRECATED : UTILISER L'ENVIRONNEMENT GYM
+
     stocke les données décrivant l'environnement
     et offre des méthodes pour le caractériser
 
@@ -266,44 +244,37 @@ class Environnement:
         retourne le tenseur de données sources complété par le scénario de chauffage et la température intérieure simulée
         """
 
-
-class Evaluate:
-    """
-    name : nom qui sera utilisé par la fonction close pour sauver le réseau et les graphiques
-
-    name est compris par close comme un chemin
-    et les graphes sont tjrs enregistrés dans le répertoire contenant l'agent
-
-    _rewards sert à enregistrer le détail de la structure de la récompense sur un épisode
-    exemple : partie confort, partie vote, partie energy
-    à mettre à jour dans la classe fille dans la méthode reward()
-
-    on parle de luxe si la température intérieure est supérieure à tc+hh
-    on parle d'inconfort si la température intérieure est inférieure à tc-hh
-    les colonnes de la matrice _stats sont les suivantes :
-    - 0 : timestamp de l'épisode,
-    - 1 à 4 : agent température intérieure moyenne, nb pts luxe, nb pts inconfort, consommation
-    - 5 à 8 : modèle idem
-    - 9 à 10 : récompense agent puis modèle : INUTILE
-    """
+class Evaluate_Gym:
+    """base evaluation class"""
     def __init__(self, name, env, agent, **params):
+        """
+        name : chemin utilisé par close pour sauver le réseau et les graphiques
+        en général, name est le chemin du dossier contenant l'agent
+
+        env : ready to use gym environment
+
+        agent : réseau de neurones chargé en mémoire
+
+        on parle de luxe si la température intérieure est supérieure à tc+hh
+
+        on parle d'inconfort si la température intérieure est inférieure à tc-hh
+
+        structure de la matrice _stats :
+        colonne 0 = timestamp de l'épisode,
+        colonnes 1 à 4 = agent temp. int. moyenne, nbh luxe, nbh inconfort, conso,
+        colonnes 5 à 8 = modèle idem
+        """
         self._n = params.get("N", MAX_EPISODES)
-        self._k = params.get("k", 1)
         print(f'on va jouer {self._n} épisodes')
         self._name = name
         self._env = env
         self._modlabel = f'R={self._env.model["R"]:.2e} C={self._env.model["C"]:.2e}'
         self._agent = agent
         self._occupancy_agent = None
-        print(f'métrique de l\'agent online {agent.metrics_names}')
-        self._lnames, self._insize, self._outsize = get_config(agent)
         self._exit = False
         # numéro de l'épisode
         self._steps = 0
-        self._policy = "agent"
-        ini = defaultdict(lambda:np.zeros(self._env.wsize))
-        self._rewards = {"agent":ini, "model":copy.deepcopy(ini)}
-        self._stats = np.zeros((self._n, 11))
+        self._stats = np.zeros((self._n, 9))
         self._multi_agent = False
 
     def set_occupancy_agent(self, agent):
@@ -316,18 +287,7 @@ class Evaluate:
         print(f'signal de fermeture reçu {signum}')
         self._exit = True
 
-    def stats(self, datas):
-        """basic stats"""
-        idx = datas[:, 3] != 0
-        datas_occ = datas[idx, 2]
-        inc = datas_occ[datas_occ[:] < self._env.tc - self._env.hh]
-        luxe = datas_occ[datas_occ[:] > self._env.tc + self._env.hh]
-        tocc_moy = round(np.mean(datas_occ[:]), 2)
-        nbinc = inc.shape[0] * self._env.interval // 3600
-        nbluxe = luxe.shape[0] * self._env.interval // 3600
-        return tocc_moy, nbinc, nbluxe
-
-    def play_base(self, ts=None, tint=None, wsize=None):
+    def play_base(self, ts=None, tint=None, wsize=None, fix_tc=True):
         """fait jouer à l'agent un épisode de type semaine
         avec l'environnement gym,
         calcule la solution optimale,
@@ -344,7 +304,8 @@ class Evaluate:
         retourne la solution optimale mais n'affiche pas le replay
         """
         tc = self._env.tc
-        state = self._env.reset(ts=ts, tc_step=tc, tint=tint, wsize=wsize)
+        tc_step = tc if fix_tc else None
+        state = self._env.reset(ts=ts, tc_step=tc_step, tint=tint, wsize=wsize)
         while True:
             pos1 = self._env.i
             pos2 = self._env.pos + pos1
@@ -357,7 +318,7 @@ class Evaluate:
             else:
                 result = self._agent(state.reshape(1, state.shape[0]))
             action = np.argmax(result)
-            state, _, done, _ = self._env.step(action, tc_step=tc)
+            state, _, done, _ = self._env.step(action, tc_step=tc_step)
             if done:
                 break
         tint = self._env.tint[:-1]
@@ -373,17 +334,18 @@ class Evaluate:
         mconso = np.sum(optimal_solution[:, 0])
         line = np.array([self._env.tsvrai,
                          atocc_moy, anbluxe, anbinc, aconso,
-                         mtocc_moy, mnbluxe, mnbinc, mconso,
-                         0, 0])
+                         mtocc_moy, mnbluxe, mnbinc, mconso])
         self._stats[self._steps, :] = line
         return optimal_solution
 
-    def play_gym(self, ts=None, snapshot=False, tint=None, wsize=None):
+    def play_gym(self, ts=None, snapshot=False, tint=None, wsize=None, fix_tc=True):
         """
+        render the replay
+
         snapshot : si True, le replay est construit mais pas affiché.
         Un fichier tiers utilisant la classe peut donc l'enregistrer
         """
-        optimal_solution = self.play_base(ts=ts, tint=tint, wsize=wsize)
+        optimal_solution = self.play_base(ts=ts, tint=tint, wsize=wsize, fix_tc=fix_tc)
         aeko = 100 * self._env.tot_eko / self._env.wsize
         meko = 100 * (1 - np.mean(optimal_solution[:, 0]))
         label = f'EKO - modèle : {meko:.2f}% - agent : {aeko:.2f}%'
@@ -398,6 +360,126 @@ class Evaluate:
                          label=label,
                          extra_datas=optimal_solution,
                          snapshot=snapshot)
+
+    def run_gym(self, silent=False, wsize=None):
+        """boucle d'exécution
+
+        silent : si True, ne construit pas les images des replays
+        et produit des stats
+
+        wsize : nombre de points dans l'épisode (facultatif)
+        """
+        signal.signal(signal.SIGINT, self._sig_handler)
+        signal.signal(signal.SIGTERM, self._sig_handler)
+        while not self._exit:
+            if self._steps >= self._n - 1:
+                self._exit = True
+            if silent:
+                self.play_base(wsize=wsize)
+            else:
+                self.play_gym(wsize=wsize)
+            self._steps += 1
+            time.sleep(0.1)
+
+    def close(self, suffix=None):
+        """
+        enregistre les statistiques (csv + png) si on est arrivé au bout du nombre d'épisodes
+
+        suffix, s'il est fourni, sert dans la construction des noms de fichiers
+        """
+        stats_moy = np.mean(self._stats, axis=0).round(1)
+        print("leaving the game")
+        # enregistrement des statistiques du jeu
+        # uniquement si on est allé au bout des épisodes
+        # pas la peine de sauver des figures vides
+        if self._steps == self._n :
+
+            title = f'modèle {self._modlabel}'
+            #' jouant la politique optimale {suffix}\n' if suffix is not None else ""
+            title = f'{title} Conso moyenne agent : {stats_moy[4]} / Conso moyenne modèle : {stats_moy[8]}\n'
+
+            pct = round(100*(stats_moy[8]-stats_moy[4])/stats_moy[8], 2)
+            title = f'{title} Pourcentage de gain agent : {pct} %'
+
+            plt.figure(figsize=(20, 10))
+            ax1 = plt.subplot(411)
+            plt.title(title)
+            label = "température moyenne occupation"
+            plt.plot(self._stats[:, 1], color="blue", label=f'{label} agent')
+            plt.plot(self._stats[:, 5], color="red", label=f'{label} modèle')
+            plt.legend()
+
+            plt.subplot(412, sharex=ax1)
+            label = f'nombre heures > {self._env.tc + 1}°C'
+            plt.plot(self._stats[:, 2], color="blue", label=f'{label} agent')
+            plt.plot(self._stats[:, 6], color="red", label=f'{label} modèle')
+            plt.legend()
+
+            plt.subplot(413, sharex=ax1)
+            label = f'nombre heures < {self._env.tc - 1}°C'
+            plt.plot(self._stats[:, 3], color="blue", label=f'{label} agent')
+            plt.plot(self._stats[:, 7], color="red", label=f'{label} modèle')
+            plt.legend()
+
+            plt.subplot(414, sharex=ax1)
+            label = "récompense cumulée"
+            plt.plot(self._stats[:, 9], color="blue", label=f'{label} agent')
+            plt.plot(self._stats[:, 10], color="red", label=f'{label} modèle')
+            plt.legend()
+
+            ts = time.time()
+            now = tsToHuman(ts, fmt="%Y_%m_%d_%H_%M")
+            label = f'played_{suffix}' if suffix is not None else "played"
+            # si on est arrivé jusqu'içi,
+            # c'est que l'utilisateur a chargé un réseau de neurones
+            # donc pas la peine de faire des tests compliqués
+            if ".h5" not in self._name:
+                name = f'{self._name}/{label}_{now}'
+            else:
+                name = f'{self._name.replace(".h5","")}_{label}_{now}'
+            plt.savefig(name)
+            header = "ts"
+            for player in ["agent", "modèle"]:
+                header = f'{header},{player}_Tintmoy,{player}_nbpts_luxe'
+                header = f'{header},{player}_nbpts_inconfort,{player}_conso'
+            np.savetxt(f'{name}.csv', self._stats, delimiter=',', header=header)
+        plt.close()
+        return stats_moy
+
+class Evaluate(Evaluate_Gym):
+    """evaluation class"""
+    def __init__(self, name, env, agent, **params):
+        """
+        DEPRECATED - use Evaluate_Gym
+
+        only used by play which is for old networks
+
+        _rewards sert à enregistrer le détail de la structure de la récompense sur un épisode
+        exemple : partie confort, partie vote, partie energy
+        à mettre à jour dans la classe fille dans la méthode reward()
+
+        _stats contient les récompenses agent et modèle en position 9 à 10 :
+        INUTILE
+        """
+        super().__init__(name, env, agent, **params)
+        self._k = params.get("k", 1)
+        print(f'métrique de l\'agent online {agent.metrics_names}')
+        self._lnames, self._insize, self._outsize = get_config(agent)
+        self._policy = "agent"
+        ini = defaultdict(lambda:np.zeros(self._env.wsize))
+        self._rewards = {"agent":ini, "model":copy.deepcopy(ini)}
+        self._stats = np.zeros((self._n, 11))
+
+    def stats(self, datas):
+        """basic stats"""
+        idx = datas[:, 3] != 0
+        datas_occ = datas[idx, 2]
+        inc = datas_occ[datas_occ[:] < self._env.tc - self._env.hh]
+        luxe = datas_occ[datas_occ[:] > self._env.tc + self._env.hh]
+        tocc_moy = round(np.mean(datas_occ[:]), 2)
+        nbinc = inc.shape[0] * self._env.interval // 3600
+        nbluxe = luxe.shape[0] * self._env.interval // 3600
+        return tocc_moy, nbinc, nbluxe
 
     def play(self, silent, ts=None, snapshot=False, tint=None):
         """
@@ -464,16 +546,17 @@ class Evaluate:
         self._stats[self._steps, :] = line
 
         if not silent or snapshot:
-            covargs = []
-            covargs.append(min(np.min(mdatas[:, 2]), np.min(adatas[:, 2])))
-            covargs.append(max(np.max(mdatas[:, 2]), np.min(adatas[:, 2])))
-            covargs.append(self._env.tc)
-            covargs.append(self._env.hh)
-            covargs.append(self._env.tsvrai)
-            covargs.append(wsize)
-            covargs.append(self._env.interval)
-            covargs.append(self._env.agenda[self._env.pos:self._env.pos + wsize + 4*24*3600 // self._env.interval])
-            xr, zone_confort, zones_occ = covering(*covargs)  # pylint: disable=no-value-for-parameter
+            tmin = min(np.min(mdatas[:, 2]), np.min(adatas[:, 2]))
+            tmax = max(np.max(mdatas[:, 2]), np.min(adatas[:, 2]))
+            tc = self._env.tc
+            hh = self._env.hh
+            ts = self._env.tsvrai
+            interval = self._env.interval
+            occupation = self._env.agenda[self._env.pos:self._env.pos + wsize + 4*24*3600 // self._env.interval]
+            xrs = np.arange(ts, ts + wsize * interval, interval)
+            xr = np.array(xrs, dtype='datetime64[s]')
+            zone_confort = confort(xr, tc, hh)
+            zones_occ = presence(xr, occupation, wsize, tmin, tmax, tc, hh)
 
             title = f'épisode {self._steps}'
             title = f'{title} - {self._env.tsvrai} {tsToHuman(self._env.tsvrai)}'
@@ -554,104 +637,9 @@ class Evaluate:
         """boucle d'exécution"""
         signal.signal(signal.SIGINT, self._sig_handler)
         signal.signal(signal.SIGTERM, self._sig_handler)
-
         while not self._exit:
             if self._steps >= self._n - 1:
                 self._exit = True
-
             self.play(silent=silent, tint=tint)
             self._steps += 1
-
             time.sleep(0.1)
-
-    def run_gym(self, silent=False, wsize=None):
-        """boucle d'exécution
-
-        silent : si True, ne construit pas les images des replays
-        et produit des stats
-
-        wsize : nombre de points dans l'épisode (facultatif)
-        """
-        signal.signal(signal.SIGINT, self._sig_handler)
-        signal.signal(signal.SIGTERM, self._sig_handler)
-
-        while not self._exit:
-            if self._steps >= self._n - 1:
-                self._exit = True
-            if silent:
-                self.play_base(wsize=wsize)
-            else:
-                self.play_gym(wsize=wsize)
-            self._steps += 1
-
-            time.sleep(0.1)
-
-    def close(self, suffix=None):
-        """
-        enregistre les statistiques (csv + png) si on est arrivé au bout du nombre d'épisodes
-
-        suffix, s'il est fourni, sert dans la construction de(s) nom(s) de fichier(s),
-        pour préciser par ex. le type de politique optimale jouée par le modèle
-        """
-
-        stats_moy = np.mean(self._stats, axis=0).round(1)
-
-        print("leaving the game")
-        # enregistrement des statistiques du jeu
-        # uniquement si on est allé au bout des épisodes - pas la peine de sauver des figures vides
-        # on utilise le suffixe pour indiquer le mode de jeu du modèle
-        if self._steps == self._n :
-
-            title = f'modèle {self._modlabel}'
-            #' jouant la politique optimale {suffix}\n' if suffix is not None else ""
-            title = f'{title} Conso moyenne agent : {stats_moy[4]} / Conso moyenne modèle : {stats_moy[8]}\n'
-
-            pct = round(100*(stats_moy[8]-stats_moy[4])/stats_moy[8], 2)
-            title = f'{title} Pourcentage de gain agent : {pct} %'
-
-            plt.figure(figsize=(20, 10))
-            ax1 = plt.subplot(411)
-            plt.title(title)
-            label = "température moyenne occupation"
-            plt.plot(self._stats[:, 1], color="blue", label=f'{label} agent')
-            plt.plot(self._stats[:, 5], color="red", label=f'{label} modèle')
-            plt.legend()
-
-            plt.subplot(412, sharex=ax1)
-            label = f'nombre heures > {self._env.tc + 1}°C'
-            plt.plot(self._stats[:, 2], color="blue", label=f'{label} agent')
-            plt.plot(self._stats[:, 6], color="red", label=f'{label} modèle')
-            plt.legend()
-
-            plt.subplot(413, sharex=ax1)
-            label = f'nombre heures < {self._env.tc - 1}°C'
-            plt.plot(self._stats[:, 3], color="blue", label=f'{label} agent')
-            plt.plot(self._stats[:, 7], color="red", label=f'{label} modèle')
-            plt.legend()
-
-            plt.subplot(414, sharex=ax1)
-            label = "récompense cumulée"
-            plt.plot(self._stats[:, 9], color="blue", label=f'{label} agent')
-            plt.plot(self._stats[:, 10], color="red", label=f'{label} modèle')
-            plt.legend()
-
-            ts = time.time()
-            now = tsToHuman(ts, fmt="%Y_%m_%d_%H_%M")
-            label = f'played_{suffix}' if suffix is not None else "played"
-            # si on est arrivé jusqu'içi,
-            # c'est que l'utilisateur a chargé un réseau de neurones
-            # donc pas la peine de faire des tests compliqués
-            if ".h5" not in self._name:
-                name = f'{self._name}/{label}_{now}'
-            else:
-                name = f'{self._name.replace(".h5","")}_{label}_{now}'
-            plt.savefig(name)
-            header = "ts"
-            for player in ["agent", "modèle"]:
-                header = f'{header},{player}_Tintmoy,{player}_nbpts_luxe'
-                header = f'{header},{player}_nbpts_inconfort,{player}_conso'
-            np.savetxt(f'{name}.csv', self._stats, delimiter=',', header=header)
-
-        plt.close()
-
-        return stats_moy

@@ -3,7 +3,7 @@ import click
 
 import energy_gym
 
-from basicplay import PATH, SCHEDULE, MAX_POWER, TEXT_FEED
+from conf import PATH, SCHEDULE, MAX_POWER, TEXT_FEED
 INTERVAL = 1800
 
 MODES = ["Hyst", "Vacancy"]

@@ -1,30 +1,14 @@
 """joue des épisodes d'une semaine et produit des stats"""
-import random
 import click
 import energy_gym
-from energy_gym import Evaluate
+from energy_gym import Evaluate_Gym
 from energy_gym import get_feed, biosAgenda, pick_name
-from conf import MODELS
-from standalone_d_dqn import set_extra_params
-from basicplay import load
-from basicplay import PATH, SCHEDULE, MAX_POWER, TEXT_FEED
+from conf import MODELS, set_extra_params
+from conf import PATH, SCHEDULE, MAX_POWER, TEXT_FEED
+from conf import load, freeze
 
 INTERVAL = 3600
 WSIZE = 8*24*3600 // INTERVAL
-
-def freeze(nb_off):
-    """retourne le tableau des numéros des jours
-    chomés dans la semaine, en plus du week-end
-    
-    nb : nombre de jours chomés à injecter
-    """
-    days = [0, 4] if nb_off == 1 else [0, 1, 2, 3, 4]
-    holidays = []
-    for _ in range(nb_off):
-        tirage = random.choice(days)
-        if tirage not in holidays:
-            holidays.append(tirage)
-    return holidays
 
 
 # pylint: disable=no-value-for-parameter
@@ -55,12 +39,14 @@ def main(modelkey, nbh, nbh_forecast, generate_stats, nb_off):
         bat.set_agenda(agenda)
         print(bat.model)
         agent = load(agent_path)
-        sandbox = Evaluate(agent_path, bat, agent)
+        sandbox = Evaluate_Gym(agent_path, bat, agent)
         if saved_hyst:
             hyst = load(hyst_path)
             sandbox.set_occupancy_agent(hyst)
         # on passe en paramètre la taille de l'épisode
         # nécessaire si on veut jouer un hystérésis sur toute une semaine
+        for fix_tc in [False, True]:
+            sandbox.play_gym(ts=1605821540, wsize=WSIZE, fix_tc=fix_tc)
         sandbox.run_gym(silent=generate_stats, wsize=WSIZE)
         sandbox.close(suffix=modelkey)
 
