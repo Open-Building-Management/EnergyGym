@@ -43,11 +43,15 @@ Ce scénario permet d'entrainer un réseau à maintenir une température constan
 ```
 python3 standalone_d_dqn.py
 ```
-Pour entraîner à consigne variable autour de 20°C, on choisit :
-- tc = 20
-- halfrange = 2
-
-Choisir le modèle `cells` mais peu importe le modèle choisi pour l'entrainement, le réseau obtenu fonctionnera aussi avec les autres modèles.
+Pour entraîner pour des consignes variables de 18, 19, 20, 21 et 22°C :
+```
+numéro du flux temp. extérieure : 1 
+modèle : cells
+scénario : Hyst
+consigne moyenne de confort en °C : 20
+demi-étendue en °C pour travailler à consigne variable : 2
+```
+Peu importe le modèle choisi pour l'entrainement, içi `cells`, le réseau obtenu fonctionnera aussi avec les autres modèles.
 
 ### scénario de type vacancy, pour entrainer à jouer une période de non-occupation
 
