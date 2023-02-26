@@ -30,6 +30,12 @@ Les réseaux après entrainement sont enregistrés dans un répertoire `TensorBo
 
 Les noms des réseaux entrainés commenceront par `Heat_SCENARIOXXXX_DDMMAAAA` avec SCENARIO valant `Hyst` ou `Vacancy`
 
+pour lancer tensorboard :
+
+```
+tensorboard --logdir=TensorBoard
+```
+
 ### scénario de type hystérésis
 
 Ce scénario permet d'entrainer un réseau à maintenir une température constante autour d'une consigne donnée tc. C'est le réseau le plus simple, avec une espace d'observation de taille 3 : [Text, Tint, tc]
