@@ -10,7 +10,7 @@ from tensorflow import keras
 
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS, TRAINING_LIST
-from conf import MAX_POWER
+from conf import PATH, MAX_POWER
 import energy_gym
 from energy_gym import get_feed, set_extra_params
 
@@ -130,7 +130,7 @@ MODELS["random"] = MODELS["cells"]
 @click.option('--action_space', type=int, default=2)
 def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, nbh_forecast, action_space):
     """main command"""
-    text = get_feed(nbtext, INTERVAL, "./datas")
+    text = get_feed(nbtext, INTERVAL, path=PATH)
     model = MODELS[modelkey]
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, k=k, p_c=p_c)
