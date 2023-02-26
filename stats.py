@@ -2,10 +2,10 @@
 import click
 import energy_gym
 from energy_gym import EvaluateGym
-from energy_gym import get_feed, biosAgenda, pick_name
-from conf import MODELS, set_extra_params
+from energy_gym import get_feed, biosAgenda, pick_name, set_extra_params
+from energy_gym import load, freeze
+from conf import MODELS
 from conf import PATH, SCHEDULE, MAX_POWER, TEXT_FEED
-from conf import load, freeze
 
 INTERVAL = 3600
 WSIZE = 8*24*3600 // INTERVAL

@@ -7,10 +7,10 @@ import numpy as np
 import tensorflow as tf
 import energy_gym
 from energy_gym import get_feed, biosAgenda, pick_name, play_hystnvacancy
+from energy_gym import set_extra_params, load
 # on importe les configurations existantes de modèles depuis le fichier conf
-from conf import MODELS, TRAINING_LIST, set_extra_params
+from conf import MODELS, TRAINING_LIST
 from conf import PATH, SCHEDULE, MAX_POWER, TEXT_FEED, REDUCE
-from conf import load
 
 INTERVAL = 900
 AGENT_TYPES = ["random", "deterministic", "stochastic"]

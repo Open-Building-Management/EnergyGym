@@ -1,12 +1,50 @@
 """ouverture de réseaux neurones ou de timeseries de données"""
 import os
 import sys
+import random
 # pour l'autocompletion en ligne de commande
 import readline
 import glob
 import matplotlib.pylab as plt
+import tensorflow as tf
 from PyFina import PyFina, getMeta
 from .planning import tsToHuman, biosAgenda
+
+
+def set_extra_params(model, **kwargs):
+    """définit d'éventuels paramètres additionnels dans le modèle"""
+    fields = ["action_space", "k", "p_c", "vote_interval", "nbh", "nbh_forecast"]
+    for field in fields:
+        if field in kwargs and kwargs[field]:
+            model[field] = kwargs[field]
+    return model
+
+
+def load(agent_path):
+    """load tensorflow network"""
+    # custom_objects est nécessaire pour charger certains réseaux
+    # cf ceux entrainés sur le cloud, via les github actions
+    agent = tf.keras.models.load_model(
+        agent_path,
+        compile=False,
+        custom_objects={'Functional':tf.keras.models.Model}
+    )
+    return agent
+
+
+def freeze(nb_off):
+    """retourne le tableau des numéros des jours
+    chomés dans la semaine, en plus du week-end
+
+    nb_off : nombre de jours chomés à injecter
+    """
+    days = [0, 4] if nb_off == 1 else [0, 1, 2, 3, 4]
+    frozen = []
+    for _ in range(nb_off):
+        tirage = random.choice(days)
+        if tirage not in frozen:
+            frozen.append(tirage)
+    return frozen
 
 
 def simple_path_completer(text, state):
@@ -57,7 +95,7 @@ def get_feed(feedid, interval, path="/var/opt/emoncms/phpfina"):
 def get_truth(circuit, visual_check):
     """
     DEPRECATED - only used by play which is only for old networks
-     
+
     circuit : dictionnaire des paramètres du circuit
 
     récupère la vérité terrain :

@@ -2,8 +2,7 @@
 notamment le nombre de neurones par couches
 """
 import sys
-from energy_gym import pick_name
-from conf import load
+from energy_gym import pick_name, load
 
 agent_path, saved = pick_name()
 if not saved :

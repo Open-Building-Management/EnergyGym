@@ -9,10 +9,10 @@ from tensorflow import keras
 
 
 # on importe les configurations existantes de modèles depuis le fichier conf
-from conf import MODELS, TRAINING_LIST, set_extra_params
+from conf import MODELS, TRAINING_LIST
 from conf import MAX_POWER
 import energy_gym
-from energy_gym import get_feed
+from energy_gym import get_feed, set_extra_params
 
 # pylint: disable=no-value-for-parameter
 

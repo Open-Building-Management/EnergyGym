@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 import click
 
 from energy_gym import Environnement, Evaluate, get_truth, pick_name
+from energy_gym import load, freeze
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
-from conf import PATH, SCHEDULE, MAX_POWER
-from conf import load, freeze
+from conf import PATH, SCHEDULE, MAX_POWER, COLD
 
 # pas de temps en secondes
 INTERVAL = 1800
@@ -18,11 +18,7 @@ WSIZE = 1 + 8*24*3600//INTERVAL
 
 HH = 1
 OPTIMAL_POLICIES = ["intermittence", "occupation_permanente"]
-# série d'épisodes dont on veut avoir des replays
-# les 3 premiers : froid
-# les 3 suivants : très froids
-# le dernier : mi-saison
-COLD = [1577259140, 1605781940, 1608057140, 1610019140, 1612513940, 1611984740, 1633350740]
+
 
 
 class EnvHyst(Environnement):
