@@ -1,5 +1,6 @@
 """energy_gym module"""
-from .heatgym import Hyst, Reduce, Vacancy, StepRewardVacancy, TopLimitVacancy, Building
+from .heatgym import Hyst, Reduce, Vacancy, StepRewardVacancy, TopLimitVacancy
+from .heatgym import LSTMVacancy, Building
 from .evaluation_toolbox import sim, play_hystnvacancy
 from .evaluation_toolbox import Environnement, Evaluate, EvaluateGym
 from .tools import set_extra_params, load, freeze
@@ -10,6 +11,7 @@ __all__ = [
     "Hyst",
     "Reduce",
     "Vacancy",
+    "LSTMVacancy",
     "Building",
     "sim",
     "play_hystnvacancy",

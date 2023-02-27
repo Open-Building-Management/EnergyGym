@@ -32,7 +32,9 @@ NOW = dt.datetime.now().strftime('%d%m%Y%H%M')
 DOUBLE_Q = True
 INTERVAL = 3600
 
-SCENARIOS = ["Hyst", "Vacancy", "StepRewardVacancy", "TopLimitVacancy"]
+SCENARIOS = ["Hyst",
+             "Vacancy", "StepRewardVacancy", "TopLimitVacancy",
+             "LSTMVacancy"]
 
 class Memory:
     """experience replay memory"""
@@ -147,12 +149,12 @@ def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, 
     num_actions = env.action_space.n
 
     primary_network = keras.Sequential([
-        keras.layers.Dense(50, activation='relu'),
+        keras.layers.LSTM(50, activation='relu'),
         keras.layers.Dense(num_actions)
     ])
 
     target_network = keras.Sequential([
-        keras.layers.Dense(50, activation='relu'),
+        keras.layers.LSTM(50, activation='relu'),
         keras.layers.Dense(num_actions)
     ])
 
