@@ -28,6 +28,7 @@ def main(mode):
     env.set_agenda(agenda)
 
     print(env.model)
+    print(env.observation_space.shape)
 
 
 main()  # pylint: disable=no-value-for-parameter
