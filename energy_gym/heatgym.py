@@ -491,7 +491,7 @@ class Vacancy(Env):
         reward = 0
         tc = self.tc_episode
         tint = self.tint[self.i]
-        if self.state[-1] == 0:
+        if self.i == self.wsize:
             # l'occupation du bâtiment commence
             # pour converger vers la température cible
             #print(tint, tc, self.tot_eko, self._interval)
@@ -510,13 +510,42 @@ class Vacancy(Env):
         return reward
 
 
+class LSTMVacancy(Vacancy):
+    """mode hors occupation avec LSTM
+    - input shape for LSTM is [batch, time, features]
+    """
+    def __init__(self, text, max_power, tc, **model):
+        super().__init__(text, max_power, tc, **model)
+        high = np.finfo(np.float32).max
+        self.observation_space = spaces.Box(-high, high,
+                                            (self.nbh, 5),
+                                            dtype=np.float32)
+
+    def _state(self, tc=None):
+        if tc is None:
+            tc = self.tc_episode
+        text_past_horaire, tint_past_horaire, q_c_past_horaire = self._get_past()
+        # nbh -> occupation change (from occupied to empty and vice versa)
+        # Note that 1h30 has to be coded as 1.5
+        nbh = (self.wsize - self.i) * self._interval / 3600
+        nbh_past = np.arange(nbh + self.nbh - 1, nbh - 1, -1)
+        result = np.array([
+            text_past_horaire[1:],
+            tint_past_horaire[1:],
+            q_c_past_horaire,
+            tc * np.ones(self.nbh),
+            nbh_past
+        ], dtype=np.float32)
+        return result.transpose()
+
+
 class StepRewardVacancy(Vacancy):
     """do not overheat trial 1"""
     def reward(self, action):
         """récompense à chaque step et non plus seulement finale"""
         reward = super().reward(action)
-        if self.state[-1]:
-            reward -= self._k * self._eko(action) * self._interval / 3600
+        if self.i != self.wsize:
+            reward -= self._eko(action) * self._interval / 3600
         return reward
 
 
@@ -547,8 +576,8 @@ class Building(Vacancy):
 
     def reward(self, action):
         reward = 0
-        if self.state[-2] != 0:
-            tc = self.state[-2]
+        if self.agenda[self.pos + self.i] != 0:
+            tc = self.tc_episode
             tint = self.tint[self.i]
             reward -= abs(tint - tc) * self._interval / 3600
         self.tot_eko += self._eko(action)
