@@ -62,7 +62,7 @@ def choose_action(state, primary_network, eps, num_actions):
     """epsilon greedy action"""
     if random.random() < eps:
         return random.randint(0, num_actions - 1)
-    return np.argmax(primary_network(state.reshape(1, -1)))
+    return np.argmax(primary_network(state.reshape(1, *state.shape)))
 
 
 def train(primary_network, mem, state_size, target_network=None):

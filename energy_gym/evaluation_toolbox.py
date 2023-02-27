@@ -316,9 +316,9 @@ class EvaluateGym:
                     self._env.text[pos2],
                     self._env.tint[pos1],
                     tc])
-                result = self._occupancy_agent(hyststate.reshape(1, hyststate.shape[0]))
+                result = self._occupancy_agent(hyststate.reshape(1, *hyststate.shape))
             else:
-                result = self._agent(state.reshape(1, state.shape[0]))
+                result = self._agent(state.reshape(1, *state.shape))
             action = np.argmax(result)
             state, _, done, _ = self._env.step(action, tc_step=tc_step)
             if done:
@@ -522,7 +522,7 @@ class Evaluate(EvaluateGym):
             agent = self._agent
             if self._multi_agent:
                 agent = self._occupancy_agent if state[2] != 0 else self._agent
-            prediction_brute = agent(state.reshape(1, self._insize))
+            prediction_brute = agent(state.reshape(1, *state.shape))
             action = np.argmax(prediction_brute)
             adatas[i-1, 0] = action * self._env.max_power
             # on peut désormais calculer la récompense à l'étape i-1

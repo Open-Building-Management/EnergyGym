@@ -144,8 +144,7 @@ def main(agent_type, random_ts, scenario, size, modelkey,
                 action = bat.action_space.sample()
             else :
                 # using the agent
-                # on peut passer en argument state.reshape((1, -1))
-                result = agent(state.reshape(1, state.shape[0]))
+                result = agent(state.reshape(1, *state.shape))
                 if agent_type == "deterministic":
                     # deterministic policy
                     action = np.argmax(result)
