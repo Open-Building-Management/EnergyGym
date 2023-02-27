@@ -65,7 +65,7 @@ def choose_action(state, primary_network, eps, num_actions):
     return np.argmax(primary_network(state.reshape(1, *state.shape)))
 
 
-def train(primary_network, mem, state_size, target_network=None):
+def train(primary_network, mem, state_shape, target_network=None):
     """Generic Network Trainer
     DQN (target_network=None) or DDQN mode"""
     if mem.num_samples < BATCH_SIZE * 3:
@@ -73,7 +73,7 @@ def train(primary_network, mem, state_size, target_network=None):
     batch = mem.sample(BATCH_SIZE)
     states = np.array([val[0] for val in batch])
     actions = np.array([val[1] for val in batch])
-    next_states = np.array([(np.zeros(state_size)
+    next_states = np.array([(np.zeros(state_shape)
                              if val[3] is None else val[3]) for val in batch])
     # predict q values for states
     prim_qsa = primary_network(states)
@@ -81,7 +81,9 @@ def train(primary_network, mem, state_size, target_network=None):
     prim_qsad = primary_network(next_states)
     # updates contient les discounted rewards
     updates = np.array([val[2] for val in batch], dtype=float)
-    valid_idxs = np.array(next_states).sum(axis=1) != 0
+    # les axes des samples
+    smp_axis = tuple(range(1, len(next_states.shape)))
+    valid_idxs = np.array(next_states).sum(axis=smp_axis) != 0
     batch_idxs = np.arange(BATCH_SIZE)
     if target_network is None:
         # classic DQN
@@ -141,7 +143,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, 
 
     print(env.model)
     input("press a key")
-    state_size = env.observation_space.shape[0]
+    state_shape = env.observation_space.shape
     num_actions = env.action_space.n
 
     primary_network = keras.Sequential([
@@ -182,7 +184,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, 
                 # première étape du premier épisode
                 suffix = "RND_MODEL" if modelkey == "random" else f'{modelkey}'
                 suffix = f'{suffix}_GAMMA={dot(GAMMA)}'
-                suffix = f'{suffix}_NBACTIONS={env.action_space.n}'
+                suffix = f'{suffix}_NBACTIONS={num_actions}'
                 suffix = f'{suffix}_tc={tc}'
                 if halfrange:
                     suffix = f'{suffix}+ou-{halfrange}'
@@ -201,7 +203,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, 
             # store in memory
             memory.add_sample((state, action, reward, next_state))
 
-            loss = train(primary_network, memory, state_size, target_network if DOUBLE_Q else None)
+            loss = train(primary_network, memory, state_shape, target_network if DOUBLE_Q else None)
             avg_loss += loss
 
             state = next_state
