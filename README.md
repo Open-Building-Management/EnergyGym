@@ -43,7 +43,7 @@ Ce scénario permet d'entrainer un réseau à maintenir une température constan
 ```
 python3 standalone_d_dqn.py
 ```
-Pour entraîner pour des consignes variables de 18, 19, 20, 21 et 22°C :
+Pour entraîner un agent à gérer des consignes variables de 18, 19, 20, 21 et 22°C :
 ```
 numéro du flux temp. extérieure : 1 
 modèle : cells
