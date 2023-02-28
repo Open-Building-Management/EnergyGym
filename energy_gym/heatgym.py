@@ -445,7 +445,7 @@ class Env(gym.Env):
 class Hyst(Env):
     """mode hystéresis permanent
 
-    state est un vecteur de taille 3 * nbh + 2 + nbh_forecast + 1 :
+    state est un vecteur de taille 3 * nbh + 2 + nbh_forecast + 1
 
     pour le construire, on met bout à bout
     l'historique de température extérieure de taille nbh+1,
@@ -593,9 +593,13 @@ class TopLimitVacancy(Vacancy):
 
 class Building(Vacancy):
     """alternance d'occupation et de non-occupation
-    notamment pour jouer avec l'agent 2021_09_23_07_42_32_hys20_retrained_k0dot9_hys20.h5
 
     no real use for trainings
+
+    pour jouer des semaines, lorsqu'on produit des stats
+
+    à titre de comparaison, permet aussi d'utiliser un ancien agent
+    2021_09_23_07_42_32_hys20_retrained_k0dot9_hys20.h5
     """
     def _state(self, tc=None):
         pos1 = self.pos + self.i
@@ -617,6 +621,7 @@ class Building(Vacancy):
         return reward
 
     def reset(self, ts=None, tint=None, tc_episode=None, tc_step=None, wsize=None):
+        """building reset"""
         if not isinstance(wsize, int):
             self.wsize = 8*24*3600 // self._interval
         else :

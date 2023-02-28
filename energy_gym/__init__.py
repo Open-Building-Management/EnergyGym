@@ -15,6 +15,7 @@ for cge in custom_gym_envs:
 
 __pdoc__['Evaluate'] = False
 __pdoc__['Environnement'] = False
+__pdoc__['get_truth'] = False
 
 __all__ = [
     *custom_gym_envs,
