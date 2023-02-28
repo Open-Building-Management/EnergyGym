@@ -27,7 +27,7 @@ _custom_gym_envs = [
     "TopLimitVacancy"
 ]
 
-class_vars_excluded_from_pdoc = [
+vars_to_exclude_from_pdoc = [
     "action_space",
     "observation_space",
     "metadata",
@@ -37,9 +37,8 @@ class_vars_excluded_from_pdoc = [
 
 __pdoc__ = {}
 for cge in _custom_gym_envs:
-    for excluded in class_vars_excluded_from_pdoc:
+    for excluded in vars_to_exclude_from_pdoc:
         __pdoc__[f'{cge}.{excluded}'] = False
-
 # --------------------------------------------------------------------------- #
 
 # modèle R1C1 par défault obtenu par EDW avec les données de Marc Bloch
