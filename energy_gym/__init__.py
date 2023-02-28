@@ -1,7 +1,7 @@
 """energy_gym module"""
 from .heatgym import Hyst, Reduce, Vacancy, StepRewardVacancy, TopLimitVacancy
 from .heatgym import LSTMVacancy, Building
-from .heatgym import custom_gym_envs
+from .heatgym import custom_gym_envs, __pdoc__
 from .evaluation_toolbox import sim, play_hystnvacancy
 from .evaluation_toolbox import Environnement, Evaluate, EvaluateGym
 from .tools import set_extra_params, load, freeze
