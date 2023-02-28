@@ -20,6 +20,13 @@ custom_gym_envs = [
 # --------------------------------------------------------------------------- #
 # pdoc related
 # --------------------------------------------------------------------------- #
+_custom_gym_envs = [
+    *custom_gym_envs,
+    "Env",
+    "StepRewardVacancy",
+    "TopLimitVacancy"
+]
+
 class_vars_excluded_from_pdoc = [
     "action_space",
     "observation_space",
@@ -29,7 +36,7 @@ class_vars_excluded_from_pdoc = [
 ]
 
 __pdoc__ = {}
-for cge in custom_gym_envs:
+for cge in _custom_gym_envs:
     for excluded in class_vars_excluded_from_pdoc:
         __pdoc__[f'{cge}.{excluded}'] = False
 
