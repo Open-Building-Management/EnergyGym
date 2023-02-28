@@ -261,6 +261,9 @@ class Env(gym.Env):
                 label=None, extra_datas=None,
                 snapshot=False):
         """generic render method"""
+        # si stepbystep est True, on ne crée la figure que si i vaut 0
+        # si stepbystep est False, on la crée quel que soit i
+        # en effet, dans ce cas, on appelle render à la fin de l'épisode, avec i > 0
         if self.i == 0 or not stepbystep:
             self._fig = plt.figure(figsize=(20,10))
             self._ax1 = plt.subplot(311)
@@ -289,7 +292,9 @@ class Env(gym.Env):
             if zones_occ is not None :
                 for occ in zones_occ:
                     self._ax2.add_patch(occ)
-        if not snapshot:
+        # si stepbystep est True, on affiche l'image et le mode snapshot est sans effet
+        # si snapshot est False, qu'on soit en mode stepbystep ou pas, on affiche l'image
+        if stepbystep or not snapshot:
             plt.show()
         if stepbystep:
             plt.pause(0.0001)
@@ -399,7 +404,7 @@ class Env(gym.Env):
     def reset(self, ts=None,
               tint=None, tc_episode=None, tc_step=None,
               wsize=None):
-        """episode reset"""
+        """reset avec des épisodes de 63 heures par défaut"""
         if not isinstance(wsize, int):
             self.wsize = 63 * 3600 // self._interval
         else :
@@ -424,14 +429,24 @@ class Env(gym.Env):
     def render(self, stepbystep=True,
                label=None, extra_datas=None,
                snapshot=False):
-        """render realtime or not
-
-        on ne fait pas appel à _covering car en mode Vacancy, on n'a besoin
-        d'aucun zonage du graphique
+        """render realtime or not,
+        avec ou sans affichage des zones de confort et d'occupation
         """
-        self._render(stepbystep=stepbystep,
-                     label=label, extra_datas=extra_datas,
-                     snapshot=snapshot)
+        if self.__class__.__name__ in ["Hyst", "Building", "Reduce"]:
+            # affichage des zones de confort et d'occupation
+            if self.i:
+                zone_confort, zones_occ = self._covering()
+                self._render(zone_confort=zone_confort, zones_occ=zones_occ,
+                             stepbystep=stepbystep,
+                             label=label, extra_datas=extra_datas,
+                             snapshot=snapshot)
+            else:
+                self._render(stepbystep=stepbystep, label=label)
+        else:
+            # sans affichage des zones de confort et d'occupation
+            self._render(stepbystep=stepbystep,
+                         label=label, extra_datas=extra_datas,
+                         snapshot=snapshot)
 
     def close(self):
         """closing"""
@@ -464,19 +479,6 @@ class Hyst(Env):
         self.observation_space = spaces.Box(-high, high,
                                             (3*self.nbh+2+self.nbh_forecast+1,),
                                             dtype=np.float32)
-
-    def render(self, stepbystep=True,
-               label=None, extra_datas=None,
-               snapshot=False):
-        """avec affichage des zones de confort et d'occupation"""
-        if self.i:
-            zone_confort, zones_occ = self._covering()
-            self._render(zone_confort=zone_confort, zones_occ=zones_occ,
-                         stepbystep=stepbystep,
-                         label=label, extra_datas=extra_datas,
-                         snapshot=snapshot)
-        else:
-            self._render(stepbystep=stepbystep, label=label)
 
 
 class Reduce(Hyst):
@@ -621,22 +623,10 @@ class Building(Vacancy):
         return reward
 
     def reset(self, ts=None, tint=None, tc_episode=None, tc_step=None, wsize=None):
-        """building reset"""
+        """reset avec des épisodes de 8 jours par défaut"""
         if not isinstance(wsize, int):
             self.wsize = 8*24*3600 // self._interval
         else :
             self.wsize = int(wsize)
         self.tot_eko = 0
         return self._reset(ts=ts, tint=tint, tc_episode=tc_episode, tc_step=tc_step)
-
-    def render(self, stepbystep=True,
-               label=None, extra_datas=None,
-               snapshot=False):
-        if self.i:
-            zone_confort, zones_occ = self._covering()
-            self._render(zone_confort=zone_confort, zones_occ=zones_occ,
-                         stepbystep=stepbystep,
-                         label=label, extra_datas=extra_datas,
-                         snapshot=snapshot)
-        else:
-            self._render(stepbystep=stepbystep)
