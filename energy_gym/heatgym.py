@@ -106,30 +106,8 @@ class Env(gym.Env):
         vote_interval (intervalle de température autour de la consigne
         dans lequel la récompense énergétique est attribuée)
 
-        la taille de l'espace d'observation est calculée à partir de nbh
-        et nbh_forecast, dans les classes filles
-
-        En scénario hystérésis, state est un tableau numpy de taille
-        3 * nbh + 2 + nbh_forecast + 1 :
-
-        - historique de température extérieure de taille nbh+1
-
-        - prévisions de température extérieure de taille nbh_forecast
-
-        - historique de température intérieure de taille nbh+1
-
-        - historique de chauffage de taille nbh
-
-        - tc, consigne de température intérieure
-
-        si nbh=0 et nbh_forecast=0, l'espace d'observation en scénario hystérésis
-        est de taille 3
-
-        En scénario non-occupation/vacancy, state est de taille
-        3 * nbh + 2 + nbh_forecast + 2
-
-        par rapport au cas hystérésis, on rajoute le nombre d'heures
-        d'içi le prochain changement d'occupation
+        la taille de l'espace d'observation dépend de nbh et nbh_forecast
+        et doit être fixée dans les classes filles
         """
         super().__init__()
         self.text = text
@@ -465,7 +443,20 @@ class Env(gym.Env):
 # il faut définir l' espace d'observation
 # --------------------------------------------------------------------------- #
 class Hyst(Env):
-    """mode hystéresis permanent"""
+    """mode hystéresis permanent
+
+    state est un vecteur de taille 3 * nbh + 2 + nbh_forecast + 1 :
+
+    pour le construire, on met bout à bout
+    l'historique de température extérieure de taille nbh+1,
+    les prévisions de température extérieure de taille nbh_forecast,
+    l'historique de température intérieure de taille nbh+1,
+    l'historique de chauffage de taille nbh,
+    la consigne de température intérieure
+
+    si nbh=0 et nbh_forecast=0, l'espace d'observation est de taille 3
+    [Text, Tint, tc]
+    """
     def __init__(self, text, max_power, tc, **model):
         """ready to use gym environment"""
         super().__init__(text, max_power, tc, **model)
@@ -499,7 +490,13 @@ class Reduce(Hyst):
 
 
 class Vacancy(Env):
-    """mode hors occupation"""
+    """mode hors occupation
+
+    state est un vecteur de taille 3 * nbh + 2 + nbh_forecast + 2
+
+    par rapport au cas hystérésis, on rajoute le nombre d'heures
+    d'içi le prochain changement d'occupation
+    """
     def __init__(self, text, max_power, tc, **model):
         """ready to use gym environment"""
         super().__init__(text, max_power, tc, **model)
@@ -543,8 +540,12 @@ class Vacancy(Env):
 
 
 class LSTMVacancy(Vacancy):
-    """mode hors occupation avec LSTM
-    - input shape for LSTM is [batch, time, features]
+    """mode hors occupation
+
+    state est une matrice 2D de taille (nbh, 5)
+
+    en mode batch on aura donc affaire à une matrice 3D
+    [batch, time, features]
     """
     def __init__(self, text, max_power, tc, **model):
         super().__init__(text, max_power, tc, **model)

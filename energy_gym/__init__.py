@@ -13,6 +13,8 @@ for cge in custom_gym_envs:
     for excluded in vars_to_exclude_from_pdoc:
         __pdoc__[f'{cge}.{excluded}'] = False
 
+__pdoc__['Evaluate'] = False
+__pdoc__['Environnement'] = False
 
 __all__ = [
     *custom_gym_envs,

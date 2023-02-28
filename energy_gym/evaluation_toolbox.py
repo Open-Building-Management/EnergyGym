@@ -246,6 +246,7 @@ class Environnement:
 
 class EvaluateGym:
     """base evaluation class
+    
     Joue des épisodes et nourrit une matrice _stats avec des données statistiques
     """
     def __init__(self, name, env, agent, **params):
