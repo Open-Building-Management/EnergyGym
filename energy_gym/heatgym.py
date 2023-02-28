@@ -31,7 +31,7 @@ class_vars_excluded_from_pdoc = [
 __pdoc__ = {}
 for cge in custom_gym_envs:
     for excluded in class_vars_excluded_from_pdoc:
-        __pdoc__['{cge}.{excluded}'] = False
+        __pdoc__[f'{cge}.{excluded}'] = False
 
 # --------------------------------------------------------------------------- #
 
