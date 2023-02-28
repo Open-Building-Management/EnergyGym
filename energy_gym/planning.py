@@ -130,7 +130,7 @@ def in_period(d_m, m_y, p_s, p_e):
 
 def biosAgenda(nbpts, step, start, offs, schedule=CLASSIC):
     """
-    un agenda plus abouti avec prise en compte de jours fériés, voire de périodes de confinement
+    agenda avec prise en compte de jours fériés, voire de périodes de confinement
     ```
     offs =  {
         "2019-offs": [ "01-01", "22-04", "01-05", "08-05", "30-05", "31-05", "10-06", "15-08", "16-08", "01-11", "11-11", ["23-12","25-12"] ],
