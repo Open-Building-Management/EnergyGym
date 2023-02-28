@@ -9,6 +9,9 @@ import numpy as np
 
 from .planning import get_random_start, get_level_duration
 
+__pdoc__ = {}
+__pdoc__['gym.Env.action_space'] = False
+
 # modèle par défault de type R1C1 obtenues par EDW avec les données de Marc Bloch
 #MODELRC = {"R": 2.54061406e-04, "C": 9.01650468e+08}
 MODELRC = {"R": 5.94419964e-04, "C": 5.40132642e+07}
