@@ -413,7 +413,10 @@ class Env(gym.Env):
         return self._reset(ts=ts, tint=tint, tc_episode=tc_episode, tc_step=tc_step)
 
     def step(self, action, tc_step=None):
-        """retourne un tuple :
+        """Avance d'un pas dans l'environnement en réalisant
+        l'action fournie en paramètre
+ 
+        retourne un tuple :
 
         - state,
 
@@ -473,7 +476,7 @@ class Hyst(Env):
     [Text, Tint, tc]
     """
     def __init__(self, text, max_power, tc, **model):
-        """ready to use gym environment"""
+        """*ready to use gym environment*"""
         super().__init__(text, max_power, tc, **model)
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high,
