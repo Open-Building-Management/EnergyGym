@@ -415,7 +415,7 @@ class Env(gym.Env):
     def step(self, action, tc_step=None):
         """Avance d'un pas dans l'environnement en réalisant
         l'action fournie en paramètre
- 
+
         retourne un tuple :
 
         - state,
@@ -476,7 +476,7 @@ class Hyst(Env):
     [Text, Tint, tc]
     """
     def __init__(self, text, max_power, tc, **model):
-        """*ready to use gym environment*"""
+        """**ready to use gym environment**"""
         super().__init__(text, max_power, tc, **model)
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high,
@@ -503,7 +503,7 @@ class Vacancy(Env):
     d'içi le prochain changement d'occupation
     """
     def __init__(self, text, max_power, tc, **model):
-        """ready to use gym environment"""
+        """**ready to use gym environment**"""
         super().__init__(text, max_power, tc, **model)
         high = np.finfo(np.float32).max
         self.observation_space = spaces.Box(-high, high,
@@ -549,7 +549,7 @@ class LSTMVacancy(Vacancy):
 
     state est une matrice 2D de taille (nbh, 5)
 
-    en mode batch on aura donc affaire à une matrice 3D
+    les batchs seront donc des matrices 3D
     [batch, time, features]
     """
     def __init__(self, text, max_power, tc, **model):
