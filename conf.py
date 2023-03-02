@@ -2,6 +2,10 @@
 la configuration nord est une sorte de hangar
 dans lequel on chauffe de petits bureaux
 avec un système de chauffage qui permet de remonter vite en température
+
+R en K/W représente l'isolation du bâtiment
+
+C en J/K représente l'inertie du bâtiment
 """
 import numpy as np
 

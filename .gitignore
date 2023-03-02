@@ -5,6 +5,8 @@ __pycache__/
 
 # tensorboard files
 TensorBoard*
+LSTM*
+supervised_bank*
 
 # C extensions
 *.so
