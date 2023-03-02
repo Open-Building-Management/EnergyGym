@@ -15,7 +15,7 @@ from conf import PATH, SCHEDULE, MAX_POWER, TEXT_FEED, REDUCE
 INTERVAL = 900
 AGENT_TYPES = ["random", "deterministic", "stochastic"]
 SIZES = {"weekend": 63 * 3600 // INTERVAL, "week" : 8*24*3600 // INTERVAL}
-SCENARIOS = ["Hyst", "Reduce", "Vacancy", "Building"]
+SCENARIOS = ["Hyst", "Reduce", "Vacancy", "Building", "D2Vacancy"]
 
 # pylint: disable=no-value-for-parameter
 
