@@ -13,4 +13,5 @@ max-locals=50
 good-names=i,j,k,x,dt,tt,ts,tz,
            tc,hh,xr,
            R,C,
-           biosAgenda,tsToTuple,tsToHuman
+           biosAgenda,tsToTuple,tsToHuman,
+           x,y

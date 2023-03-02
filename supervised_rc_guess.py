@@ -109,7 +109,6 @@ def play(env):
         env.update_model(guess)
         # on enregistre les actions jouées
         actions = env.action
-        text = env.text[env.pos:env.pos+env.wsize]
         # on joue les R et C devinés par le modèle
         # avec la même condition initiale en température
         tint0 = env.tint[0] # ceci fonctionne car env.nbh=0
@@ -140,8 +139,8 @@ if __name__ == "__main__":
     model = set_extra_params(model, action_space=action_space)
     # on a pris Vacancy mais peu importe la classe
     # on a fixé la température de consigne à 20 mais c'est factice et on ne s'en servira pas
-    env = getattr(energy_gym, "Vacancy")(text, MAX_POWER, 20, **model)
+    bat = getattr(energy_gym, "Vacancy")(text, MAX_POWER, 20, **model)
     if mode == "train":
-        train(env)
+        train(bat)
     else:
-        play(env)
+        play(bat)
