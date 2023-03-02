@@ -13,7 +13,7 @@ custom_gym_envs = [
     "Hyst",
     "Reduce",
     "Vacancy",
-    "LSTMVacancy",
+    "D2Vacancy",
     "Building"
 ]
 
@@ -544,7 +544,7 @@ class Vacancy(Env):
         return reward
 
 
-class LSTMVacancy(Vacancy):
+class D2Vacancy(Vacancy):
     """mode hors occupation
 
     state est une matrice 2D de taille (nbh, 5)

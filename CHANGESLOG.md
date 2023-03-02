@@ -4,4 +4,4 @@ Modulation des paramètres de la récompense désormais possible via la ligne de
 
 Module de statistiques compatible avec les environnements gym
 
-Implémentation de LSTMVacancy pour retourner des states prenant la forme de matrices 2D (axe 0 : le temps, axe 1 : les paramètres) 
+Implémentation de D2Vacancy pour retourner des states prenant la forme de matrices 2D (axe 0 : le temps, axe 1 : les paramètres) 
