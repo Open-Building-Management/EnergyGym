@@ -105,6 +105,8 @@ nom du réseau : TensorBoard/DDQN/Heat_Hyst5400_200220232222_cells_GAMMA=0dot97_
 Par défaut la hauteur du réduit est de 2°C, c'est-à-dire que la nuit ou le week-end, on n'acceptera pas de descendre en dessous de 18°C si la température de consigne est 20°C. 
 On peut moduler la hauteur du réduit en modifiant la valeur de la variable globale `REDUCE` dans [conf.py](conf.py#L31)
 
+**Avec cette approche, on économise de l'énergie par rapport à la stratégie optimale mais le gros inconvénient est qu'on n'a pas la température de confort à l'ouverture des locaux**
+
 Pour un espace d'observation avec un historique de 48 heures :
 ```
 python3 basicplay.py --nbh=48
