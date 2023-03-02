@@ -32,21 +32,8 @@ MAX_EPOCHS = 100
 P_R = 1e4
 P_C = 1e-8
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--action_space', type=int, default=2, help="taille de l'espace d'actions")
-parser.add_argument('--mode', type=str, default="play", help="train or play ?")
-args = parser.parse_args()
-action_space = args.action_space
-mode = args.mode
 
-text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
-model = MODELS["cells"]
-model = set_extra_params(model, action_space=action_space)
-# on a pris Vacancy mais peu importe la classe
-# on a fixé la température de consigne à 20 mais c'est factice et on ne s'en servira pas
-env = getattr(energy_gym, "Vacancy")(text, MAX_POWER, 20, **model)
-
-class BatchGenerator:
+class BatchGenerator:  # pylint: disable=R0903
     """generateur de batches"""
     def __init__(self, env, models, size):
         self.env = env
@@ -76,8 +63,8 @@ class BatchGenerator:
             yield x, y
 
 
-
-if mode == "train":
+def train(env):
+    """train the lstm agent"""
     agent = keras.models.Sequential()
     agent.add(keras.layers.LSTM(512))
     agent.add(keras.layers.Dense(2))
@@ -89,7 +76,10 @@ if mode == "train":
     save = input("save ? Y=yes")
     if save == "Y":
         agent.save("LSTM")
-else:
+
+
+def play(env):
+    """play"""
     agent_path, saved = pick_name()
     if not saved :
         sys.exit(0)
@@ -136,3 +126,22 @@ else:
         plt.subplot(313)
         plt.plot(env.text[env.pos:env.pos+env.wsize])
         plt.show()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--action_space', type=int, default=2, help="taille de l'espace d'actions")
+    parser.add_argument('--mode', type=str, default="play", help="train or play ?")
+    args = parser.parse_args()
+    action_space = args.action_space
+    mode = args.mode
+
+    text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
+    model = MODELS["cells"]
+    model = set_extra_params(model, action_space=action_space)
+    # on a pris Vacancy mais peu importe la classe
+    # on a fixé la température de consigne à 20 mais c'est factice et on ne s'en servira pas
+    env = getattr(energy_gym, "Vacancy")(text, MAX_POWER, 20, **model)
+    if mode == "train":
+        train(env)
+    else:
+        play(env)
