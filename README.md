@@ -20,7 +20,7 @@ pip3 install --upgrade tensorflow
 
 Tous les exemples utilisent l'autocomplétion en ligne de commande pour choisir le nom de l'agent
 
-## standalone_d_dqn
+<details><summary><h2>entrainer avec standalone_d_dqn</h2></summary>
 
 Met en oeuvre un algorithme de type double DQN
 
@@ -77,7 +77,9 @@ p_c est la pondération à appliquer sur le confort à l'ouverture des locaux, c
 
 vote_interval représente l'intervalle dans lequel la récompense énergétique est attribuée. si vote_interval vaut (-1, 1), on attribue le bonus énergétique si et seulement si l'écart entre la température à l'ouverture des locaux et la température de consigne est compris entre -1 et 1
 
-## basicplay
+</details>
+
+<details><summary><h2>basciplay</h2></summary>
 
 La variable globale `TEXT_FEED` de [conf.py](conf.py#L30), dont la valeur par défaut est 1, définit le numéro du flux de température extérieure. Si on utilise les données du répertoire datas, on n'a pas besoin de changer ce paramètre.
 
@@ -103,6 +105,7 @@ Pour un espace d'observation avec un historique de 48 heures :
 ```
 python3 basicplay.py --nbh=48
 ```
+</details>
 
 ## jouer un hystérésis
 
@@ -142,49 +145,48 @@ On peut moduler la hauteur du réduit en modifiant la valeur de la variable glob
 
 **Avec cette approche, on économise de l'énergie par rapport à la stratégie optimale mais le gros inconvénient est qu'on n'a pas la température de confort à l'ouverture des locaux**
 
-<details id=1>
-  <summary><h2>play</h2></summary>
+<details><summary><h2>play</h2></summary>
 
-  DEPRECATED : espace d'observation de taille 4 [Text, Tint, tc*occ, nbh]
+DEPRECATED : espace d'observation de taille 4 [Text, Tint, tc*occ, nbh]
 
-  ```
-  ./play.py
-  ```
-  paramètre |  description
-  --|--
-  text | numéro du flux de température extérieure = 1
-  model | le nom d'une des configurations de [conf.py](conf.py)
-  powerlimit | coefficient multiplicatif de la puissance max.
-  tc | température de consigne
-  n | **nombre d'épisodes à jouer**<br>0 = joue une série d'épisodes prédéfinis, on parle de snapshots
-  optimalpolicy | **politique optimale que l'environnement déterministe va jouer**<br>intermittence = succession de périodes d'occupation et de non-occupation<br>occupation_permanente = bâtiment occupé en permanence - cf hopital
-  hystpath | nom d'un agent de type hystérésis, à fournir si on veut utiliser un agent pour gérer les périodes de non-occupation et un hystéréris pour gérer les périodes de présence du personnel : `./play.py --hystpath=agents/hys20.h5`
-  holiday | nombre de jours fériés à intégrer dans les replay
-  silent | True = production de statistiques ou de snapshots<br>False = affiche les épisodes à l'écran
-  k | coefficient énergétique, utilisé dans le calcul de la récompense
+```
+./play.py
+```
+paramètre |  description
+--|--
+text | numéro du flux de température extérieure = 1
+model | le nom d'une des configurations de [conf.py](conf.py)
+powerlimit | coefficient multiplicatif de la puissance max.
+tc | température de consigne
+n | **nombre d'épisodes à jouer**<br>0 = joue une série d'épisodes prédéfinis, on parle de snapshots
+optimalpolicy | **politique optimale que l'environnement déterministe va jouer**<br>intermittence = succession de périodes d'occupation et de non-occupation<br>occupation_permanente = bâtiment occupé en permanence - cf hopital
+hystpath | nom d'un agent de type hystérésis, à fournir si on veut utiliser un agent pour gérer les périodes de non-occupation et un hystéréris pour gérer les périodes de présence du personnel : `./play.py --hystpath=agents/hys20.h5`
+holiday | nombre de jours fériés à intégrer dans les replay
+silent | True = production de statistiques ou de snapshots<br>False = affiche les épisodes à l'écran
+k | coefficient énergétique, utilisé dans le calcul de la récompense
+
 </details>
 
-<details id=1>
-  <summary><h2>A propos du modèle d'environnement</h2></summary>
+<details><summary><h2>A propos du modèle d'environnement</h2></summary>
 
-  L'environnement est représenté sous la forme d'un modèle électrique équivalent simple à deux paramètres :
-  * une résistance R en K/W qui représente l'isolation du bâtiment
-  * une capacité C en J/K qui représente l'inertie du bâtiment
+L'environnement est représenté sous la forme d'un modèle électrique équivalent simple à deux paramètres :
+* une résistance R en K/W qui représente l'isolation du bâtiment
+* une capacité C en J/K qui représente l'inertie du bâtiment
 
-  [Pour en savoir plus](https://github.com/Open-Building-Management/RCmodel/blob/main/RCmodel.ipynb)
+[Pour en savoir plus](https://github.com/Open-Building-Management/RCmodel/blob/main/RCmodel.ipynb)
 
-  Pour une résistance de 1e-4 K/W, et quelle que soit l’inertie entre 4e8 et 4e9 J/K, le système de chauffage, même utilisé à fond en permanence, ne
-  parvient pas à maintenir la température.
+Pour une résistance de 1e-4 K/W, et quelle que soit l’inertie entre 4e8 et 4e9 J/K, le système de chauffage, même utilisé à fond en permanence, ne
+parvient pas à maintenir la température.
 
-  Pour pouvoir gérer des épisodes de froid sur des bâtiments présentant majoritairement des résistances inférieures à 2e-4 K/W, la seule solution est
-  d’augmenter la puissance disponible.
+Pour pouvoir gérer des épisodes de froid sur des bâtiments présentant majoritairement des résistances inférieures à 2e-4 K/W, la seule solution est
+d’augmenter la puissance disponible.
 
-  On ne devrait toutefois pas rencontrer ce cas de figure sur le terrain si les équipements de production et les pompes sont correctement dimensionnés.
+On ne devrait toutefois pas rencontrer ce cas de figure sur le terrain si les équipements de production et les pompes sont correctement dimensionnés.
 
-  Le couple R=2e-4 K/W et C=2e8 J/K semble donc être une configuration extrême, peu probable en pratique, mais susceptible de nous donner de la matière
-  pour bien cerner le fonctionnement de notre modèle.
+Le couple R=2e-4 K/W et C=2e8 J/K semble donc être une configuration extrême, peu probable en pratique, mais susceptible de nous donner de la matière
+pour bien cerner le fonctionnement de notre modèle.
 
-  ### comportement sous météo hivernale froide
-  ![](images/RC_sim2_48h.png)
+### comportement sous météo hivernale froide
+![](images/RC_sim2_48h.png)
 
 </details>
