@@ -20,7 +20,7 @@ pip3 install --upgrade tensorflow
 
 Tous les exemples utilisent l'autocomplétion en ligne de commande pour choisir le nom de l'agent
 
-<details><summary><h2>entrainer avec standalone_d_dqn</h2></summary>
+<details><summary><h2>apprentissage renforcé avec standalone_d_dqn</h2></summary>
 
 Met en oeuvre un algorithme de type double DQN
 
