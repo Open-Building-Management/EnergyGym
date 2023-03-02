@@ -148,7 +148,7 @@ if __name__ == "__main__":
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
     model = MODELS["cells"]
     model = set_extra_params(model, action_space=action_space)
-    # on par sur un environnement Vacancy mais peu importe
+    # on part sur un environnement Vacancy mais peu importe
     # on a fixé la température de consigne à 20 mais c'est factice et ne sert pas
     bat = getattr(energy_gym, "Vacancy")(text, MAX_POWER, 20, **model)
     if mode == "train":
