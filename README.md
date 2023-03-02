@@ -18,9 +18,7 @@ pip3 install PyFina
 pip3 install --upgrade tensorflow
 ```
 
-play et basicplay utilisent l'autocomplétion en ligne de commande pour choisir le nom de l'agent
-
-**play n'utilise pas l'environnement gym pour l'instant**
+Tous les exemples utilisent l'autocomplétion en ligne de commande pour choisir le nom de l'agent
 
 ## standalone_d_dqn
 
@@ -51,7 +49,7 @@ scénario : Hyst
 consigne moyenne de confort en °C : 20
 demi-étendue en °C pour travailler à consigne variable : 2
 ```
-Peu importe le modèle choisi pour l'entrainement, içi `cells`, le réseau obtenu fonctionnera aussi avec les autres modèles.
+Peu importe le modèle choisi pour l'entrainement, içi `cells`, le réseau obtenu fonctionnera aussi avec toutes les configurations.
 
 ### scénario de type vacancy, pour entrainer à jouer une période de non-occupation
 
@@ -83,10 +81,47 @@ vote_interval représente l'intervalle dans lequel la récompense énergétique 
 
 La variable globale `TEXT_FEED` de [conf.py](conf.py#L30), dont la valeur par défaut est 1, définit le numéro du flux de température extérieure. Si on utilise les données du répertoire datas, on n'a pas besoin de changer ce paramètre.
 
+paramètre |  description
+--|--
+agent_type | random = décision aléatoire<br>deterministic = argmax<br>stochastic = softmax
+random_ts | True = joue jusqu'à 200 épisodes<br>False = joue un seul épisode sur le timestamp 1609104740
+scenario | type d'environnement, par exemple<br>hyst: hysteresis<br>vacancy: non-occupation<br>reduce: hysteresis avec réduit hors occupation
+size | week: 8 jours<br>weekend: 63 heures
+modelkey | le nom d'une des configurations de [conf.py](conf.py) - random pour jouer un modèle au hasard
+stepbystep | True = joue en mode pas à pas
+tc | valeur de la consigne en °C
+halfrange | demi-étendue en °C pour rendre la consigne variable
+nbh | nombre d'heures que l'on peut remonter dans l'histoire passée
+nbh_forecast | nombre d'heures de prévisions météo à donner à l'agent
+action_space | taille de l'espace d'actions
+
 Pour un espace d'observation sans historique ni prévisions :
 ```
 python3 basicplay.py
 ```
+Pour un espace d'observation avec un historique de 48 heures :
+```
+python3 basicplay.py --nbh=48
+```
+
+## jouer un hystérésis
+
+Avec la crise climatique, les gestionnaires de bâtiments sont tentés de vouloir couper au maximum le chauffage lorsque le bâtiment n'est pas occupé. 
+
+Hors il est assez compliqué de déterminer le moment opportun pour rallumer si on veut avoir la température de confort à l'ouverture des locaux. De plus, dans le milieu des chauffagistes, on entend dire qu'on ne fait pas plus d'économie en coupant car le coût pour remonter en température est souvent équivalent à celui qu'on doit payer pour maintenir une température stable. Quant on n'a pas de capteurs de confort intérieur, pour maintenir cet hystérésis, on régule avec une loi d'eau sur la température extérieure :
+```
+water_temp = pente * (t_c - text) + t_c 
+```
+`t_c` est la consigne de température intérieure, `text` la valeur de la température extérieure à l'instant t et `pente` la pente de la loi d'eau, souvent égale à 1.5. La formule donne la valeur de la température de l'eau à injecter dans les tuyaux. Cette méthode empirique fonctionne assez bien en pratique et c'est la méthode de régulation la plus répandue depuis plusieurs dizaines d'années.
+
+Il est vrai qu'en simulateur, on constate que l'agent hystérésis n'est pas plus énergivore que la politique optimale.
+
+![](images/Hyst_vs_solution_optimale_intermittence_cells.png)
+
+![](images/Hyst_vs_solution_optimale_intermittence_tertiaire_2.png)
+
+## jouer des réduits de nuit et de weekend
+
 On peut faire jouer des réduits d'inoccupation à un agent hystérésis que l'on a entrainé à consigne variable :
 ```
 comportement de l'agent : deterministic
@@ -106,25 +141,6 @@ Par défaut la hauteur du réduit est de 2°C, c'est-à-dire que la nuit ou le w
 On peut moduler la hauteur du réduit en modifiant la valeur de la variable globale `REDUCE` dans [conf.py](conf.py#L31)
 
 **Avec cette approche, on économise de l'énergie par rapport à la stratégie optimale mais le gros inconvénient est qu'on n'a pas la température de confort à l'ouverture des locaux**
-
-Pour un espace d'observation avec un historique de 48 heures :
-```
-python3 basicplay.py --nbh=48
-```
-
-paramètre |  description
---|--
-agent_type | random = décision aléatoire<br>deterministic = argmax<br>stochastic = softmax
-random_ts | True = joue jusqu'à 200 épisodes<br>False = joue un seul épisode sur le timestamp 1609104740
-scenario | type d'environnement, par exemple<br>hyst: hysteresis<br>vacancy: non-occupation<br>reduce: hysteresis avec réduit hors occupation
-size | week: 8 jours<br>weekend: 63 heures
-modelkey | le nom d'une des configurations de [conf.py](conf.py) - random pour jouer un modèle au hasard
-stepbystep | True = joue en mode pas à pas
-tc | valeur de la consigne en °C
-halfrange | demi-étendue en °C pour rendre la consigne variable
-nbh | nombre d'heures que l'on peut remonter dans l'histoire passée
-nbh_forecast | nombre d'heures de prévisions météo à donner à l'agent
-action_space | taille de l'espace d'actions
 
 <details id=1>
   <summary><h2>play</h2></summary>
