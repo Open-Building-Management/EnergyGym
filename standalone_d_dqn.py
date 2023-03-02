@@ -149,13 +149,13 @@ def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, 
     num_actions = env.action_space.n
 
     primary_network = keras.Sequential([
-        keras.layers.Dense(50, activation='relu')
+        keras.layers.Dense(50, activation='relu'),
         keras.layers.Dense(50, activation='relu'),
         keras.layers.Dense(num_actions)
     ])
 
     target_network = keras.Sequential([
-        keras.layers.Dense(50, activation='relu')
+        keras.layers.Dense(50, activation='relu'),
         keras.layers.Dense(50, activation='relu'),
         keras.layers.Dense(num_actions)
     ])
