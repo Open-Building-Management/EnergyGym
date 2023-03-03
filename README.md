@@ -111,13 +111,15 @@ python3 basicplay.py --nbh=48
 
 Avec la crise climatique, les gestionnaires de bâtiments sont tentés de vouloir couper au maximum le chauffage lorsque le bâtiment n'est pas occupé. 
 
-Hors il est assez compliqué de déterminer le moment opportun pour rallumer si on veut avoir la température de confort à l'ouverture des locaux. De plus, dans le milieu des chauffagistes, on entend dire qu'on ne fait pas plus d'économie en coupant car le coût pour remonter en température est souvent équivalent à celui qu'on doit payer pour maintenir une température stable. Quant on n'a pas de capteurs de confort intérieur, pour maintenir cet hystérésis, on régule avec une loi d'eau sur la température extérieure :
+Hors il est assez compliqué de déterminer le moment opportun pour rallumer si on veut avoir la température de confort à l'ouverture des locaux. De plus, dans le milieu des chauffagistes, on entend dire qu'on ne fait pas plus d'économie en coupant car le coût pour remonter en température est souvent équivalent à celui qu'on doit payer pour maintenir une température stable.
+Quant on n'a pas de capteurs de confort intérieur, pour maintenir cet hystérésis, on régule avec une loi d'eau sur la température extérieure :
 ```
 water_temp = pente * (t_c - text) + t_c 
 ```
-`t_c` est la consigne de température intérieure, `text` la valeur de la température extérieure à l'instant t et `pente` la pente de la loi d'eau, souvent égale à 1.5. La formule donne la valeur de la température de l'eau à injecter dans les tuyaux. Cette méthode empirique fonctionne assez bien en pratique et c'est la méthode de régulation la plus répandue depuis plusieurs dizaines d'années.
+`t_c` est la consigne de température intérieure, `text` la valeur de la température extérieure à l'instant t et `pente` la pente de la loi d'eau, souvent égale à 1.5.
+La formule donne la valeur de la température de l'eau à injecter dans les tuyaux. Cette recette empirique fonctionne assez bien en pratique et c'est la méthode de régulation la plus répandue depuis plusieurs dizaines d'années.
 
-Il est vrai qu'en simulateur, on constate que l'agent hystérésis n'est pas plus énergivore que la politique optimale qui effectue des coupures la nuit et les week-ends.
+Pour en revenir à l'intérêt des coupures sur des périodes courtes, il est vrai qu'en simulateur, l'agent hystérésis n'est généralement pas plus énergivore que la politique optimale qui effectue des coupures la nuit et les week-ends.
 
 ![](images/Hyst_vs_solution_optimale_intermittence_cells.png)
 
