@@ -333,7 +333,7 @@ class EvaluateGym:
                                              self._env.wsize,
                                              tint[0], tc, 1)
         mtocc_moy, mnbinc, mnbluxe = stats(tc, optimal_solution[:, 1], occ, interval)
-        aconso = ( self._env.wsize - self._env.tot_eko )
+        aconso = self._env.wsize - self._env.tot_eko
         mconso = np.sum(optimal_solution[:, 0])
         line = np.array([self._env.tsvrai,
                          atocc_moy, anbluxe, anbinc, aconso * interval / 3600,
