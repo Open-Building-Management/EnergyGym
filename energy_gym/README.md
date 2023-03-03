@@ -13,6 +13,7 @@ TEXT_FEED = 1
 text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
 model = {"R" : 2.59460660e-04, "C" : 1.31446233e+09}
 bat = getattr(energy_gym, "Vacancy")(text, MAX_POWER, 20, **model)
+bat.reset()
 while True:
    action = bat.action_space.sample()
    _, _, done, _ = bat.step(action)
