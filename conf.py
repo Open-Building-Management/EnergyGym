@@ -1,5 +1,6 @@
 """banque de modèles R1C1 et de paramètres généraux
-la configuration nord est une sorte de hangar
+
+La configuration nord est une sorte de hangar
 dans lequel on chauffe de petits bureaux
 avec un système de chauffage qui permet de remonter vite en température
 
