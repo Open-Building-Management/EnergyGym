@@ -246,7 +246,7 @@ class Environnement:
 
 class EvaluateGym:
     """base evaluation class
-    
+
     Joue des épisodes et nourrit une matrice _stats avec des données statistiques
     """
     def __init__(self, name, env, agent, **params):
@@ -333,11 +333,11 @@ class EvaluateGym:
                                              self._env.wsize,
                                              tint[0], tc, 1)
         mtocc_moy, mnbinc, mnbluxe = stats(tc, optimal_solution[:, 1], occ, interval)
-        aconso = self._env.wsize - self._env.tot_eko
+        aconso = ( self._env.wsize - self._env.tot_eko )
         mconso = np.sum(optimal_solution[:, 0])
         line = np.array([self._env.tsvrai,
-                         atocc_moy, anbluxe, anbinc, aconso,
-                         mtocc_moy, mnbluxe, mnbinc, mconso])
+                         atocc_moy, anbluxe, anbinc, aconso * interval / 3600,
+                         mtocc_moy, mnbluxe, mnbinc, mconso * interval / 3600])
         self._stats[self._steps, :] = line
         return optimal_solution
 
@@ -413,21 +413,21 @@ class EvaluateGym:
             plt.legend()
 
             plt.subplot(412, sharex=ax1)
-            label = f'nombre heures > {self._env.tc + 1}°C'
+            label = f'nb heures > {self._env.tc + 1}°C'
             plt.plot(self._stats[:, 2], color="blue", label=f'{label} agent')
             plt.plot(self._stats[:, 6], color="red", label=f'{label} modèle')
             plt.legend()
 
             plt.subplot(413, sharex=ax1)
-            label = f'nombre heures < {self._env.tc - 1}°C'
+            label = f'nb heures < {self._env.tc - 1}°C'
             plt.plot(self._stats[:, 3], color="blue", label=f'{label} agent')
             plt.plot(self._stats[:, 7], color="red", label=f'{label} modèle')
             plt.legend()
 
             plt.subplot(414, sharex=ax1)
-            label = "récompense cumulée"
-            plt.plot(self._stats[:, 9], color="blue", label=f'{label} agent')
-            plt.plot(self._stats[:, 10], color="red", label=f'{label} modèle')
+            label = "conso (nb heures à puissance max)"
+            plt.plot(self._stats[:, 4], color="blue", label=f'{label} agent')
+            plt.plot(self._stats[:, 8], color="red", label=f'{label} modèle')
             plt.legend()
 
             ts = time.time()
