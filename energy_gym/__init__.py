@@ -1,4 +1,7 @@
-"""energy_gym module"""
+"""energy_gym module
+
+.. include:: ./README.md
+"""
 from .heatgym import Hyst, Reduce, Vacancy, StepRewardVacancy, TopLimitVacancy
 from .heatgym import D2Vacancy, Building
 from .heatgym import custom_gym_envs, vars_to_exclude_from_pdoc
