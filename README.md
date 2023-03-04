@@ -119,7 +119,7 @@ water_temp = pente * (t_c - text) + t_c
 `t_c` est la consigne de température intérieure, `text` la valeur de la température extérieure à l'instant t et `pente` la pente de la loi d'eau, souvent égale à 1.5.
 La formule donne la valeur de la température de l'eau à injecter dans les tuyaux. Cette recette empirique fonctionne assez bien en pratique et c'est la méthode de régulation la plus répandue depuis plusieurs dizaines d'années.
 
-Pour en revenir à l'intérêt des coupures sur des périodes courtes, il est vrai qu'en simulateur, l'agent hystérésis n'est généralement pas plus énergivore que la politique optimale qui effectue des coupures la nuit et les week-ends. Le premier graphique concerne des modulaires mal isolés, avec un système de chauffage sous_dimensionné, le second un ensemble de bureaux tertiaires avec une isolation correcte. 
+Pour en revenir à l'intérêt des coupures sur des périodes courtes, il est vrai qu'en simulateur, l'agent hystérésis n'est généralement pas plus énergivore que la politique optimale qui effectue des coupures la nuit et les week-ends. Le premier graphique concerne des modulaires mal isolés, avec un système de chauffage sous-dimensionné, le second un ensemble de bureaux tertiaires avec une isolation correcte. 
 
 ![](images/Hyst_vs_solution_optimale_intermittence_cells.png)
 
