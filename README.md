@@ -135,7 +135,7 @@ Avec un pilotage au quart d'heure :
 
 ## jouer des réduits de nuit et de weekend
 
-On peut faire jouer des réduits d'inoccupation à un agent hystérésis que l'on a entrainé à consigne variable :
+On peut faire jouer des réduits d'inoccupation à un agent hystérésis entrainé à consigne variable :
 ```
 comportement de l'agent : deterministic
 timestamp de démarrage aléatoire : True
