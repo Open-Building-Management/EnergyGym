@@ -43,7 +43,7 @@ python3 standalone_d_dqn.py
 ```
 Pour entraîner un agent à gérer des consignes variables de 18, 19, 20, 21 et 22°C :
 ```
-numéro du flux temp. extérieure : 1 
+numéro du flux temp. extérieure : 1
 modèle : cells
 scénario : Hyst
 consigne moyenne de confort en °C : 20
@@ -109,21 +109,29 @@ python3 basicplay.py --nbh=48
 
 ## jouer un hystérésis
 
-Avec la crise climatique, les gestionnaires de bâtiments sont tentés de vouloir couper au maximum le chauffage lorsque le bâtiment n'est pas occupé. 
+Avec la crise climatique, les gestionnaires de bâtiments sont tentés de vouloir couper au maximum le chauffage lorsque le bâtiment n'est pas occupé.
 
 Hors il est assez compliqué de déterminer le moment opportun pour rallumer si on veut avoir la température de confort à l'ouverture des locaux. De plus, dans le milieu des chauffagistes, on entend dire qu'on ne fait pas plus d'économie en coupant car le coût pour remonter en température est souvent équivalent à celui qu'on doit payer pour maintenir une température stable.
 Quant on n'a pas de capteurs de confort intérieur, pour maintenir cet hystérésis, on régule avec une loi d'eau sur la température extérieure :
 ```
-water_temp = pente * (t_c - text) + t_c 
+water_temp = pente * (t_c - text) + t_c
 ```
 `t_c` est la consigne de température intérieure, `text` la valeur de la température extérieure à l'instant t et `pente` la pente de la loi d'eau, souvent égale à 1.5.
 La formule donne la valeur de la température de l'eau à injecter dans les tuyaux. Cette recette empirique fonctionne assez bien en pratique et c'est la méthode de régulation la plus répandue depuis plusieurs dizaines d'années.
 
-Pour en revenir à l'intérêt des coupures sur des périodes courtes, il est vrai qu'en simulateur, l'agent hystérésis n'est généralement pas plus énergivore que la politique optimale qui effectue des coupures la nuit et les week-ends.
+Pour en revenir à l'intérêt des coupures sur des périodes courtes, il est vrai qu'en simulateur, l'agent hystérésis n'est généralement pas plus énergivore que la politique optimale qui effectue des coupures la nuit et les week-ends. Le premier graphique concerne des modulaires mal isolés, avec un système de chauffage sous_dimensionné.
 
 ![](images/Hyst_vs_solution_optimale_intermittence_cells.png)
 
 ![](images/Hyst_vs_solution_optimale_intermittence_tertiaire_2.png)
+
+C'est moins vrai lorsque le bâtiment est très énergivore mais dispose d'un système de chauffage assez puissant (cas d'un bâtiment logistique de type hangar ou laboratoire dans lequel on a construit des petits bureaux, qui sont quasiment les seuls espaces chauffés)
+
+![](images/Hyst_vs_solution_optimale_intermittence_nord.png)
+
+Avec un pilotage au quart d'heure :
+
+![](images/Hyst_vs_solution_optimale_intermittence_nord_900s.png)
 
 ## jouer des réduits de nuit et de weekend
 
@@ -134,15 +142,15 @@ timestamp de démarrage aléatoire : True
 scénario ou mode de jeu : Reduce
 longueur des épisodes : week
 modèle : tertiaire
-jouer l'épisode pas à pas : False 
-jouer le mirror play après avoir joué l'épisode : False 
-consigne moyenne de confort en °C : 20 
+jouer l'épisode pas à pas : False
+jouer le mirror play après avoir joué l'épisode : False
+consigne moyenne de confort en °C : 20
 demi-étendue en °C pour travailler à consigne variable : 2
 nom du réseau : TensorBoard/DDQN/Heat_Hyst5400_200220232222_cells_GAMMA=0dot97_NBACTIONS=2_tc=20+ou-2
 ```
 ![](images/hyst_playing_reduce.png)
 
-Par défaut la hauteur du réduit est de 2°C, c'est-à-dire que la nuit ou le week-end, on n'acceptera pas de descendre en dessous de 18°C si la température de consigne est 20°C. 
+Par défaut la hauteur du réduit est de 2°C, c'est-à-dire que la nuit ou le week-end, on n'acceptera pas de descendre en dessous de 18°C si la température de consigne est 20°C.
 On peut moduler la hauteur du réduit en modifiant la valeur de la variable globale `REDUCE` dans [conf.py](conf.py)
 
 **Avec cette approche, on économise de l'énergie par rapport à la stratégie optimale mais le gros inconvénient est qu'on n'a pas la température de confort à l'ouverture des locaux**
