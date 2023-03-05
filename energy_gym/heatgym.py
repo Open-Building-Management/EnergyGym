@@ -578,12 +578,12 @@ class D2Vacancy(Vacancy):
 
 
 class StepRewardVacancy(Vacancy):
-    """do not overheat trial 1"""
+    """do not overheat"""
     def reward(self, action):
         """récompense à chaque step et non plus seulement finale"""
         reward = super().reward(action)
-        if self.i != self.wsize:
-            reward -= self._eko(action) * self._interval / 3600
+        coeff = (self.wsize - self.i) * self._interval / self.tcte
+        reward -= (1 - self._eko(action)) * coeff
         return reward
 
 

@@ -22,11 +22,9 @@ STORE_PATH = f'{DIR}/{GAME}'
 MAX_EPSILON = 1
 MIN_EPSILON = 0.01
 LAMBDA = 0.0003
-GAMMA = 0.97
 BATCH_SIZE = 50
 TAU = 0.05
 
-NUM_EPISODES = 5400
 RENDER = False
 NOW = dt.datetime.now().strftime('%d%m%Y%H%M')
 DOUBLE_Q = True
@@ -67,7 +65,7 @@ def choose_action(state, primary_network, eps, num_actions):
     return np.argmax(primary_network(state.reshape(1, *state.shape)))
 
 
-def train(primary_network, mem, state_shape, target_network=None):
+def train(primary_network, mem, state_shape, gamma, target_network=None):
     """Generic Network Trainer
     DQN (target_network=None) or DDQN mode"""
     if mem.num_samples < BATCH_SIZE * 3:
@@ -89,7 +87,7 @@ def train(primary_network, mem, state_shape, target_network=None):
     batch_idxs = np.arange(BATCH_SIZE)
     if target_network is None:
         # classic DQN
-        updates[valid_idxs] += GAMMA * np.amax(prim_qsad.numpy()[valid_idxs, :],
+        updates[valid_idxs] += gamma * np.amax(prim_qsad.numpy()[valid_idxs, :],
                                                axis=1)
     else:
         # double DQN
@@ -100,7 +98,7 @@ def train(primary_network, mem, state_shape, target_network=None):
         # cf google deepmind : https://arxiv.org/pdf/1509.06461.pdf
         prim_actions = np.argmax(prim_qsad.numpy(), axis=1)
         q_from_target = target_network(next_states)
-        updates[valid_idxs] += GAMMA * q_from_target.numpy()[
+        updates[valid_idxs] += gamma * q_from_target.numpy()[
             batch_idxs[valid_idxs],
             prim_actions[valid_idxs]
         ]
@@ -126,13 +124,17 @@ MODELS["random"] = MODELS["cells"]
 @click.option('--scenario', type=click.Choice(SCENARIOS), default="Vacancy", prompt='scénario ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
+@click.option('--gamma', type=float, default=0.97, prompt='discount parameter GAMMA ?')
+@click.option('--num_episodes', type=int, default=5400, prompt="nombre d'épisodes ?")
 @click.option('--k', type=float, default=0.9)
 @click.option('--p_c', type=int, default=15)
 @click.option('--vote_interval', type=int, nargs=2, default=(-3,1))
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
-def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, nbh_forecast, action_space):
+def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
+         k, p_c, vote_interval,
+         nbh, nbh_forecast, action_space):
     """main command"""
     text = get_feed(nbtext, INTERVAL, path=PATH)
     model = MODELS[modelkey]
@@ -170,7 +172,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, 
         """replace dots"""
         return str(num).replace(".", "dot")
 
-    for i in range(NUM_EPISODES):
+    for i in range(num_episodes):
         tc_episode = tc + random.randint(-halfrange, halfrange)
         if modelkey == "random":
             new_modelkey = random.choice(TRAINING_LIST)
@@ -187,7 +189,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, 
             if i == 0 and env.i == 1:
                 # première étape du premier épisode
                 suffix = "RND_MODEL" if modelkey == "random" else f'{modelkey}'
-                suffix = f'{suffix}_GAMMA={dot(GAMMA)}'
+                suffix = f'{suffix}_GAMMA={dot(gamma)}'
                 suffix = f'{suffix}_NBACTIONS={num_actions}'
                 suffix = f'{suffix}_tc={tc}'
                 if halfrange:
@@ -199,7 +201,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, 
                 if "Vacancy" in scenario:
                     suffix = f'{suffix}_k={dot(k)}_p_c={p_c}'
                     suffix = f'{suffix}_vote_interval={vote_interval[0]}A{vote_interval[1]}'
-                tw_path = f'{STORE_PATH}/{scenario}{NUM_EPISODES}_{NOW}_{suffix}'
+                tw_path = f'{STORE_PATH}/{scenario}{num_episodes}_{NOW}_{suffix}'
                 train_writer = tf.summary.create_file_writer(tw_path)
 
             if done:
@@ -207,7 +209,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, 
             # store in memory
             memory.add_sample((state, action, reward, next_state))
 
-            loss = train(primary_network, memory, state_shape, target_network if DOUBLE_Q else None)
+            loss = train(primary_network, memory, state_shape, gamma, target_network if DOUBLE_Q else None)
             avg_loss += loss
 
             state = next_state
@@ -253,7 +255,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, k, p_c, vote_interval, nbh, 
 
     save = input("save ? Y=yes")
     if save == "Y":
-        primary_network.save(f'{STORE_PATH}_{scenario}{NUM_EPISODES}_{NOW}_{suffix}')
+        primary_network.save(f'{STORE_PATH}_{scenario}{num_episodes}_{NOW}_{suffix}')
 
 
 if __name__ == "__main__":
