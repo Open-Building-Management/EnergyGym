@@ -126,6 +126,7 @@ MODELS["random"] = MODELS["cells"]
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
 @click.option('--gamma', type=float, default=0.97, prompt='discount parameter GAMMA ?')
 @click.option('--num_episodes', type=int, default=5400, prompt="nombre d'épisodes ?")
+@click.option('--mean_prev', type=bool, default=False)
 @click.option('--k', type=float, default=0.9)
 @click.option('--p_c', type=int, default=15)
 @click.option('--vote_interval', type=int, nargs=2, default=(-3,1))
@@ -133,13 +134,13 @@ MODELS["random"] = MODELS["cells"]
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
 def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
-         k, p_c, vote_interval,
+         mean_prev, k, p_c, vote_interval,
          nbh, nbh_forecast, action_space):
     """main command"""
     text = get_feed(nbtext, INTERVAL, path=PATH)
     model = MODELS[modelkey]
     model = set_extra_params(model, action_space=action_space)
-    model = set_extra_params(model, k=k, p_c=p_c)
+    model = set_extra_params(model, mean_prev=mean_prev, k=k, p_c=p_c)
     model = set_extra_params(model, vote_interval=vote_interval)
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
 
@@ -198,6 +199,8 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
                     suffix = f'{suffix}_past={nbh}h'
                 if nbh_forecast:
                     suffix = f'{suffix}_future={nbh_forecast}h'
+                if mean_prev:
+                    suffix = f'{suffix}_MEAN_PREV'
                 if "Vacancy" in scenario:
                     suffix = f'{suffix}_k={dot(k)}_p_c={p_c}'
                     suffix = f'{suffix}_vote_interval={vote_interval[0]}A{vote_interval[1]}'
