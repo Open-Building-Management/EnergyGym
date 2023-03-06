@@ -305,9 +305,6 @@ class Env(gym.Env):
         err_msg = f'{action} is not a valid action'
         assert self.action_space.contains(action), err_msg
         assert self.state is not None, "Call reset before using step method."
-        # reward at state
-        reward = self.reward(action)
-        self.tot_reward += reward
         # q_c at state
         q_c = action * self.max_power / (self.action_space.n - 1)
         self.action[self.i] = action
@@ -329,6 +326,9 @@ class Env(gym.Env):
         else:
             self.state = None
             done = True
+        # reward
+        reward = self.reward(action)
+        self.tot_reward += reward
         # return reward, done at state
         return reward, done
 
