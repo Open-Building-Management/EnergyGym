@@ -79,7 +79,7 @@ vote_interval représente l'intervalle dans lequel la récompense énergétique 
 
 </details>
 
-<details><summary><h2>basciplay</h2></summary>
+<details><summary><h2>basicplay</h2></summary>
 
 La variable globale `TEXT_FEED` de [conf.py](conf.py#L30), dont la valeur par défaut est 1, définit le numéro du flux de température extérieure. Si on utilise les données du répertoire datas, on n'a pas besoin de changer ce paramètre.
 
