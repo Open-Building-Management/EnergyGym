@@ -39,7 +39,14 @@ __pdoc__ = {}
 for cge in _custom_gym_envs:
     for excluded in vars_to_exclude_from_pdoc:
         __pdoc__[f'{cge}.{excluded}'] = False
-__pdoc__["Env._eko"] = True
+
+private = [
+    "_get_future", "_get_past", "_reset", "_render", "_step",
+    "_state", "_covering", "_update_cte_tcte", "_eko"
+]
+
+for method in private:
+    __pdoc__[f'Env.{method}'] = True
 # --------------------------------------------------------------------------- #
 
 # modèle R1C1 par défault obtenu par EDW avec les données de Marc Bloch
@@ -173,6 +180,7 @@ class Env(gym.Env):
         self._ax3 = None
         # agenda d'occupation
         self.agenda = None
+        self.mean_prev = model.get("mean_prev", False)
 
     def _get_future(self):
         """construit le futur horaire
@@ -507,10 +515,12 @@ class Vacancy(Env):
         """**ready to use gym environment**"""
         super().__init__(text, max_power, tc, **model)
         high = np.finfo(np.float32).max
+        if self.mean_prev:
+            self.nbh_forecast = 0
+        nb_observations = 3*self.nbh+2+self.nbh_forecast+2+self.mean_prev
         self.observation_space = spaces.Box(-high, high,
-                                            (3*self.nbh+2+self.nbh_forecast+2,),
+                                            (nb_observations,),
                                             dtype=np.float32)
-        #print(self.observation_space)
 
     def _state(self, tc=None):
         if tc is None:
@@ -518,8 +528,14 @@ class Vacancy(Env):
         # nbh -> occupation change (from occupied to empty and vice versa)
         # Note that 1h30 has to be coded as 1.5
         nbh = (self.wsize - self.i) * self._interval / 3600
-        result = super()._state(tc=tc)
-        return np.array([*result, nbh], dtype=np.float32)
+        result = super()._state(tc=tc)[:-1]
+        if self.mean_prev:
+            pos1 = self.pos + self.i
+            pos2 = self.pos + self.wsize + 1
+            mean_text_to_target = np.mean(self.text[pos1:pos2])
+            result = np.array([*result, mean_text_to_target], dtype=np.float32)
+        result = np.array([*result, tc, nbh], dtype=np.float32)
+        return result
 
     def reward(self, action):
         """JUST A final reward mixing confort and energy"""
