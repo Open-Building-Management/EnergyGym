@@ -16,12 +16,13 @@ WSIZE = 8*24*3600 // INTERVAL
 @click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ?')
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
+@click.option('--mean_prev', type=bool, default=False)
 @click.option('--generate_stats', type=bool, default=True, prompt='generer les stats ?')
 @click.option('--nb_off', type=int, default=0, prompt='nbr jours fériés à intégrer ?')
-def main(modelkey, nbh, nbh_forecast, generate_stats, nb_off):
+def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off):
     """main command"""
     model = MODELS[modelkey]
-    model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
+    model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh, mean_prev=mean_prev)
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
     # demande à l'utilisateur des chemins de réseaux
     agent_path, saved = pick_name()
