@@ -135,13 +135,14 @@ NAMES = [*MODELS.keys(), "all", "selection"]
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
+@click.option('--verbose', type=bool, default=False)
 def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
          nb_mlp_per_layer, mean_prev, k, p_c, vote_interval,
-         nbh, nbh_forecast, action_space):
+         nbh, nbh_forecast, action_space, verbose):
     """main command"""
     text = get_feed(nbtext, INTERVAL, path=PATH)
     if modelkey not in MODELS:
-        modelbank = MODELS if modelkey=="all" else TRAINING_LIST
+        modelbank = MODELS if modelkey == "all" else TRAINING_LIST
         model = {}
     else:
         model = MODELS[modelkey]
@@ -188,8 +189,9 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
         while True:
             if RENDER:
                 env.render()
-            print(state)
-            input("press a key")
+            if verbose:
+                print(state)
+                input("press a key")
             action = choose_action(state, primary_network, eps, num_actions)
             next_state, reward, done, _ = env.step(action)
             if i == 0 and env.i == 1:
