@@ -538,24 +538,19 @@ class Vacancy(Env):
         return result
 
     def reward(self, action):
-        """JUST A final reward mixing confort and energy"""
+        """JUST A final reward"""
         reward = 0
         tc = self.tc_episode
         tint = self.tint[self.i]
         if self.i == self.wsize:
             # l'occupation du bâtiment commence
-            # pour converger vers la température cible
-            #print(tint, tc, self.tot_eko, self._interval)
-            # on ne pondère pas la récompense en température
-            # car elle est purement ponctuelle, acquise uniquement à l'ouverture
             reward = - self._p_c * abs(tint - tc)
-            # le bonus énergétique
-            # on pondère car même s'il s'agit d'une récompense finale,
-            # elle est acquise sur toute la durée de l'épisode
+            # bonus énergétique si on est dans la zone de confort
             vmin = self._vote_interval[0]
             vmax = self._vote_interval[1]
+            peko = round (100 * self.tot_eko / self.wsize, 1)
             if vmin <= tint - tc <= vmax:
-                reward += self._k * self.tot_eko * self._interval / 3600
+                reward = self._k * peko
         else:
             self.tot_eko += self._eko(action)
         return reward

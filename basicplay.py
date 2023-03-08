@@ -82,6 +82,7 @@ MODELS["random"] = MODELS["cells"]
 @click.option('--mirrorplay', type=bool, default=False, prompt='jouer le mirror play après avoir joué l\'épisode ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
+@click.option('--power_factor', type=float, default=1)
 @click.option('--mean_prev', type=bool, default=False)
 @click.option('--k', type=float, default=0.9)
 @click.option('--p_c', type=int, default=15)
@@ -90,7 +91,7 @@ MODELS["random"] = MODELS["cells"]
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
 def main(agent_type, random_ts, scenario, size, modelkey,
-         stepbystep, mirrorplay, tc, halfrange,
+         stepbystep, mirrorplay, tc, halfrange, power_factor,
          mean_prev, k, p_c, vote_interval, nbh, nbh_forecast, action_space):
     """main command"""
     model = MODELS[modelkey]
@@ -101,7 +102,7 @@ def main(agent_type, random_ts, scenario, size, modelkey,
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
 
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
-    bat = getattr(energy_gym, scenario)(text, MAX_POWER, tc, **model)
+    bat = getattr(energy_gym, scenario)(text, power_factor * MAX_POWER, tc, **model)
 
     # définition de l'agenda d'occupation
     if size == "week" or scenario == "Building":

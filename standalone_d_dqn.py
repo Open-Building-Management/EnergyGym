@@ -22,6 +22,7 @@ STORE_PATH = f'{DIR}/{GAME}'
 MAX_EPSILON = 1
 MIN_EPSILON = 0.01
 LAMBDA = 0.0003
+#LAMBDA = 5e-5
 BATCH_SIZE = 50
 TAU = 0.05
 
@@ -118,14 +119,16 @@ def train(primary_network, mem, state_shape, gamma, target_network=None):
 
 
 MODELS["random"] = MODELS["cells"]
+MODELS["training"] = MODELS["cells"]
 @click.command()
 @click.option('--nbtext', type=int, default=1, prompt='numéro du flux temp. extérieure ?')
-@click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ? random pour entrainer à modèle variable')
+@click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ? random ou training pour entrainer à modèle variable')
 @click.option('--scenario', type=click.Choice(SCENARIOS), default="Vacancy", prompt='scénario ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
 @click.option('--gamma', type=float, default=0.97, prompt='discount parameter GAMMA ?')
 @click.option('--num_episodes', type=int, default=5400, prompt="nombre d'épisodes ?")
+@click.option('--nb_mlp_per_layer', type=int, default=50, prompt="nombre de neurones par couche ?")
 @click.option('--mean_prev', type=bool, default=False)
 @click.option('--k', type=float, default=0.9)
 @click.option('--p_c', type=int, default=15)
@@ -134,10 +137,12 @@ MODELS["random"] = MODELS["cells"]
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
 def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
-         mean_prev, k, p_c, vote_interval,
+         nb_mlp_per_layer, mean_prev, k, p_c, vote_interval,
          nbh, nbh_forecast, action_space):
     """main command"""
     text = get_feed(nbtext, INTERVAL, path=PATH)
+    if modelkey == "random":
+        TRAINING_LIST = MODELS
     model = MODELS[modelkey]
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, mean_prev=mean_prev, k=k, p_c=p_c)
@@ -152,14 +157,14 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
     num_actions = env.action_space.n
 
     primary_network = keras.Sequential([
-        keras.layers.Dense(50, activation='relu'),
-        keras.layers.Dense(50, activation='relu'),
+        keras.layers.Dense(nb_mlp_per_layer, activation='relu'),
+        keras.layers.Dense(nb_mlp_per_layer, activation='relu'),
         keras.layers.Dense(num_actions)
     ])
 
     target_network = keras.Sequential([
-        keras.layers.Dense(50, activation='relu'),
-        keras.layers.Dense(50, activation='relu'),
+        keras.layers.Dense(nb_mlp_per_layer, activation='relu'),
+        keras.layers.Dense(nb_mlp_per_layer, activation='relu'),
         keras.layers.Dense(num_actions)
     ])
 
@@ -169,10 +174,6 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
 
     memory = Memory(50000)
 
-    def dot(num):
-        """replace dots"""
-        return str(num).replace(".", "dot")
-
     for i in range(num_episodes):
         tc_episode = tc + random.randint(-halfrange, halfrange)
         if modelkey == "random":
@@ -180,19 +181,25 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
             env.update_model(MODELS[new_modelkey])
         print(env.model)
         state = env.reset(tc_episode=tc_episode)
+
         cnt = 0
         avg_loss = 0
         while True:
             if RENDER:
                 env.render()
+            print(state)
+            input("press a key")
             action = choose_action(state, primary_network, eps, num_actions)
             next_state, reward, done, _ = env.step(action)
             if i == 0 and env.i == 1:
                 # première étape du premier épisode
-                suffix = "RND_MODEL" if modelkey == "random" else f'{modelkey}'
-                suffix = f'{suffix}_GAMMA={dot(gamma)}'
+                suffix = f'{modelkey}'
+                suffix = f'{suffix}_GAMMA={gamma:.2e}'
+                suffix = f'{suffix}_LAMBDA={LAMBDA:.2e}'
                 suffix = f'{suffix}_NBACTIONS={num_actions}'
                 suffix = f'{suffix}_tc={tc}'
+                if nb_mlp_per_layer != 50:
+                    suffix = f'{suffix}_{nb_mlp_per_layer}MLP'
                 if halfrange:
                     suffix = f'{suffix}+ou-{halfrange}'
                 if nbh:
@@ -202,7 +209,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
                 if mean_prev:
                     suffix = f'{suffix}_MEAN_PREV'
                 if "Vacancy" in scenario:
-                    suffix = f'{suffix}_k={dot(k)}_p_c={p_c}'
+                    suffix = f'{suffix}_k={k:.2e}_p_c={p_c}'
                     suffix = f'{suffix}_vote_interval={vote_interval[0]}A{vote_interval[1]}'
                 tw_path = f'{STORE_PATH}/{scenario}{num_episodes}_{NOW}_{suffix}'
                 train_writer = tf.summary.create_file_writer(tw_path)
