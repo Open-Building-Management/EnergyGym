@@ -118,11 +118,10 @@ def train(primary_network, mem, state_shape, gamma, target_network=None):
     return loss
 
 
-MODELS["random"] = MODELS["cells"]
-MODELS["training"] = MODELS["cells"]
+NAMES = [*MODELS.keys(), "all", "selection"]
 @click.command()
 @click.option('--nbtext', type=int, default=1, prompt='numéro du flux temp. extérieure ?')
-@click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ? random ou training pour entrainer à modèle variable')
+@click.option('--modelkey', type=click.Choice(NAMES), prompt='modèle ? all ou selection pour entrainer à modèle variable')
 @click.option('--scenario', type=click.Choice(SCENARIOS), default="Vacancy", prompt='scénario ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
@@ -141,9 +140,11 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
          nbh, nbh_forecast, action_space):
     """main command"""
     text = get_feed(nbtext, INTERVAL, path=PATH)
-    if modelkey == "random":
-        TRAINING_LIST = MODELS
-    model = MODELS[modelkey]
+    if modelkey not in MODELS:
+        modelbank = MODELS if modelkey=="all" else TRAINING_LIST
+        model = {}
+    else:
+        model = MODELS[modelkey]
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, mean_prev=mean_prev, k=k, p_c=p_c)
     model = set_extra_params(model, vote_interval=vote_interval)
@@ -177,7 +178,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
     for i in range(num_episodes):
         tc_episode = tc + random.randint(-halfrange, halfrange)
         if modelkey == "random":
-            new_modelkey = random.choice(TRAINING_LIST)
+            new_modelkey = random.choice(modelbank)
             env.update_model(MODELS[new_modelkey])
         print(env.model)
         state = env.reset(tc_episode=tc_episode)
