@@ -25,8 +25,10 @@ MODELS = {
 
 LIST1 = ["tertiaire_peu_isolé", "tertiaire", "cells"]
 LIST2 = [*LIST1, "nord_10_01_2022"]
+FAST = ["unreal", "extremeb", "extreme", "nord_10_01_2022"]
+SLOW = ["nord_10_01_2022_noreduce", *LIST1, "bloch", "bloch1"]
 
-NAMES = [*MODELS.keys(), "all", "list1", "list2"]
+NAMES = [*MODELS.keys(), "all", "list1", "list2", "fast", "slow"]
 
 PATH = "datas"
 SCHEDULE = np.array([[7, 17], [7, 17], [7, 17], [7, 17], [7, 17], [-1, -1], [-1, -1]])
