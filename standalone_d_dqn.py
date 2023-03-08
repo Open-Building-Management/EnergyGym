@@ -143,7 +143,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
     text = get_feed(nbtext, INTERVAL, path=PATH)
     modelbank = list(MODELS.keys())
     if modelkey not in [*MODELS, "all"]:
-         modelbank = getattr(conf, modelkey.upper())
+        modelbank = getattr(conf, modelkey.upper())
     model = MODELS.get(modelkey, MODELS[random.choice(modelbank)])
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, mean_prev=mean_prev, k=k, p_c=p_c)
