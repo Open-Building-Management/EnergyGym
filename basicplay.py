@@ -9,7 +9,8 @@ import energy_gym
 from energy_gym import get_feed, biosAgenda, pick_name, play_hystnvacancy
 from energy_gym import set_extra_params, load
 # on importe les configurations existantes de modèles depuis le fichier conf
-from conf import MODELS, TRAINING_LIST
+import conf
+from conf import MODELS
 from conf import PATH, SCHEDULE, MAX_POWER, TEXT_FEED, REDUCE
 
 INTERVAL = 900
@@ -77,7 +78,7 @@ MODELS["random"] = MODELS["cells"]
 @click.option('--random_ts', type=bool, default=False, prompt='timestamp de démarrage aléatoire ?')
 @click.option('--scenario', type=click.Choice(SCENARIOS), prompt='scénario ou mode de jeu ?')
 @click.option('--size', type=click.Choice(SIZES), prompt='longueur des épisodes ?')
-@click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ?')
+@click.option('--modelkey', type=click.Choice(conf.NAMES), prompt='modèle ?')
 @click.option('--stepbystep', type=bool, default=False, prompt='jouer l\'épisode pas à pas ?')
 @click.option('--mirrorplay', type=bool, default=False, prompt='jouer le mirror play après avoir joué l\'épisode ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
@@ -94,7 +95,11 @@ def main(agent_type, random_ts, scenario, size, modelkey,
          stepbystep, mirrorplay, tc, halfrange, power_factor,
          mean_prev, k, p_c, vote_interval, nbh, nbh_forecast, action_space):
     """main command"""
-    model = MODELS[modelkey]
+    if modelkey not in MODELS:
+        modelbank = MODELS if modelkey == "all" else getattr(conf, modelkey.upper())
+        model = {}
+    else:
+        model = MODELS[modelkey]
     wsize = SIZES[size]
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, mean_prev=mean_prev, k=k, p_c=p_c)
@@ -133,7 +138,7 @@ def main(agent_type, random_ts, scenario, size, modelkey,
     for _ in range(nbepisodes):
         tc_episode = tc + random.randint(-halfrange, halfrange)
         if modelkey == "random":
-            new_modelkey = random.choice(TRAINING_LIST)
+            new_modelkey = random.choice(modelbank)
             bat.update_model(MODELS[new_modelkey])
         print(bat.model)
         state = bat.reset(ts=ts, wsize=wsize, tc_episode=tc_episode)

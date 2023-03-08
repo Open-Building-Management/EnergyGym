@@ -26,6 +26,8 @@ MODELS = {
 LIST1 = ["tertiaire_peu_isolé", "tertiaire", "cells"]
 LIST2 = [*LIST1, "nord_10_01_2022"]
 
+NAMES = [*MODELS.keys(), "all", "list1", "list2"]
+
 PATH = "datas"
 SCHEDULE = np.array([[7, 17], [7, 17], [7, 17], [7, 17], [7, 17], [-1, -1], [-1, -1]])
 CW = 1162.5 #Wh/m3/K

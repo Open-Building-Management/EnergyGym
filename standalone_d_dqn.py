@@ -119,13 +119,12 @@ def train(primary_network, mem, state_shape, gamma, target_network=None):
     return loss
 
 
-NAMES = [*MODELS.keys(), "all", "list1", "list2"]
 @click.command()
 @click.option('--nbtext', type=int, default=1, prompt='numéro du flux temp. extérieure ?')
-@click.option('--modelkey', type=click.Choice(NAMES), prompt='modèle ? all, list1 ou list2 si modèle variable')
+@click.option('--modelkey', type=click.Choice(conf.NAMES), prompt='modèle ou banque ?')
 @click.option('--scenario', type=click.Choice(SCENARIOS), default="Vacancy", prompt='scénario ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
-@click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
+@click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour W à consigne variable ?')
 @click.option('--gamma', type=float, default=0.97, prompt='discount parameter GAMMA ?')
 @click.option('--num_episodes', type=int, default=5400, prompt="nombre d'épisodes ?")
 @click.option('--nb_mlp_per_layer', type=int, default=50, prompt="nombre de neurones par couche ?")
