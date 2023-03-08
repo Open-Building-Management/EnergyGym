@@ -9,7 +9,8 @@ from tensorflow import keras
 
 
 # on importe les configurations existantes de modèles depuis le fichier conf
-from conf import MODELS, TRAINING_LIST
+import conf
+from conf import MODELS
 from conf import PATH, MAX_POWER
 import energy_gym
 from energy_gym import get_feed, set_extra_params
@@ -118,10 +119,10 @@ def train(primary_network, mem, state_shape, gamma, target_network=None):
     return loss
 
 
-NAMES = [*MODELS.keys(), "all", "selection"]
+NAMES = [*MODELS.keys(), "all", "list1", "list2"]
 @click.command()
 @click.option('--nbtext', type=int, default=1, prompt='numéro du flux temp. extérieure ?')
-@click.option('--modelkey', type=click.Choice(NAMES), prompt='modèle ? all ou selection pour entrainer à modèle variable')
+@click.option('--modelkey', type=click.Choice(NAMES), prompt='modèle ? all, list1 ou list2 si modèle variable')
 @click.option('--scenario', type=click.Choice(SCENARIOS), default="Vacancy", prompt='scénario ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
 @click.option('--halfrange', type=int, default=0, prompt='demi-étendue en °C pour travailler à consigne variable ?')
@@ -142,7 +143,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
     """main command"""
     text = get_feed(nbtext, INTERVAL, path=PATH)
     if modelkey not in MODELS:
-        modelbank = MODELS if modelkey == "all" else TRAINING_LIST
+        modelbank = MODELS if modelkey == "all" else getattr(conf, modelkey.upper())
         model = {}
     else:
         model = MODELS[modelkey]

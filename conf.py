@@ -23,7 +23,8 @@ MODELS = {
     "cells" :  {"R" : 2.59460660e-04, "C" : 1.31446233e+09}
 }
 
-TRAINING_LIST = ["tertiaire_peu_isolé", "tertiaire", "cells"]
+LIST1 = ["tertiaire_peu_isolé", "tertiaire", "cells"]
+LIST2 = [*LIST1, "nord_10_01_2022"]
 
 PATH = "datas"
 SCHEDULE = np.array([[7, 17], [7, 17], [7, 17], [7, 17], [7, 17], [-1, -1], [-1, -1]])
