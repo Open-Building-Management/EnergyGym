@@ -141,11 +141,10 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
          nbh, nbh_forecast, action_space, verbose):
     """main command"""
     text = get_feed(nbtext, INTERVAL, path=PATH)
-    if modelkey not in MODELS:
-        modelbank = MODELS if modelkey == "all" else getattr(conf, modelkey.upper())
-        model = {}
-    else:
-        model = MODELS[modelkey]
+    modelbank = list(MODELS.keys())
+    if modelkey not in [*MODELS, "all"]:
+         modelbank = getattr(conf, modelkey.upper())
+    model = MODELS.get(modelkey, MODELS[random.choice(modelbank)])
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, mean_prev=mean_prev, k=k, p_c=p_c)
     model = set_extra_params(model, vote_interval=vote_interval)
@@ -178,7 +177,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
 
     for i in range(num_episodes):
         tc_episode = tc + random.randint(-halfrange, halfrange)
-        if modelkey == "random":
+        if modelkey not in MODELS:
             new_modelkey = random.choice(modelbank)
             env.update_model(MODELS[new_modelkey])
         print(env.model)

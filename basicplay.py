@@ -9,8 +9,7 @@ import energy_gym
 from energy_gym import get_feed, biosAgenda, pick_name, play_hystnvacancy
 from energy_gym import set_extra_params, load
 # on importe les configurations existantes de modèles depuis le fichier conf
-import conf
-from conf import MODELS
+from conf import MODELS, NAMES
 from conf import PATH, SCHEDULE, MAX_POWER, TEXT_FEED, REDUCE
 
 INTERVAL = 900
@@ -72,13 +71,15 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
     print(f'signal de fermeture ({signum}) reçu')
     sys.exit(0)
 
-MODELS["random"] = MODELS["cells"]
+for _ in range(2):
+    NAMES.pop()
+
 @click.command()
 @click.option('--agent_type', type=click.Choice(AGENT_TYPES), prompt='comportement de l\'agent ?')
 @click.option('--random_ts', type=bool, default=False, prompt='timestamp de démarrage aléatoire ?')
 @click.option('--scenario', type=click.Choice(SCENARIOS), prompt='scénario ou mode de jeu ?')
 @click.option('--size', type=click.Choice(SIZES), prompt='longueur des épisodes ?')
-@click.option('--modelkey', type=click.Choice(conf.NAMES), prompt='modèle ?')
+@click.option('--modelkey', type=click.Choice(NAMES), prompt='modèle ?')
 @click.option('--stepbystep', type=bool, default=False, prompt='jouer l\'épisode pas à pas ?')
 @click.option('--mirrorplay', type=bool, default=False, prompt='jouer le mirror play après avoir joué l\'épisode ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
@@ -95,11 +96,8 @@ def main(agent_type, random_ts, scenario, size, modelkey,
          stepbystep, mirrorplay, tc, halfrange, power_factor,
          mean_prev, k, p_c, vote_interval, nbh, nbh_forecast, action_space):
     """main command"""
-    if modelkey not in MODELS:
-        modelbank = MODELS if modelkey == "all" else getattr(conf, modelkey.upper())
-        model = {}
-    else:
-        model = MODELS[modelkey]
+    modelbank = list(MODELS.keys())
+    model = MODELS.get(modelkey, MODELS[random.choice(modelbank)])
     wsize = SIZES[size]
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, mean_prev=mean_prev, k=k, p_c=p_c)
@@ -137,7 +135,7 @@ def main(agent_type, random_ts, scenario, size, modelkey,
     signal.signal(signal.SIGTERM, sig_handler)
     for _ in range(nbepisodes):
         tc_episode = tc + random.randint(-halfrange, halfrange)
-        if modelkey == "random":
+        if modelkey not in MODELS:
             new_modelkey = random.choice(modelbank)
             bat.update_model(MODELS[new_modelkey])
         print(bat.model)
