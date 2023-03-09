@@ -132,7 +132,7 @@ def train(primary_network, mem, state_shape, gamma, target_network=None):
 @click.option('--k', type=float, default=1)
 @click.option('--k_step', type=float, default=1)
 @click.option('--p_c', type=int, default=15)
-@click.option('--vote_interval', type=int, nargs=2, default=(-3,1))
+@click.option('--vote_interval', type=int, nargs=2, default=(-1,1))
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
@@ -213,7 +213,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
                 if mean_prev:
                     suffix = f'{suffix}_MEAN_PREV'
                 if "Vacancy" in scenario:
-                    suffix = f'{suffix}_k={k:.2e}_p_c={p_c}'
+                    suffix = f'{suffix}_k={k:.2e}_k_step={k_step:.2e}_p_c={p_c}'
                     suffix = f'{suffix}_vote_interval={vote_interval[0]}A{vote_interval[1]}'
                 tw_path = f'{STORE_PATH}/{scenario}{num_episodes}_{NOW}_{suffix}'
                 train_writer = tf.summary.create_file_writer(tw_path)

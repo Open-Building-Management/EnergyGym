@@ -5,8 +5,9 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import click
 
-from energy_gym import Environnement, Evaluate, get_truth, pick_name
-from energy_gym import load, freeze
+from energy_gym.evaluation_toolbox import Environnement, Evaluate
+from energy_gym.tools import get_truth
+from energy_gym import pick_name, load, freeze
 # on importe les configurations existantes de modèles depuis le fichier conf
 from conf import MODELS
 from conf import PATH, SCHEDULE, MAX_POWER, COLD

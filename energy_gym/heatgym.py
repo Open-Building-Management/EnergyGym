@@ -13,7 +13,7 @@ custom_gym_envs = [
     "Hyst",
     "Reduce",
     "Vacancy",
-    "D2Vacancy",
+    "StepRewardVacancy",
     "Building"
 ]
 
@@ -23,7 +23,7 @@ custom_gym_envs = [
 _custom_gym_envs = [
     *custom_gym_envs,
     "Env",
-    "StepRewardVacancy",
+    "D2Vacancy",
     "TopLimitVacancy"
 ]
 
@@ -166,7 +166,7 @@ class Env(gym.Env):
         # p_c : pondération du confort
         # k : coefficient énergie
         self._p_c = model.get("p_c", 15)
-        self._vote_interval = model.get("vote_interval", (-3, 1))
+        self._vote_interval = model.get("vote_interval", (-1, 1))
         self._k = model.get("k", 1)
         self._k_step = model.get("k_step", 1)
         self.model = model if model else MODELRC
