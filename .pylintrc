@@ -8,7 +8,7 @@ disable=too-many-arguments,
 max-nested-blocks=10
 max-statements=120
 max-branches=35
-max-locals=50
+max-locals=60
 
 good-names=i,j,k,x,dt,tt,ts,tz,
            tc,hh,xr,

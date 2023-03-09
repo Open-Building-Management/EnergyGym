@@ -101,10 +101,8 @@ def main(agent_type, random_ts, scenario, size, modelkey,
         modelbank = getattr(conf, modelkey.upper())
     model = MODELS.get(modelkey, MODELS[random.choice(modelbank)])
     wsize = SIZES[size]
-    model = set_extra_params(model, action_space=action_space)
-    model = set_extra_params(model, mean_prev=mean_prev)
-    model = set_extra_params(model, k=k, k_step=k_step, p_c=p_c)
-    model = set_extra_params(model, vote_interval=vote_interval)
+    model = set_extra_params(model, action_space=action_space, mean_prev=mean_prev)
+    model = set_extra_params(model, k=k, k_step=k_step, p_c=p_c, vote_interval=vote_interval)
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
 
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
