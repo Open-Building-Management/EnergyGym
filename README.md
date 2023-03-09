@@ -65,17 +65,17 @@ On peut définir des coefficients de pondération personnalisés pour la récomp
 python3 standalone_d_dqn.py --nbh=48 --k=1 --p_c=15 --vote_interval -1 1
 ```
 
-Lorsqu'on joue un scénario de type vacancy, la récompense est la somme de 2 termes :
-- l'un positif représentant l'énergie totale économisée
-- l'autre négatif représentant le vote à l'ouverture du bâtiment
+Lorsqu'on joue un scénario de type vacancy, la récompense **finale**, attribuée à la fin de l'épisode, lorsque l'occupation du bâtiment recommence, est la somme de 2 termes :
+- l'un positif proportionnel au pourcentage d'énergie totale économisée sur l'épisode
+- l'autre négatif représentant en quelque sorte le vote à l'ouverture du bâtiment, de type hystérésis, donc proportionnel à la valeur absolue de l'écart entre la température à l'ouverture des locaux et la température de consigne
 
-Il s'agit d'une récompense finale, attribuée à la fin de l'épisode
+Lors des entrainements, le réseau va d'abord chercher à converger vers cette température cible pour ne pas avoir de malus, puis à maximiser l'énergie économisée.
 
-k est le coefficient énergétique
-
-p_c est la pondération à appliquer sur le confort à l'ouverture des locaux, c'est-à-dire sur la valeur absolue de l'écart entre la température à l'ouverture des locaux et la température de consigne
-
-vote_interval représente l'intervalle dans lequel la récompense énergétique est attribuée. si vote_interval vaut (-1, 1), on attribue le bonus énergétique si et seulement si l'écart entre la température à l'ouverture des locaux et la température de consigne est compris entre -1 et 1
+coefficient | signification
+--|--
+p_c | pondération à appliquer sur le confort à l'ouverture
+k | coefficient énergétique
+vote_interval | intervalle de température dans lequel le bonus énergétique est attribué. si vote_interval vaut (-1, 1), on attribue le bonus énergétique si et seulement si l'écart entre la température à l'ouverture des locaux et la température de consigne est compris entre -1 et 1
 
 </details>
 
