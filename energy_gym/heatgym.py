@@ -167,7 +167,8 @@ class Env(gym.Env):
         # k : coefficient énergie
         self._p_c = model.get("p_c", 15)
         self._vote_interval = model.get("vote_interval", (-3, 1))
-        self._k = model.get("k", 0.9)
+        self._k = model.get("k", 1)
+        self._k_step = model.get("k_step", 1)
         self.model = model if model else MODELRC
         # calcule les constantes du modèle électrique équivalent
         self.tcte, self.cte = self._update_cte_tcte()
@@ -595,7 +596,7 @@ class StepRewardVacancy(Vacancy):
         """récompense à chaque step et non plus seulement finale"""
         reward = super().reward(action)
         coeff = (self.wsize - self.i) * self._interval / self.tcte
-        reward -= (1 - self._eko(action)) * coeff
+        reward -= (1 - self._eko(action)) * coeff * self._k_step
         return reward
 
 

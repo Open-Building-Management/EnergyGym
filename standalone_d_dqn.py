@@ -129,7 +129,8 @@ def train(primary_network, mem, state_shape, gamma, target_network=None):
 @click.option('--num_episodes', type=int, default=5400, prompt="nombre d'épisodes ?")
 @click.option('--nb_mlp_per_layer', type=int, default=50, prompt="nombre de neurones par couche ?")
 @click.option('--mean_prev', type=bool, default=False)
-@click.option('--k', type=float, default=0.9)
+@click.option('--k', type=float, default=1)
+@click.option('--k_step', type=float, default=1)
 @click.option('--p_c', type=int, default=15)
 @click.option('--vote_interval', type=int, nargs=2, default=(-3,1))
 @click.option('--nbh', type=int, default=None)
@@ -137,7 +138,7 @@ def train(primary_network, mem, state_shape, gamma, target_network=None):
 @click.option('--action_space', type=int, default=2)
 @click.option('--verbose', type=bool, default=False)
 def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
-         nb_mlp_per_layer, mean_prev, k, p_c, vote_interval,
+         nb_mlp_per_layer, mean_prev, k, k_step, p_c, vote_interval,
          nbh, nbh_forecast, action_space, verbose):
     """main command"""
     text = get_feed(nbtext, INTERVAL, path=PATH)
@@ -146,7 +147,8 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
         modelbank = getattr(conf, modelkey.upper())
     model = MODELS.get(modelkey, MODELS[random.choice(modelbank)])
     model = set_extra_params(model, action_space=action_space)
-    model = set_extra_params(model, mean_prev=mean_prev, k=k, p_c=p_c)
+    model = set_extra_params(model, mean_prev=mean_prev)
+    model = set_extra_params(model, k=k, k_step=k_step, p_c=p_c)
     model = set_extra_params(model, vote_interval=vote_interval)
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
 
