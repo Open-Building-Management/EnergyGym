@@ -550,7 +550,10 @@ class Vacancy(Env):
             vmin = self._vote_interval[0]
             vmax = self._vote_interval[1]
             peko = round (100 * self.tot_eko / self.wsize, 1)
+            if tint > tc + vmax and peko == 100:
+                reward = self._k * 100
             if vmin <= tint - tc <= vmax:
+                #reward += self._k * self.tot_eko * self._interval / 3600
                 reward = self._k * peko
         else:
             self.tot_eko += self._eko(action)
@@ -634,7 +637,10 @@ class Building(Vacancy):
         if self.agenda[self.pos + self.i] != 0:
             tc = self.tc_episode
             tint = self.tint[self.i]
-            reward -= abs(tint - tc) * self._interval / 3600
+            vmin = self._vote_interval[0]
+            vmax = self._vote_interval[1]
+            if tint - tc < vmin or tint - tc > vmax :
+                reward -= abs(tint - tc) * self._interval / 3600
         self.tot_eko += self._eko(action)
         return reward
 
