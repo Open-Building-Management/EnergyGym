@@ -4,16 +4,18 @@ import energy_gym
 from energy_gym import EvaluateGym
 from energy_gym import get_feed, biosAgenda, pick_name, set_extra_params
 from energy_gym import load, freeze
+import conf
 from conf import MODELS
 from conf import PATH, SCHEDULE, MAX_POWER, TEXT_FEED
 
 INTERVAL = 3600
 WSIZE = 8*24*3600 // INTERVAL
 
+NAMES = [*MODELS.keys(), "synth"]
 
 # pylint: disable=no-value-for-parameter
 @click.command()
-@click.option('--modelkey', type=click.Choice(MODELS), prompt='modèle ?')
+@click.option('--modelkey', type=click.Choice(NAMES), prompt='modèle ?')
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--mean_prev', type=bool, default=False)
@@ -21,7 +23,8 @@ WSIZE = 8*24*3600 // INTERVAL
 @click.option('--nb_off', type=int, default=0, prompt='nbr jours fériés à intégrer ?')
 def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off):
     """main command"""
-    model = MODELS[modelkey]
+    defmodel = conf.generate(bank_name=modelkey)
+    model = MODELS.get(modelkey, defmodel)
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh, mean_prev=mean_prev)
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
     # demande à l'utilisateur des chemins de réseaux

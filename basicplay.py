@@ -72,13 +72,14 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
     print(f'signal de fermeture ({signum}) reçu')
     sys.exit(0)
 
+NAMES = [*conf.NAMES, "synth_static"]
 
 @click.command()
 @click.option('--agent_type', type=click.Choice(AGENT_TYPES), prompt='comportement de l\'agent ?')
 @click.option('--random_ts', type=bool, default=False, prompt='timestamp de démarrage aléatoire ?')
 @click.option('--scenario', type=click.Choice(SCENARIOS), prompt='scénario ou mode de jeu ?')
 @click.option('--size', type=click.Choice(SIZES), prompt='longueur des épisodes ?')
-@click.option('--modelkey', type=click.Choice(conf.NAMES), prompt='modèle ?')
+@click.option('--modelkey', type=click.Choice(NAMES), prompt='modèle ?')
 @click.option('--stepbystep', type=bool, default=False, prompt='jouer l\'épisode pas à pas ?')
 @click.option('--mirrorplay', type=bool, default=False, prompt='jouer le mirror play après avoir joué l\'épisode ?')
 @click.option('--tc', type=int, default=20, prompt='consigne moyenne de confort en °C ?')
@@ -88,7 +89,7 @@ def sig_handler(signum, frame):  # pylint: disable=unused-argument
 @click.option('--k', type=float, default=1)
 @click.option('--k_step', type=float, default=1)
 @click.option('--p_c', type=int, default=15)
-@click.option('--vote_interval', type=int, nargs=2, default=(-3,1))
+@click.option('--vote_interval', type=int, nargs=2, default=(-1,1))
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
@@ -96,10 +97,8 @@ def main(agent_type, random_ts, scenario, size, modelkey,
          stepbystep, mirrorplay, tc, halfrange, power_factor, mean_prev,
          k, k_step, p_c, vote_interval, nbh, nbh_forecast, action_space):
     """main command"""
-    modelbank = list(MODELS.keys())
-    if modelkey not in [*MODELS, "all"]:
-        modelbank = getattr(conf, modelkey.upper())
-    model = MODELS.get(modelkey, MODELS[random.choice(modelbank)])
+    defmodel = conf.generate(bank_name=modelkey)
+    model = MODELS.get(modelkey, defmodel)
     wsize = SIZES[size]
     model = set_extra_params(model, action_space=action_space, mean_prev=mean_prev)
     model = set_extra_params(model, k=k, k_step=k_step, p_c=p_c, vote_interval=vote_interval)
@@ -136,10 +135,10 @@ def main(agent_type, random_ts, scenario, size, modelkey,
     signal.signal(signal.SIGTERM, sig_handler)
     for _ in range(nbepisodes):
         tc_episode = tc + random.randint(-halfrange, halfrange)
-        if modelkey not in MODELS:
-            new_modelkey = random.choice(modelbank)
-            bat.update_model(MODELS[new_modelkey])
-        print(bat.model)
+        if modelkey not in MODELS and modelkey != "synth_static":
+            newmodel = conf.generate(bank_name=modelkey)
+            bat.update_model(newmodel)
+        conf.output_model(bat.model)
         state = bat.reset(ts=ts, wsize=wsize, tc_episode=tc_episode)
         rewardtot = 0
         while True :

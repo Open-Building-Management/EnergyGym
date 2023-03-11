@@ -142,10 +142,9 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
          nbh, nbh_forecast, action_space, verbose):
     """main command"""
     text = get_feed(nbtext, INTERVAL, path=PATH)
-    modelbank = list(MODELS.keys())
-    if modelkey not in [*MODELS, "all"]:
-        modelbank = getattr(conf, modelkey.upper())
-    model = MODELS.get(modelkey, MODELS[random.choice(modelbank)])
+    defmodel = conf.generate(bank_name=modelkey)
+    model = MODELS.get(modelkey, defmodel)
+
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, mean_prev=mean_prev)
     model = set_extra_params(model, k=k, k_step=k_step, p_c=p_c)
@@ -180,9 +179,9 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
     for i in range(num_episodes):
         tc_episode = tc + random.randint(-halfrange, halfrange)
         if modelkey not in MODELS:
-            new_modelkey = random.choice(modelbank)
-            env.update_model(MODELS[new_modelkey])
-        print(env.model)
+            newmodel = conf.generate(bank_name=modelkey)
+            env.update_model(newmodel)
+        conf.output_model(env.model)
         state = env.reset(tc_episode=tc_episode)
 
         cnt = 0
@@ -239,9 +238,6 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
                 print(message)
                 message = f'consigne de température intérieure: {env.tc_episode}°C'
                 print(message)
-                if modelkey == "random":
-                    message = f'R={env.model["R"]:.2e} C={env.model["C"]:.2e}'
-                    print(message)
                 tint_min = np.amin(env.tint)
                 tint_max = np.amax(env.tint)
                 tint_moy = np.mean(env.tint)
