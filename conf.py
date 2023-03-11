@@ -57,8 +57,8 @@ def generate(verbose=False, bank_name="slow", **kwargs):
         _c_ = MODELS[model_name]["C"]
     except Exception:
         while True:
-            _r_ = random.randint(1,9) * random.choice([1e-3, 1e-4])
-            _c_ = random.randint(1,9) * random.choice([1e+7, 1e+8, 1e+9])
+            _r_ = random.randint(1, 9) * random.choice([1e-3, 1e-4])
+            _c_ = random.randint(1, 9) * random.choice([1e+7, 1e+8, 1e+9])
             if vmin is None and vmax is None:
                 break
             if vmin is None and _r_ * _c_ / 3600 <= vmax:
@@ -77,7 +77,7 @@ def output_model(model):
     """model pretty print :-)
     with scientific notation for R and C
     """
-    output=""
+    output = ""
     for key, val in model.items():
         if isinstance(val, float):
             unit = ""

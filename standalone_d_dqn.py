@@ -132,7 +132,7 @@ def train(primary_network, mem, state_shape, gamma, target_network=None):
 @click.option('--k', type=float, default=1)
 @click.option('--k_step', type=float, default=1)
 @click.option('--p_c', type=int, default=15)
-@click.option('--vote_interval', type=int, nargs=2, default=(-1,1))
+@click.option('--vote_interval', type=int, nargs=2, default=(-1, 1))
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
