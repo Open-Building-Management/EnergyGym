@@ -13,7 +13,7 @@ from .planning import tsToHuman, biosAgenda
 
 def set_extra_params(model, **kwargs):
     """définit d'éventuels paramètres additionnels dans le modèle"""
-    fields = ["action_space", "mean_prev",
+    fields = ["action_space", "mean_prev", "autosize_max_power",
               "k", "k_step", "p_c", "vote_interval",
               "nbh", "nbh_forecast"]
     for field in fields:

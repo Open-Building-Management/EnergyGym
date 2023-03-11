@@ -158,6 +158,7 @@ class Env(gym.Env):
         self.action = None
         # nombre de pas de temps sans conso énergétique pour l'épisode
         self.tot_eko = 0
+        self.autosize_max_power = model.get("autosize_max_power", False)
         self.max_power = max_power
         self.tc = tc
         # tc_episode permet d'entrainer à consigne variable
@@ -218,6 +219,13 @@ class Env(gym.Env):
 
         retourne state
         """
+        if self.autosize_max_power:
+            # on dimensionne une puissance max théorique
+            # pour maintenir 20°C à l'intérieur quant il fait 0°C dehors
+            power = max(1, 20 * 1e-4 / self.model["R"])
+            # on arrondit à la dizaine de KW
+            # on applique un coefficient de sécurité de 10%
+            self.max_power = 1.1 * round(power, 0) * 1e+4
         if ts is None:
             start = self._tss + self.pastsize * self._interval
             tse = self._tse

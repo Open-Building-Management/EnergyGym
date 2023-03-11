@@ -93,9 +93,11 @@ NAMES = [*conf.NAMES, "synth_static"]
 @click.option('--nbh', type=int, default=None)
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
+@click.option('--autosize_max_power', type=bool, default=False)
 def main(agent_type, random_ts, scenario, size, modelkey,
          stepbystep, mirrorplay, tc, halfrange, power_factor, mean_prev,
-         k, k_step, p_c, vote_interval, nbh, nbh_forecast, action_space):
+         k, k_step, p_c, vote_interval, nbh, nbh_forecast, action_space,
+         autosize_max_power):
     """main command"""
     defmodel = conf.generate(bank_name=modelkey)
     model = MODELS.get(modelkey, defmodel)
@@ -103,6 +105,7 @@ def main(agent_type, random_ts, scenario, size, modelkey,
     model = set_extra_params(model, action_space=action_space, mean_prev=mean_prev)
     model = set_extra_params(model, k=k, k_step=k_step, p_c=p_c, vote_interval=vote_interval)
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
+    model = set_extra_params(model, autosize_max_power=autosize_max_power)
 
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
     bat = getattr(energy_gym, scenario)(text, power_factor * MAX_POWER, tc, **model)
@@ -163,7 +166,7 @@ def main(agent_type, random_ts, scenario, size, modelkey,
                 if "Vacancy" in scenario:
                     print(f'récompense à l\'arrivée {reward:.2f}')
                 print(f'récompense cumulée {rewardtot:.2f}')
-                print(f'{bat.tot_reward}')
+                #print(f'{bat.tot_reward}')
                 peko = stats(bat)
                 if not stepbystep:
                     # pour les scénarios de type Hyst/Vacancy,
@@ -178,6 +181,8 @@ def main(agent_type, random_ts, scenario, size, modelkey,
                     if "Vacancy" in scenario:
                         label = f'{label} & Tint à l\'ouverture {bat.tint[-1]:.2f}°C'
                     label = f'{label}\n R={bat.model["R"]:.2e} C={bat.model["C"]:.2e}'
+                    max_power = round(bat.max_power * 1e-3)
+                    label = f'{label} MAX_POWER={max_power}kW'
                     bat.render(stepbystep=False, label=label, extra_datas=optimal_solution)
                     if "Vacancy" in scenario and mirrorplay:
                         mirror_play(bat)

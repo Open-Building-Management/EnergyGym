@@ -137,9 +137,10 @@ def train(primary_network, mem, state_shape, gamma, target_network=None):
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
 @click.option('--verbose', type=bool, default=False)
+@click.option('--autosize_max_power', type=bool, default=False)
 def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
          nb_mlp_per_layer, mean_prev, k, k_step, p_c, vote_interval,
-         nbh, nbh_forecast, action_space, verbose):
+         nbh, nbh_forecast, action_space, verbose, autosize_max_power):
     """main command"""
     text = get_feed(nbtext, INTERVAL, path=PATH)
     defmodel = conf.generate(bank_name=modelkey)
@@ -150,6 +151,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
     model = set_extra_params(model, k=k, k_step=k_step, p_c=p_c)
     model = set_extra_params(model, vote_interval=vote_interval)
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
+    model = set_extra_params(model, autosize_max_power=autosize_max_power)
 
     env = getattr(energy_gym, scenario)(text, MAX_POWER, tc, **model)
 
@@ -183,6 +185,8 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
             env.update_model(newmodel)
         conf.output_model(env.model)
         state = env.reset(tc_episode=tc_episode)
+        max_power = round(env.max_power * 1e-3)
+        print(f'max power : {max_power} kW')
 
         cnt = 0
         avg_loss = 0
@@ -202,6 +206,8 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
                 suffix = f'{suffix}_NBACTIONS={num_actions}'
                 if nb_mlp_per_layer != 50:
                     suffix = f'{suffix}_{nb_mlp_per_layer}MLP'
+                if autosize_max_power:
+                    suffix = f'{suffix}_AUTOPOWER'
                 suffix = f'{suffix}_tc={tc}'
                 if halfrange:
                     suffix = f'{suffix}+ou-{halfrange}'
@@ -233,7 +239,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
 
             if done:
                 avg_loss /= cnt
-                message = f'Episode: {i}, Reward: {reward:.3f}, Total Reward: {env.tot_reward}'
+                message = f'Episode: {i}, Reward: {reward:.3f}, Total Reward: {env.tot_reward:.3f}'
                 message = f'{message}, avg loss: {avg_loss:.3f}, eps: {eps:.3f}'
                 print(message)
                 message = f'consigne de température intérieure: {env.tc_episode}°C'
