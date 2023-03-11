@@ -22,13 +22,16 @@ NAMES = [*MODELS.keys(), "synth"]
 @click.option('--generate_stats', type=bool, default=True, prompt='generer les stats ?')
 @click.option('--nb_off', type=int, default=0, prompt='nbr jours fériés à intégrer ?')
 @click.option('--action_space', type=int, default=2)
-def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off, action_space):
+@click.option('--autosize_max_power', type=bool, default=False)
+def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
+         action_space, autosize_max_power):
     """main command"""
     defmodel = conf.generate(bank_name=modelkey)
     model = MODELS.get(modelkey, defmodel)
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, mean_prev=mean_prev)
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
+    model = set_extra_params(model, autosize_max_power=autosize_max_power)
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
     # demande à l'utilisateur des chemins de réseaux
     agent_path, saved = pick_name()

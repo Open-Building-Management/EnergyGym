@@ -354,7 +354,8 @@ class EvaluateGym:
         aeko = 100 * self._env.tot_eko / self._env.wsize
         meko = 100 * (1 - np.mean(optimal_solution[:, 0]))
         label = f'EKO - modèle : {meko:.2f}% - agent : {aeko:.2f}%'
-        label = f'{label} {self._modlabel}'
+        max_power = round(self._env.max_power * 1e-3)
+        label = f'{label} {self._modlabel} max power {max_power} kW'
         label = f'{label}\n Tocc moyenne'
         label = f'{label} modèle : {self._stats[self._steps, 5]}'
         label = f'{label} agent : {self._stats[self._steps, 1]}'
@@ -398,8 +399,8 @@ class EvaluateGym:
         # uniquement si on est allé au bout des épisodes
         # pas la peine de sauver des figures vides
         if self._steps == self._n :
-
-            title = f'modèle {self._modlabel}'
+            max_power = round(self._env.max_power * 1e-3)
+            title = f'modèle {self._modlabel} max power {max_power} kW'
             #' jouant la politique optimale {suffix}\n' if suffix is not None else ""
             title = f'{title} Conso moyenne agent : {stats_moy[4]} / Conso moyenne modèle : {stats_moy[8]}\n'
 
