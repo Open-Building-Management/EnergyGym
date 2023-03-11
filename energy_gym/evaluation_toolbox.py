@@ -312,15 +312,17 @@ class EvaluateGym:
         while True:
             pos1 = self._env.i
             pos2 = self._env.pos + pos1
+            coeff = 1
             if self._env.agenda[pos2] != 0 and self._multi_agent:
                 hyststate = np.array([
                     self._env.text[pos2],
                     self._env.tint[pos1],
                     tc])
+                coeff = self._env.action_space.n - 1
                 result = self._occupancy_agent(hyststate.reshape(1, *hyststate.shape))
             else:
                 result = self._agent(state.reshape(1, *state.shape))
-            action = np.argmax(result)
+            action = np.argmax(result) * coeff
             state, _, done, _ = self._env.step(action, tc_step=tc_step)
             if done:
                 break
