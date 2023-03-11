@@ -200,9 +200,9 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
                 suffix = f'{suffix}_GAMMA={gamma:.2e}'
                 suffix = f'{suffix}_LAMBDA={LAMBDA:.2e}'
                 suffix = f'{suffix}_NBACTIONS={num_actions}'
-                suffix = f'{suffix}_tc={tc}'
                 if nb_mlp_per_layer != 50:
                     suffix = f'{suffix}_{nb_mlp_per_layer}MLP'
+                suffix = f'{suffix}_tc={tc}'
                 if halfrange:
                     suffix = f'{suffix}+ou-{halfrange}'
                 if nbh:
