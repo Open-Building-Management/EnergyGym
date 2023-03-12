@@ -208,6 +208,8 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
                     suffix = f'{suffix}_{nb_mlp_per_layer}MLP'
                 if autosize_max_power:
                     suffix = f'{suffix}_AUTOPOWER'
+                else:
+                    suffix = f'{suffix}_{max_power}kW'
                 suffix = f'{suffix}_tc={tc}'
                 if halfrange:
                     suffix = f'{suffix}+ou-{halfrange}'
