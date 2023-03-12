@@ -271,7 +271,7 @@ class EvaluateGym:
         print(f'on va jouer {self._n} épisodes')
         self._name = name
         self._env = env
-        self._modlabel = f'R={self._env.model["R"]:.2e} C={self._env.model["C"]:.2e}'
+        self._modlabel = self._gen_mod_label()
         self._agent = agent
         self._occupancy_agent = None
         self._exit = False
@@ -279,6 +279,15 @@ class EvaluateGym:
         self._steps = 0
         self._stats = np.zeros((self._n, 9))
         self._multi_agent = False
+
+    def _gen_mod_label(self):
+        """return a string with the model electrical parameters"""
+        return f'R={self._env.model["R"]:.2e} C={self._env.model["C"]:.2e}'
+
+    def update_model(self, model):
+        """model live update"""
+        self._env.update_model(model)
+        self._modlabel = self._gen_mod_label()
 
     def set_occupancy_agent(self, agent):
         """add an occupancy agent such as an hystérésis"""
@@ -335,7 +344,7 @@ class EvaluateGym:
                                              self._env.wsize,
                                              tint[0], tc, 1)
         mtocc_moy, mnbinc, mnbluxe = stats(tc, optimal_solution[:, 1], occ, interval)
-        aconso = self._env.wsize - self._env.tot_eko
+        aconso = self._env.wsize + 1 - self._env.tot_eko
         mconso = np.sum(optimal_solution[:, 0])
         line = np.array([self._env.tsvrai,
                          atocc_moy, anbluxe, anbinc, aconso * interval / 3600,
@@ -351,7 +360,8 @@ class EvaluateGym:
         Un fichier tiers utilisant la classe peut donc l'enregistrer
         """
         optimal_solution = self.play_base(ts=ts, tint=tint, wsize=wsize, fix_tc=fix_tc)
-        aeko = 100 * self._env.tot_eko / self._env.wsize
+        print("agent eko", self._env.tot_eko)
+        aeko = 100 * self._env.tot_eko / (self._env.wsize + 1)
         meko = 100 * (1 - np.mean(optimal_solution[:, 0]))
         label = f'EKO - modèle : {meko:.2f}% - agent : {aeko:.2f}%'
         max_power = round(self._env.max_power * 1e-3)

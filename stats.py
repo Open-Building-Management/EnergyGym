@@ -23,8 +23,9 @@ NAMES = [*MODELS.keys(), "synth"]
 @click.option('--nb_off', type=int, default=0, prompt='nbr jours fériés à intégrer ?')
 @click.option('--action_space', type=int, default=2)
 @click.option('--autosize_max_power', type=bool, default=False)
+@click.option('--regenerate_model_at_each_episode', type=bool, default=False)
 def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
-         action_space, autosize_max_power):
+         action_space, autosize_max_power, regenerate_model_at_each_episode):
     """main command"""
     defmodel = conf.generate(bank_name=modelkey)
     model = MODELS.get(modelkey, defmodel)
@@ -57,7 +58,14 @@ def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
         # nécessaire si on veut jouer un hystérésis sur toute une semaine
         for fix_tc in [False, True]:
             sandbox.play_gym(ts=1605821540, wsize=WSIZE, fix_tc=fix_tc)
-        sandbox.run_gym(silent=generate_stats, wsize=WSIZE)
+        if regenerate_model_at_each_episode:
+            for _ in range(200):
+                newmodel = conf.generate(bank_name=modelkey)
+                print(newmodel)
+                sandbox.update_model(newmodel)
+                sandbox.play_gym(wsize=WSIZE)
+        else:
+            sandbox.run_gym(silent=generate_stats, wsize=WSIZE)
         sandbox.close(suffix=modelkey)
 
 if __name__ == "__main__":
