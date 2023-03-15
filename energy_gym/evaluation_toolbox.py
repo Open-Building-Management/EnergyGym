@@ -276,7 +276,7 @@ class EvaluateGym:
         self._occupancy_agent = None
         self._exit = False
         # numéro de l'épisode
-        self._steps = 0
+        self.nb_episode = 0
         self._stats = np.zeros((self._n, 9))
         self._multi_agent = False
 
@@ -288,6 +288,10 @@ class EvaluateGym:
         """model live update"""
         self._env.update_model(model)
         self._modlabel = self._gen_mod_label()
+
+    def get_episode_params(self):
+        """return tint[0] and tsvrai"""
+        return self._env.tint[0], self._env.tsvrai
 
     def set_occupancy_agent(self, agent):
         """add an occupancy agent such as an hystérésis"""
@@ -349,7 +353,7 @@ class EvaluateGym:
         line = np.array([self._env.tsvrai,
                          atocc_moy, anbluxe, anbinc, aconso * interval / 3600,
                          mtocc_moy, mnbluxe, mnbinc, mconso * interval / 3600])
-        self._stats[self._steps, :] = line
+        self._stats[self.nb_episode, :] = line
         return optimal_solution
 
     def play_gym(self, ts=None, snapshot=False, tint=None, wsize=None, fix_tc=True):
@@ -367,11 +371,11 @@ class EvaluateGym:
         max_power = round(self._env.max_power * 1e-3)
         label = f'{label} {self._modlabel} max power {max_power} kW'
         label = f'{label}\n Tocc moyenne'
-        label = f'{label} modèle : {self._stats[self._steps, 5]}'
-        label = f'{label} agent : {self._stats[self._steps, 1]}'
+        label = f'{label} modèle : {self._stats[self.nb_episode, 5]}'
+        label = f'{label} agent : {self._stats[self.nb_episode, 1]}'
         label = f'{label}\n nb heures inconfort'
-        label = f'{label} modèle : {self._stats[self._steps, 7]}'
-        label = f'{label} agent : {self._stats[self._steps, 3]}'
+        label = f'{label} modèle : {self._stats[self.nb_episode, 7]}'
+        label = f'{label} agent : {self._stats[self.nb_episode, 3]}'
         self._env.render(stepbystep=False,
                          label=label,
                          extra_datas=optimal_solution,
@@ -388,16 +392,16 @@ class EvaluateGym:
         signal.signal(signal.SIGINT, self._sig_handler)
         signal.signal(signal.SIGTERM, self._sig_handler)
         while not self._exit:
-            if self._steps >= self._n - 1:
+            if self.nb_episode >= self._n - 1:
                 self._exit = True
             if silent:
                 self.play_base(wsize=wsize)
             else:
                 self.play_gym(wsize=wsize)
-            self._steps += 1
+            self.nb_episode += 1
             time.sleep(0.1)
 
-    def close(self, suffix=None):
+    def close(self, suffix=None, random_model=False):
         """
         enregistre les statistiques (csv + png) si on est arrivé au bout du nombre d'épisodes
 
@@ -408,11 +412,13 @@ class EvaluateGym:
         # enregistrement des statistiques du jeu
         # uniquement si on est allé au bout des épisodes
         # pas la peine de sauver des figures vides
-        if self._steps == self._n :
-            max_power = round(self._env.max_power * 1e-3)
-            title = f'modèle {self._modlabel} max power {max_power} kW'
-            #' jouant la politique optimale {suffix}\n' if suffix is not None else ""
-            title = f'{title} Conso moyenne agent : {stats_moy[4]} / Conso moyenne modèle : {stats_moy[8]}\n'
+        if self.nb_episode == self._n :
+            title = ""
+            if not random_model:
+                max_power = round(self._env.max_power * 1e-3)
+                title = f'modèle {self._modlabel} max power {max_power} kW'
+            title = f'{title} Conso moyenne agent : {stats_moy[4]}'
+            title = f'{title} / Conso moyenne modèle : {stats_moy[8]}\n'
 
             pct = round(100*(stats_moy[8]-stats_moy[4])/stats_moy[8], 2)
             title = f'{title} Pourcentage de gain agent : {pct} %'
@@ -559,7 +565,7 @@ class Evaluate(EvaluateGym):
                          mtocc_moy, mnbluxe, mnbinc, mconso,
                          areward, mreward])
         #print(line)
-        self._stats[self._steps, :] = line
+        self._stats[self.nb_episode, :] = line
 
         if not silent or snapshot:
             tmin = min(np.min(mdatas[:, 2]), np.min(adatas[:, 2]))
@@ -574,7 +580,7 @@ class Evaluate(EvaluateGym):
             zone_confort = confort(xr, tc, hh)
             zones_occ = presence(xr, occupation, wsize, tmin, tmax, tc, hh)
 
-            title = f'épisode {self._steps}'
+            title = f'épisode {self.nb_episode}'
             title = f'{title} - {self._env.tsvrai} {tsToHuman(self._env.tsvrai)}'
             title = f'{title} {self._modlabel}'
             title = f'{title}\n conso Modèle {mconso} Agent {aconso}'
@@ -654,8 +660,8 @@ class Evaluate(EvaluateGym):
         signal.signal(signal.SIGINT, self._sig_handler)
         signal.signal(signal.SIGTERM, self._sig_handler)
         while not self._exit:
-            if self._steps >= self._n - 1:
+            if self.nb_episode >= self._n - 1:
                 self._exit = True
             self.play(silent=silent, tint=tint)
-            self._steps += 1
+            self.nb_episode += 1
             time.sleep(0.1)
