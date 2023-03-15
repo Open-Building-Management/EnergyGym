@@ -138,9 +138,12 @@ def train(primary_network, mem, state_shape, gamma, target_network=None):
 @click.option('--action_space', type=int, default=2)
 @click.option('--verbose', type=bool, default=False)
 @click.option('--autosize_max_power', type=bool, default=False)
+@click.option('--rc_min', type=int, default=50)
+@click.option('--rc_max', type=int, default=100)
 def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
          nb_mlp_per_layer, mean_prev, k, k_step, p_c, vote_interval,
-         nbh, nbh_forecast, action_space, verbose, autosize_max_power):
+         nbh, nbh_forecast, action_space, verbose,
+         autosize_max_power, rc_min, rc_max):
     """main command"""
     text = get_feed(nbtext, INTERVAL, path=PATH)
     defmodel = conf.generate(bank_name=modelkey)
@@ -181,7 +184,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
     for i in range(num_episodes):
         tc_episode = tc + random.randint(-halfrange, halfrange)
         if modelkey not in MODELS:
-            newmodel = conf.generate(bank_name=modelkey)
+            newmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
             env.update_model(newmodel)
         conf.output_model(env.model)
         state = env.reset(tc_episode=tc_episode)
@@ -200,7 +203,9 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
             next_state, reward, done, _ = env.step(action)
             if i == 0 and env.i == 1:
                 # première étape du premier épisode
-                suffix = f'{modelkey}'
+                suffix = modelkey
+                suffix = f'{suffix}_no_rc_min' if rc_min < 0 else f'{suffix}_rc_min={rc_min}'
+                suffix = f'{suffix}_no_rc_max' if rc_max < 0 else f'{suffix}_rc_max={rc_max}'
                 suffix = f'{suffix}_GAMMA={gamma:.2e}'
                 suffix = f'{suffix}_LAMBDA={LAMBDA:.2e}'
                 suffix = f'{suffix}_NBACTIONS={num_actions}'

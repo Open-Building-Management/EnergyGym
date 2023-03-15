@@ -48,8 +48,8 @@ COLD = [1577259140, 1605781940, 1608057140, 1610019140, 1612513940, 1611984740, 
 
 def generate(verbose=False, bank_name="slow", **kwargs):
     """RC generator"""
-    vmin = kwargs.get("min", 50)
-    vmax = kwargs.get("max", 100)
+    rc_min = kwargs.get("rc_min", 50)
+    rc_max = kwargs.get("rc_max", 100)
     try:
         bank = globals()[bank_name.upper()]
         model_name = random.choice(bank)
@@ -59,13 +59,13 @@ def generate(verbose=False, bank_name="slow", **kwargs):
         while True:
             _r_ = random.randint(1, 9) * random.choice([1e-3, 1e-4])
             _c_ = random.randint(1, 9) * random.choice([1e+7, 1e+8, 1e+9])
-            if vmin is None and vmax is None:
+            if rc_min == -1 and rc_max == -1:
                 break
-            if vmin is None and _r_ * _c_ / 3600 <= vmax:
+            if rc_min == -1 and _r_ * _c_ / 3600 <= rc_max:
                 break
-            if vmax is None and vmin <= _r_ * _c_ / 3600:
+            if rc_max == -1 and rc_min <= _r_ * _c_ / 3600:
                 break
-            if vmin <= _r_ * _c_ / 3600 <= vmax:
+            if rc_min <= _r_ * _c_ / 3600 <= rc_max:
                 break
     if verbose:
         print(f'{_r_:.2e} K/W, {_c_:.2e} J/K')
