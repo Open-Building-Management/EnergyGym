@@ -1,6 +1,8 @@
 # CHANGES FROM VERSION 0.2
 
-Modulation des paramètres de la récompense désormais possible via la ligne de commande, pour les environnements dédiés à la gestion des périodes de non-occupation (Vacancy & al)
+
+Amélioration de la pertinence des récompenses pour Vacancy et StepRewardVacancy et modulation des paramètres de la récompense désormais possible via la ligne de commande
+
 
 Module de statistiques compatible avec les environnements gym
 
