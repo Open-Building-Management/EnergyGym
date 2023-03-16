@@ -59,11 +59,11 @@ def generate(verbose=False, bank_name="slow", **kwargs):
         while True:
             _r_ = random.randint(1, 9) * random.choice([1e-3, 1e-4])
             _c_ = random.randint(1, 9) * random.choice([1e+7, 1e+8, 1e+9])
-            if rc_min == -1 and rc_max == -1:
+            if rc_min < 0 and rc_max < 0:
                 break
-            if rc_min == -1 and _r_ * _c_ / 3600 <= rc_max:
+            if rc_min < 0 and _r_ * _c_ / 3600 <= rc_max:
                 break
-            if rc_max == -1 and rc_min <= _r_ * _c_ / 3600:
+            if rc_max < 0 and rc_min <= _r_ * _c_ / 3600:
                 break
             if rc_min <= _r_ * _c_ / 3600 <= rc_max:
                 break
