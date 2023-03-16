@@ -277,7 +277,7 @@ class EvaluateGym:
         self._exit = False
         # numéro de l'épisode
         self.nb_episode = 0
-        self._stats = np.zeros((self._n, 9))
+        self._stats = np.zeros((self._n, 11))
         self._multi_agent = False
 
     def _gen_mod_label(self):
@@ -352,7 +352,8 @@ class EvaluateGym:
         mconso = np.sum(optimal_solution[:, 0])
         line = np.array([self._env.tsvrai,
                          atocc_moy, anbluxe, anbinc, aconso * interval / 3600,
-                         mtocc_moy, mnbluxe, mnbinc, mconso * interval / 3600])
+                         mtocc_moy, mnbluxe, mnbinc, mconso * interval / 3600,
+                         self._env.model["R"], self._env.model["C"]])
         self._stats[self.nb_episode, :] = line
         return optimal_solution
 
@@ -464,6 +465,7 @@ class EvaluateGym:
             for player in ["agent", "modèle"]:
                 header = f'{header},{player}_Tintmoy,{player}_nbpts_luxe'
                 header = f'{header},{player}_nbpts_inconfort,{player}_conso'
+            header = f'{header},R_K/W,C_J/K'
             np.savetxt(f'{name}.csv', self._stats, delimiter=',', header=header)
         plt.close()
         return stats_moy
