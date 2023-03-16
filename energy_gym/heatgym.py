@@ -109,10 +109,16 @@ class Env(gym.Env):
         action_space (taille de l'espace d'actions),
         nbh (nombre d'heures de l'historique),
         nbh_forecast (nombre d'heures de prévisions météo),
-        k (coefficient énergétique),
+        k (coefficient énergétique sur la partie finale de la récompense),
+        k_step (coefficient énergétique sur la partie pas à pas de la récompense),
         p_c (pondération sur le confort),
         vote_interval (intervalle de température autour de la consigne
-        dans lequel la récompense énergétique est attribuée)
+        dans lequel la récompense énergétique est attribuée),
+        autosize_max_power (booléen à activer pour dimensionner
+        la puissance maximale disponible en fonction de l'isolation),
+        mean_prev (booléen à activer pour intégrer dans l'espace d'actions
+        la temperature extérieure moyenne d'ici le prochain changement
+        d'occupation, uniquement pour les scénarios de Type Vacancy)
 
         la taille de l'espace d'observation dépend de nbh et nbh_forecast
         et doit être fixée dans les classes filles
