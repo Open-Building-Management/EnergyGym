@@ -99,7 +99,7 @@ NAMES = [*conf.NAMES, "synth_static"]
 def main(agent_type, random_ts, scenario, size, modelkey,
          stepbystep, mirrorplay, tc, halfrange, power_factor, mean_prev,
          k, k_step, p_c, vote_interval, nbh, nbh_forecast, action_space,
-         autosize_max_power, cr_min, rc_max):
+         autosize_max_power, rc_min, rc_max):
     """main command"""
     defmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
     model = MODELS.get(modelkey, defmodel)
