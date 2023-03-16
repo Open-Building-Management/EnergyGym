@@ -94,12 +94,14 @@ NAMES = [*conf.NAMES, "synth_static"]
 @click.option('--nbh_forecast', type=int, default=None)
 @click.option('--action_space', type=int, default=2)
 @click.option('--autosize_max_power', type=bool, default=False)
+@click.option('--rc_min', type=int, default=50)
+@click.option('--rc_max', type=int, default=100)
 def main(agent_type, random_ts, scenario, size, modelkey,
          stepbystep, mirrorplay, tc, halfrange, power_factor, mean_prev,
          k, k_step, p_c, vote_interval, nbh, nbh_forecast, action_space,
-         autosize_max_power):
+         autosize_max_power, cr_min, rc_max):
     """main command"""
-    defmodel = conf.generate(bank_name=modelkey)
+    defmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
     model = MODELS.get(modelkey, defmodel)
     wsize = SIZES[size]
     model = set_extra_params(model, action_space=action_space, mean_prev=mean_prev)
@@ -139,7 +141,7 @@ def main(agent_type, random_ts, scenario, size, modelkey,
     for _ in range(nbepisodes):
         tc_episode = tc + random.randint(-halfrange, halfrange)
         if modelkey not in MODELS and modelkey != "synth_static":
-            newmodel = conf.generate(bank_name=modelkey)
+            newmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
             bat.update_model(newmodel)
         conf.output_model(bat.model)
         state = bat.reset(ts=ts, wsize=wsize, tc_episode=tc_episode)

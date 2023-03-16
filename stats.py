@@ -41,11 +41,13 @@ def create_sandbox(scenario, text, agenda, model, agent_path, nb_episodes):
 @click.option('--autosize_max_power', type=bool, default=False)
 @click.option('--newmodel_at_each_episode', type=bool, default=False)
 @click.option('--nb_episodes', type=int, default=900)
+@click.option('--rc_min', type=int, default=50)
+@click.option('--rc_max', type=int, default=100)
 def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
          action_space, autosize_max_power, newmodel_at_each_episode,
-         nb_episodes):
+         nb_episodes, rc_min, rc_max):
     """main command"""
-    defmodel = conf.generate(bank_name=modelkey)
+    defmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
     model = MODELS.get(modelkey, defmodel)
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, mean_prev=mean_prev)
@@ -90,7 +92,7 @@ def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
 
         for _ in range(nb_episodes):
             if newmodel_at_each_episode:
-                newmodel = conf.generate(bank_name=modelkey)
+                newmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
                 print(newmodel)
                 agent_box.update_model(newmodel)
                 if concurrent_exists:
