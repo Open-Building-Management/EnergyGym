@@ -43,9 +43,10 @@ def create_sandbox(scenario, text, agenda, model, agent_path, nb_episodes):
 @click.option('--nb_episodes', type=int, default=900)
 @click.option('--rc_min', type=int, default=50)
 @click.option('--rc_max', type=int, default=100)
+@click.option('--sametc_occnoocc', type=bool, default=True)
 def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
          action_space, autosize_max_power, newmodel_at_each_episode,
-         nb_episodes, rc_min, rc_max):
+         nb_episodes, rc_min, rc_max, sametc_occnoocc):
     """main command"""
     defmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
     model = MODELS.get(modelkey, defmodel)
@@ -74,10 +75,6 @@ def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
         if hyst_exists:
             hyst = load(hyst_path)
             agent_box.set_occupancy_agent(hyst)
-        # on passe en paramètre la taille de l'épisode
-        # nécessaire si on veut jouer un hystérésis sur toute une semaine
-        #for fix_tc in [False, True]:
-        #    agent_box.play_gym(ts=1605821540, wsize=WSIZE, fix_tc=fix_tc)
         if concurrent_exists:
             concurrent_model = model
             concurrent_model["nbh"] = 0
@@ -97,10 +94,12 @@ def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
                 agent_box.update_model(newmodel)
                 if concurrent_exists:
                     concurrent_box.update_model(newmodel)
+            # on passe en paramètre la taille de l'épisode
+            # nécessaire si on veut jouer un hystérésis sur toute une semaine
             if not generate_stats:
-                agent_box.play_gym(wsize=WSIZE)
+                agent_box.play_gym(wsize=WSIZE, sametc_occnoocc=sametc_occnoocc)
             else:
-                agent_box.play_base(wsize=WSIZE)
+                agent_box.play_base(wsize=WSIZE, sametc_occnoocc=sametc_occnoocc)
             agent_box.nb_episode += 1
             if concurrent_exists:
                 tint0, ts = agent_box.get_episode_params()
