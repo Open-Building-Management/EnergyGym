@@ -303,7 +303,7 @@ class EvaluateGym:
         print(f'signal de fermeture reçu {signum}')
         self._exit = True
 
-    def play_base(self, ts=None, tint=None, wsize=None, sametc_occnoocc=True):
+    def play_base(self, ts=None, tint=None, wsize=None, same_tc_ono=True):
         """fait jouer à l'agent un épisode de type semaine
         avec l'environnement gym,
         calcule la solution optimale,
@@ -320,7 +320,7 @@ class EvaluateGym:
         retourne la solution optimale mais n'affiche pas le replay
         """
         tc = self._env.tc
-        tc_step = tc if sametc_occnoocc else None
+        tc_step = tc if same_tc_ono else None
         state = self._env.reset(ts=ts, tc_step=tc_step, tint=tint, wsize=wsize)
         while True:
             pos1 = self._env.i
@@ -357,7 +357,7 @@ class EvaluateGym:
         self._stats[self.nb_episode, :] = line
         return optimal_solution
 
-    def play_gym(self, ts=None, snapshot=False, tint=None, wsize=None, sametc_occnoocc=True):
+    def play_gym(self, ts=None, snapshot=False, tint=None, wsize=None, same_tc_ono=True):
         """
         render the replay
 
@@ -365,7 +365,7 @@ class EvaluateGym:
         Un fichier tiers utilisant la classe peut donc l'enregistrer
         """
         optimal_solution = self.play_base(ts=ts, tint=tint, wsize=wsize,
-                                          sametc_occnoocc=sametc_occnoocc)
+                                          same_tc_ono=same_tc_ono)
         print("agent eko", self._env.tot_eko)
         aeko = 100 * self._env.tot_eko / (self._env.wsize + 1)
         meko = 100 * (1 - np.mean(optimal_solution[:, 0]))

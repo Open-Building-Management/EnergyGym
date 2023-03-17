@@ -43,10 +43,10 @@ def create_sandbox(scenario, text, agenda, model, agent_path, nb_episodes):
 @click.option('--nb_episodes', type=int, default=900)
 @click.option('--rc_min', type=int, default=50)
 @click.option('--rc_max', type=int, default=100)
-@click.option('--sametc_occnoocc', type=bool, default=True)
+@click.option('--same_tc_ono', type=bool, default=True)
 def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
          action_space, autosize_max_power, newmodel_at_each_episode,
-         nb_episodes, rc_min, rc_max, sametc_occnoocc):
+         nb_episodes, rc_min, rc_max, same_tc_ono):
     """main command"""
     defmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
     model = MODELS.get(modelkey, defmodel)
@@ -97,9 +97,9 @@ def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
             # on passe en paramètre la taille de l'épisode
             # nécessaire si on veut jouer un hystérésis sur toute une semaine
             if not generate_stats:
-                agent_box.play_gym(wsize=WSIZE, sametc_occnoocc=sametc_occnoocc)
+                agent_box.play_gym(wsize=WSIZE, same_tc_ono=same_tc_ono)
             else:
-                agent_box.play_base(wsize=WSIZE, sametc_occnoocc=sametc_occnoocc)
+                agent_box.play_base(wsize=WSIZE, same_tc_ono=same_tc_ono)
             agent_box.nb_episode += 1
             if concurrent_exists:
                 tint0, ts = agent_box.get_episode_params()
