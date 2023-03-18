@@ -53,7 +53,8 @@ class MeanSubstraction(keras.layers.Layer):
     def __init__(self):
         super().__init__()
 
-    def call(self, inputs):
+    def call(self, inputs):  # pylint: disable=W0221
+        """layer's logic"""
         return inputs - tf.reduce_mean(inputs)
 
 
@@ -72,7 +73,8 @@ class DQModel(keras.Model):
         self.normalized_as_9 = MeanSubstraction()
         self.combine = keras.layers.Add()
 
-    def call(self, inputs):
+    def call(self, inputs):  # pylint: disable=W0221
+        """model's logic"""
         x = self.dense1(inputs)
         x = self.dense2(x)
         advantage = self.adv_dense(x)
