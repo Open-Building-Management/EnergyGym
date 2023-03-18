@@ -31,6 +31,7 @@ jobs:
         python3 -m pip install keras
         python3 -m pip install --upgrade tensorflow
         pip3 list
+        python3 howto/using_tfdotkeras_add_layer.py
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py')
