@@ -50,9 +50,6 @@ def update_network(primary_network, target_network, coeff=TAU):
 
 class MeanSubstraction(keras.layers.Layer):
     """mean substraction layer"""
-    def __init__(self):
-        super().__init__()
-
     def call(self, inputs):  # pylint: disable=W0221
         """layer's logic"""
         return inputs - tf.reduce_mean(inputs)
