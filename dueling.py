@@ -158,13 +158,18 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
     for i in range(num_episodes):
         cnt = 1
         avg_loss = 0
-        tc_episode = tc + random.randint(-halfrange, halfrange)
+        # random model generation
         newmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
         env.update_model(newmodel)
+        # model visualisation
         conf.output_model(env.model)
-        state = env.reset(tc_episode=tc_episode)
         max_power = round(env.max_power * 1e-3)
         print(f'max power : {max_power} kW')
+        # random tc for the episode
+        tc_episode = tc + random.randint(-halfrange, halfrange)
+        # reset the environnement
+        state = env.reset(tc_episode=tc_episode)
+
         while True:
             action = choose_action(state, primary_network, eps, num_actions)
             next_state, reward, done, _ = env.step(action)
