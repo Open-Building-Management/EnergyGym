@@ -1,7 +1,6 @@
 """dueling Q"""
 import random
 import datetime as dt
-import math
 import click
 import numpy as np
 import tensorflow as tf
@@ -52,16 +51,16 @@ def update_network(primary_network, target_network, coeff=TAU):
 class MeanSubstraction(keras.layers.Layer):
     """mean substraction layer"""
     def __init__(self):
-        super(MeanSubstraction, self).__init__()
+        super().__init__()
 
-    def call(self, input):
-        return input - tf.reduce_mean(input)
+    def call(self, inputs):
+        return inputs - tf.reduce_mean(inputs)
 
 
 class DQModel(keras.Model):
     """dueling Q network"""
     def __init__(self, hidden_size: int, num_actions: int):
-        super(DQModel, self).__init__()
+        super().__init__()
         args = {"activation": "relu", "kernel_initializer": he_normal()}
         self.dense1 = Dense(hidden_size, **args)
         self.dense2 = Dense(hidden_size, **args)
@@ -69,20 +68,19 @@ class DQModel(keras.Model):
         self.adv_out = Dense(num_actions, kernel_initializer=he_normal())
         self.v_dense = Dense(hidden_size, **args)
         self.v_out = Dense(1, kernel_initializer=he_normal())
-        #self.lambda_layer = Lambda(lambda x: x - tf.reduce_mean(x))
         # formula 9 of the original article implementation
         self.normalized_as_9 = MeanSubstraction()
         self.combine = keras.layers.Add()
 
-    def call(self, input):
-        x = self.dense1(input)
+    def call(self, inputs):
+        x = self.dense1(inputs)
         x = self.dense2(x)
-        adv = self.adv_dense(x)
-        adv = self.adv_out(adv)
-        v = self.v_dense(x)
-        v = self.v_out(v)
-        norm_adv = self.normalized_as_9(adv)
-        combined = self.combine([v, norm_adv])
+        advantage = self.adv_dense(x)
+        advantage = self.adv_out(advantage)
+        value = self.v_dense(x)
+        value = self.v_out(value)
+        norm_advantage = self.normalized_as_9(advantage)
+        combined = self.combine([value, norm_advantage])
         return combined
 
 
