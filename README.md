@@ -29,6 +29,10 @@ pour lancer tensorboard :
 ```
 tensorboard --logdir=TensorBoard
 ```
+Pour obtenir de l'aide sur un algorithme :
+```
+python3 dueling.py --help
+```
 
 ### scénario de type hystérésis
 
