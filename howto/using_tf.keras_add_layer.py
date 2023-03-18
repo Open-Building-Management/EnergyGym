@@ -6,8 +6,8 @@ from tensorflow.keras.layers import Dense
 
 # https://keras.io/api/layers/merging_layers/add/
 
-x1 = tf.random.normal((1,2))
-x2 = tf.random.normal((1,1))
+x1 = tf.random.normal((1, 2))
+x2 = tf.random.normal((1, 1))
 print(x1)
 print(x2)
 y = tf.keras.layers.Add()([x1, x2])
