@@ -2,7 +2,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.layers import Dense, Lambda, Add
+from tensorflow.keras.layers import Dense
 
 # https://keras.io/api/layers/merging_layers/add/
 
