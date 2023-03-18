@@ -16,7 +16,7 @@ PASTSIZE = int(1 + NBH * 3600 // INTERVAL)
 # sur la base du pas de discrétisation choisi par l'utilisateur
 text_past = np.random.random(PASTSIZE)
 print(text_past)
-q_c_past = np.random.randint(0,2,size=PASTSIZE-1)*MAX_POWER
+q_c_past = np.random.randint(0, 2, size=PASTSIZE-1) * MAX_POWER
 print(q_c_past)
 
 # calcul des puissances de chauffage moyennes au pas horaire
