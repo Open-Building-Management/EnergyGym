@@ -28,6 +28,7 @@ jobs:
         pip install click
         pip install gym
         pip install PyFina
+        pip install keras
         pip install --upgrade tensorflow
     - name: Analysing the code with pylint
       run: |
