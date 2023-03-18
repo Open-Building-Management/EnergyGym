@@ -20,13 +20,9 @@ pip3 install --upgrade tensorflow
 
 Tous les exemples utilisent l'autocomplétion en ligne de commande pour choisir le nom de l'agent
 
-<details><summary><h2>apprentissage renforcé avec standalone_d_dqn</h2></summary>
+<details><summary><h2>apprentissage renforcé</h2></summary>
 
-Met en oeuvre un algorithme de type double DQN
-
-Les réseaux après entrainement sont enregistrés dans un répertoire `TensorBoard/DDQN`
-
-Les noms des réseaux entrainés commenceront par `Heat_SCENARIOXXXX_DDMMAAAA` avec SCENARIO valant `Hyst` ou `Vacancy`
+Les réseaux après entrainement sont enregistrés dans le répertoire `TensorBoard`
 
 pour lancer tensorboard :
 
@@ -36,7 +32,8 @@ tensorboard --logdir=TensorBoard
 
 ### scénario de type hystérésis
 
-Ce scénario permet d'entrainer un réseau à maintenir une température constante autour d'une consigne donnée tc. C'est le réseau le plus simple, avec une espace d'observation de taille 3 : [Text, Tint, tc]
+Ce scénario permet d'entrainer un réseau à maintenir une température constante autour d'une consigne donnée tc.
+C'est le réseau le plus simple, avec une espace d'observation de taille 3 : [Text, Tint, tc]
 
 ```
 python3 standalone_d_dqn.py
@@ -55,14 +52,20 @@ Peu importe le modèle choisi pour l'entrainement, içi `cells`, le réseau obte
 
 L'objectif est d'utiliser le moins d'énergie possible et d'avoir la température souhaitée à l'ouverture des locaux.
 
-pour entrainer à modèle variable avec une histoire passée de 48 heures
+pour entrainer à modèle variable
 ```
-python3 standalone_d_dqn.py --nbh=48
+python3 standalone_d_dqn.py --autosize_max_power=True
+numéro du flux temp. extérieure ? [1]: 
+modèle ou banque : synth
+scénario : StepRewardVacancy
+consigne moyenne de confort en °C : 20
+demi-étendue en °C pour W à consigne variable : 2
+nombre d'épisodes : 3000
 ```
 On peut définir des coefficients de pondération personnalisés pour la récompense :
 
 ```
-python3 standalone_d_dqn.py --nbh=48 --k=1 --p_c=15 --vote_interval -1 1
+python3 standalone_d_dqn.py --autosize_max_power=True --k=1 --p_c=15 --vote_interval -1 1
 ```
 
 Lorsqu'on joue un scénario de type vacancy, la récompense **finale**, attribuée à la fin de l'épisode, lorsque l'occupation du bâtiment recommence, est la somme de 2 termes :
@@ -74,7 +77,8 @@ Lors des entrainements, le réseau va d'abord chercher à converger vers cette t
 coefficient | signification
 --|--
 p_c | pondération à appliquer sur le confort à l'ouverture
-k | coefficient énergétique
+k | coefficient énergétique sur la partie finale de la récompense
+k_step | coefficient sur la partie pas à pas de la récompense
 vote_interval | intervalle de température dans lequel le bonus énergétique est attribué. si vote_interval vaut (-1, 1), on attribue le bonus énergétique si et seulement si l'écart entre la température à l'ouverture des locaux et la température de consigne est compris entre -1 et 1
 
 </details>
