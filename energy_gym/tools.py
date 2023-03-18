@@ -34,7 +34,7 @@ def load(agent_path):
         )
     except Exception:
         print("could not load - using tf.saved_model.load() API as a workaround !")
-        agent =  tf.saved_model.load(agent_path)
+        agent = tf.saved_model.load(agent_path)
     return agent
 
 
