@@ -6,13 +6,13 @@ from tensorflow.keras.layers import Dense
 
 # https://keras.io/api/layers/merging_layers/add/
 
-x1 = tf.random.normal((1, 2))
-x2 = tf.random.normal((1, 1))
-print(x1)
-print(x2)
-y = tf.keras.layers.Add()([x1, x2])
-print(y)
-print(np.argmax(y))
+x_1 = tf.random.normal((1, 2))
+x_2 = tf.random.normal((1, 1))
+print(x_1)
+print(x_2)
+x_1_2 = tf.keras.layers.Add()([x_1, x_2])
+print(x_1_2)
+print(np.argmax(x_1_2))
 
 
 x = np.array([tf.ones((4,))])
