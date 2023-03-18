@@ -26,11 +26,15 @@ def load(agent_path):
     """load tensorflow network"""
     # custom_objects est nécessaire pour charger certains réseaux
     # cf ceux entrainés sur le cloud, via les github actions
-    agent = tf.keras.models.load_model(
-        agent_path,
-        compile=False,
-        custom_objects={'Functional':tf.keras.models.Model}
-    )
+    try:
+        agent = tf.keras.models.load_model(
+            agent_path,
+            compile=False,
+            custom_objects={'Functional':tf.keras.models.Model}
+        )
+    except Exception:
+        print("could not load - using tf.saved_model.load() API as a workaround !")
+        agent =  tf.saved_model.load(agent_path)
     return agent
 
 
