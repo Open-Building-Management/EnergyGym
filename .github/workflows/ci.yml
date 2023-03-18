@@ -22,14 +22,15 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install pylint
+        python3 -m pip install --upgrade pip
+        python3 -m pip install pylint
         sudo apt-get install -y python3-numpy python3-matplotlib
-        pip install click
-        pip install gym
-        pip install PyFina
-        pip install keras
-        pip install --upgrade tensorflow
+        python3 -m pip install click
+        python3 -m pip install gym
+        python3 -m pip install PyFina
+        python3 -m pip install keras
+        python3 -m pip install --upgrade tensorflow
+        pip3 list
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py')
