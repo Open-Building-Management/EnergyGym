@@ -1,6 +1,8 @@
 """ construction de l'histoire passée horaire """
 import numpy as np
 
+# pylint: disable=C0103
+
 INTERVAL = 900
 CW = 1162.5 #Wh/m3/K
 MAX_POWER = 5 * CW * 15

@@ -4,6 +4,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers import Dense  # pylint: disable=E0401
 
+# pylint: disable=C0103
 
 # https://keras.io/api/layers/merging_layers/add/
 
