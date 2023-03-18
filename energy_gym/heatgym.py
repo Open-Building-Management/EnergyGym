@@ -397,7 +397,9 @@ class Env(gym.Env):
         self.agenda = agenda
 
     def set_reduce(self, reduce):
-        """fixe le nombre de degrés en moins sur la consigne hors occupation"""
+        """fixe le nombre de degrés en moins sur la consigne hors occupation,
+        sert uniquement dans la classe fille Reduce
+        """
         self.reduce = reduce
 
     def update_model(self, model):
