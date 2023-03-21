@@ -36,6 +36,28 @@ SCENARIOS = ["Hyst",
              "Vacancy", "StepRewardVacancy", "TopLimitVacancy",
              "D2Vacancy"]
 
+
+def show_episode_stats(env):
+    """affiche les statistiques de l'épisode en cours pour l'environnement"""
+    message = f'consigne de température intérieure: {env.tc_episode}°C'
+    print(message)
+    tint_min = np.amin(env.tint)
+    tint_max = np.amax(env.tint)
+    tint_moy = np.mean(env.tint)
+    text_min = np.amin(env.text[env.pos:env.pos+env.wsize])
+    text_max = np.amax(env.text[env.pos:env.pos+env.wsize])
+    text_moy = np.mean(env.text[env.pos:env.pos+env.wsize])
+    message = f'Text min {text_min:.2f} Text moy {text_moy:.2f}'
+    message = f'{message} Text max {text_max:.2f}'
+    print(message)
+    message = f'Tint min {tint_min:.2f} Tint moy {tint_moy:.2f}'
+    message = f'{message} Tint max {tint_max:.2f}'
+    print(message)
+    print(env.tint[-1:])
+    peko = (env.tot_eko * 100) // env.wsize
+    print(f'{peko}% d\'énergie économisée')
+
+
 class Memory:
     """experience replay memory"""
     def __init__(self, max_memory):
@@ -249,23 +271,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
                 message = f'Episode: {i}, Reward: {reward:.3f}, Total Reward: {env.tot_reward:.3f}'
                 message = f'{message}, avg loss: {avg_loss:.3f}, eps: {eps:.3f}'
                 print(message)
-                message = f'consigne de température intérieure: {env.tc_episode}°C'
-                print(message)
-                tint_min = np.amin(env.tint)
-                tint_max = np.amax(env.tint)
-                tint_moy = np.mean(env.tint)
-                text_min = np.amin(env.text[env.pos:env.pos+env.wsize])
-                text_max = np.amax(env.text[env.pos:env.pos+env.wsize])
-                text_moy = np.mean(env.text[env.pos:env.pos+env.wsize])
-                message = f'Text min {text_min:.2f} Text moy {text_moy:.2f}'
-                message = f'{message} Text max {text_max:.2f}'
-                print(message)
-                message = f'Tint min {tint_min:.2f} Tint moy {tint_moy:.2f}'
-                message = f'{message} Tint max {tint_max:.2f}'
-                print(message)
-                print(env.tint[-1:])
-                peko = (env.tot_eko * 100) // env.wsize
-                print(f'{peko}% d\'énergie économisée')
+                show_episode_stats(env)
                 print("***********************************************************")
                 with train_writer.as_default():
                     tf.summary.scalar('reward', reward, step=i)
