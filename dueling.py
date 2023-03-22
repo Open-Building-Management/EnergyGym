@@ -31,14 +31,15 @@ TAU = 0.08
 INTERVAL = 3600
 NOW = dt.datetime.now().strftime('%d%m%Y%H%M')
 
-def linear_decay(steps, max_eps, min_eps, delay, eps_min_iter):
-    """linearly reduce the eps value"""
-    eps = max_eps
+def linear_decay(steps, v_1, v_2, delay, iter):
+    """linearly reduce or increase something
+    for the eps value, v_1 is a max and v_2 is a min"""
+    val = v_1
     if steps > delay:
-        eps = min_eps
-        if steps < eps_min_iter:
-            eps = max_eps - (max_eps - min_eps) * (steps - delay) / eps_min_iter
-    return eps
+        val = v_2
+        if steps < iter:
+            val = v_1 - (v_1 - v_2) * (steps - delay) / iter
+    return val
 
 
 def update_network(primary_network, target_network, coeff=TAU):
