@@ -31,14 +31,14 @@ TAU = 0.08
 INTERVAL = 3600
 NOW = dt.datetime.now().strftime('%d%m%Y%H%M')
 
-def linear_decay(steps, v_1, v_2, delay, iter):
+def linear_decay(steps, v_1, v_2, delay, min_iter):
     """linearly reduce or increase something
     for the eps value, v_1 is a max and v_2 is a min"""
     val = v_1
     if steps > delay:
         val = v_2
-        if steps < iter:
-            val = v_1 - (v_1 - v_2) * (steps - delay) / iter
+        if steps < min_iter:
+            val = v_1 - (v_1 - v_2) * (steps - delay) / min_iter
     return val
 
 
