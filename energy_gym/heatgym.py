@@ -568,8 +568,8 @@ class Vacancy(Env):
             # bonus énergétique si on est dans la zone de confort
             vmin = self._vote_interval[0]
             vmax = self._vote_interval[1]
-            peko = round (100 * self.tot_eko / self.wsize, 1)
-            pmineko = round (100 * self.min_eko / self.wsize, 1)
+            peko = round(100 * self.tot_eko / self.wsize, 1)
+            pmineko = round(100 * self.min_eko / self.wsize, 1)
             if tint > tc + vmax and peko >= pmineko:
                 reward = self._k * peko
             if vmin <= tint - tc <= vmax:
@@ -580,7 +580,7 @@ class Vacancy(Env):
             text = self.text[self.pos + self.i]
             self.min_eko += 1
             if text < tc:
-                self.min_eko -=  (tc - text) / ( self.max_power * self.model["R"])
+                self.min_eko -= (tc - text) / ( self.max_power * self.model["R"])
         return reward
 
 

@@ -64,7 +64,7 @@ def stats(bat):
     if type(bat).__name__ == "Vacancy":
         print(f'valeur de Tint à l\'ouverture : {bat.tint[-1]:.2f}')
         pmin_eko = 100 * bat.min_eko / bat.wsize
-        message = f'économie si maintien tc durant épisode'
+        message = "économie si maintien tc durant épisode"
         message = f'{message} {pmin_eko:.2f}'
         print(message)
     print("***********************************************************")

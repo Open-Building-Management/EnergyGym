@@ -66,7 +66,7 @@ def add_scalars_to_tensorboard(train_writer, i, reward, avg_loss, env):
         tf.summary.scalar('reward', reward, step=i)
         tf.summary.scalar('avg loss', avg_loss, step=i)
         delta_to_tc = abs(env.tc_episode - env.tint[-1])
-        tf.summary.scalar('respect_tc_ouverture', delta_to_tc , step=i)
+        tf.summary.scalar('respect_tc_ouverture', delta_to_tc, step=i)
         if "Vacancy" in env.__class__.__name__:
             gain = 100 * (env.tot_eko - env.min_eko) // env.wsize
             tf.summary.scalar('gain_sur_baseline', gain, step=i)
