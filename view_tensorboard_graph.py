@@ -15,8 +15,7 @@ def trace(x):
 if __name__ == "__main__":
     primary_network = DQModel(50, 2)
     primary_network.compile(optimizer=keras.optimizers.Adam(), loss='mse')
-    logdir = "TensorBoard/graph"
-    train_writer = tf.summary.create_file_writer(logdir)
+    train_writer = tf.summary.create_file_writer("TensorBoard/graph")
     tf.summary.trace_on(graph=True, profiler=False)
     trace(tf.zeros((1,4)))
     with train_writer.as_default():
