@@ -58,11 +58,15 @@ def stats(bat):
     text_moy = np.mean(bat.text[bat.pos:bat.pos+bat.wsize])
     print(f'Text min {text_min:.2f} Text moy {text_moy:.2f} Text max {text_max:.2f}')
     print(f'Tint min {tint_min:.2f} Tint moy {tint_moy:.2f} Tint max {tint_max:.2f}')
-    peko = (bat.tot_eko * 100) / bat.wsize
+    peko = 100 * bat.tot_eko / bat.wsize
     print(f'pas de chauffage pendant {bat.tot_eko:.2f} pas')
     print(f'{peko:.2f}% d\'énergie économisée')
     if type(bat).__name__ == "Vacancy":
         print(f'valeur de Tint à l\'ouverture : {bat.tint[-1]:.2f}')
+        pmin_eko = 100 * bat.min_eko / bat.wsize
+        message = f'économie si maintien tc durant épisode'
+        message = f'{message} {pmin_eko:.2f}'
+        print(message)
     print("***********************************************************")
     return peko
 
@@ -181,8 +185,10 @@ def main(agent_type, random_ts, scenario, size, modelkey,
                     model_eko = (1 - np.mean(optimal_solution[:,0])) * 100
                     label = f'EKO - modèle : {model_eko:.2f}% - agent : {peko:.2f}%'
                     if "Vacancy" in scenario:
-                        label = f'{label} & Tint à l\'ouverture {bat.tint[-1]:.2f}°C'
-                    label = f'{label}\n R={bat.model["R"]:.2e} C={bat.model["C"]:.2e}'
+                        label = f'{label} Tint ouverture {bat.tint[-1]:.2f}°C'
+                        pmin_eko = 100 * bat.min_eko / bat.wsize
+                        label = f'{label}\n EKO MAINTIEN TC PDT EPISODE : {pmin_eko:.2f}%'
+                    label = f'{label} R={bat.model["R"]:.2e}K/W C={bat.model["C"]:.2e}J/K'
                     max_power = round(bat.max_power * 1e-3)
                     label = f'{label} MAX_POWER={max_power}kW'
                     bat.render(stepbystep=False, label=label, extra_datas=optimal_solution)

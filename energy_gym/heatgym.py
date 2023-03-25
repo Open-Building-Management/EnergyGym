@@ -164,6 +164,8 @@ class Env(gym.Env):
         self.action = None
         # nombre de pas de temps sans conso énergétique pour l'épisode
         self.tot_eko = 0
+        # économie d'énergie pour le maintien de tc_episode pendant tout l'épisode
+        self.min_eko = 0
         self.autosize_max_power = model.get("autosize_max_power", False)
         self.max_power = max_power
         self.tc = tc
@@ -436,6 +438,7 @@ class Env(gym.Env):
         else :
             self.wsize = int(wsize)
         self.tot_eko = 0
+        self.min_eko = 0
         return self._reset(ts=ts, tint=tint, tc_episode=tc_episode, tc_step=tc_step)
 
     def step(self, action, tc_step=None):
@@ -566,13 +569,18 @@ class Vacancy(Env):
             vmin = self._vote_interval[0]
             vmax = self._vote_interval[1]
             peko = round (100 * self.tot_eko / self.wsize, 1)
-            if tint > tc + vmax and peko == 100:
-                reward = self._k * 100
+            pmineko = round (100 * self.min_eko / self.wsize, 1)
+            if tint > tc + vmax and peko >= pmineko:
+                reward = self._k * peko
             if vmin <= tint - tc <= vmax:
                 #reward += self._k * self.tot_eko * self._interval / 3600
                 reward = self._k * peko
         else:
             self.tot_eko += self._eko(action)
+            text = self.text[self.pos + self.i]
+            self.min_eko += 1
+            if text < tc:
+                self.min_eko -=  (tc - text) / ( self.max_power * self.model["R"])
         return reward
 
 

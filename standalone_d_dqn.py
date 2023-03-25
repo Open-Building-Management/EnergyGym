@@ -54,8 +54,22 @@ def show_episode_stats(env):
     message = f'{message} Tint max {tint_max:.2f}'
     print(message)
     print(env.tint[-1:])
-    peko = (env.tot_eko * 100) // env.wsize
+    peko = 100 * env.tot_eko // env.wsize
     print(f'{peko}% d\'énergie économisée')
+    pmin_eko = 100 * env.min_eko // env.wsize
+    print(f'économie si maintien tc durant épisode: {pmin_eko:.2f}%')
+
+
+def add_scalars_to_tensorboard(train_writer, i, reward, avg_loss, env):
+    """met à jour les indicateurs qualité tensorboard pour l'épisode i"""
+    with train_writer.as_default():
+        tf.summary.scalar('reward', reward, step=i)
+        tf.summary.scalar('avg loss', avg_loss, step=i)
+        delta_to_tc = abs(env.tc_episode - env.tint[-1])
+        tf.summary.scalar('respect_tc_ouverture', delta_to_tc , step=i)
+        if "Vacancy" in env.__class__.__name__:
+            gain = 100 * (env.tot_eko - env.min_eko) // env.wsize
+            tf.summary.scalar('gain_sur_baseline', gain, step=i)
 
 
 class Memory:
@@ -208,6 +222,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
         if modelkey not in MODELS:
             newmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
             env.update_model(newmodel)
+        print("***********************************************************")
         conf.output_model(env.model)
         state = env.reset(tc_episode=tc_episode)
         max_power = round(env.max_power * 1e-3)
@@ -272,12 +287,7 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
                 message = f'{message}, avg loss: {avg_loss:.3f}, eps: {eps:.3f}'
                 print(message)
                 show_episode_stats(env)
-                print("***********************************************************")
-                with train_writer.as_default():
-                    tf.summary.scalar('reward', reward, step=i)
-                    tf.summary.scalar('avg loss', avg_loss, step=i)
-                    #tf.summary.scalar('Text/min', text_min, step=i)
-                    #tf.summary.scalar('Text/max', text_max, step=i)
+                add_scalars_to_tensorboard(train_writer, i, reward, avg_loss, env)
                 break
 
             cnt += 1
