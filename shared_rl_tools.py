@@ -1,4 +1,5 @@
 """shared classes and methods for reinforcement learning"""
+import random
 from dataclasses import dataclass
 import numpy as np
 import tensorflow as tf
@@ -54,7 +55,7 @@ class Batch:
 
 class Node:
     """tree node"""
-    def __init__(self, left, right, is_leaf: bool = False, idx = None):
+    def __init__(self, left, right, is_leaf: bool=False, idx=None):
         self.left = left
         self.right = right
         self.is_leaf = is_leaf
@@ -74,9 +75,9 @@ class Node:
         return leaf
 
 
-def create_tree(input: list):
-    """create the tree from an input list"""
-    nodes = [Node.create_leaf(v, i) for i, v in enumerate(input)]
+def create_tree(inputs: list):
+    """create the tree from a list"""
+    nodes = [Node.create_leaf(v, i) for i, v in enumerate(inputs)]
     leaf_nodes = nodes
     while len(nodes) > 1:
         inodes = iter(nodes)
@@ -109,7 +110,8 @@ def propagate_changes(change: float, node: Node):
         propagate_changes(change, node.parent)
 
 
-class Memory(object):
+class Memory:
+    """experience replay memory"""
     def __init__(self, size: int, state_size: tuple):
         """initialize the memory"""
         self.size = size
@@ -151,7 +153,7 @@ class Memory(object):
         num_samples = len(idxs)
         state_size = self.state_size
         states = np.zeros((num_samples, *state_size), dtype=np.float32)
-        next_states = np.zeros((num_samples, *state_size),  dtype=np.float32)
+        next_states = np.zeros((num_samples, *state_size), dtype=np.float32)
         actions = np.zeros(num_samples, dtype=np.uint)
         rewards = np.zeros(num_samples, dtype=np.float32)
         terminal = np.zeros(num_samples, dtype=np.bool)
@@ -162,11 +164,11 @@ class Memory(object):
             rewards[i] = self.buffer[idx][self.reward_idx]
             terminal[i] = self.buffer[idx][self.terminal_idx]
         batch = Batch(
-            states = states,
-            next_states = next_states,
-            actions = actions,
-            rewards = rewards,
-            terminal = terminal
+            states=states,
+            next_states=next_states,
+            actions=actions,
+            rewards=rewards,
+            terminal=terminal
         )
         return batch
 
