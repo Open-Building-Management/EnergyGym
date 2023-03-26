@@ -6,6 +6,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.initializers import he_normal  # pylint: disable=E0401
 from tensorflow.keras.layers import Dense  # pylint: disable=E0401
+# pylint: disable=R0903
 
 
 class MeanSubstraction(keras.layers.Layer):
@@ -53,7 +54,7 @@ class Batch:
     terminal : np.ndarray
 
 
-class Node:  #  pylint: disable=R0903
+class Node:
     """tree node"""
     def __init__(self, left, right, is_leaf: bool=False, idx=None):
         self.left = left
