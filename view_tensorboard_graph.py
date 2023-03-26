@@ -3,7 +3,7 @@ https://stackoverflow.com/questions/56690089/how-to-graph-tf-keras-model-in-tens
 """
 import tensorflow as tf
 from tensorflow import keras
-from dueling import DQModel
+from shared_rl_tools import DQModel
 
 
 @tf.function

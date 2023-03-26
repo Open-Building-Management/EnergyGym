@@ -5,8 +5,6 @@ import click
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.initializers import he_normal  # pylint: disable=E0401
-from tensorflow.keras.layers import Dense  # pylint: disable=E0401
 
 import conf
 from conf import MODELS
@@ -14,6 +12,7 @@ from conf import PATH, MAX_POWER
 import energy_gym
 from energy_gym import get_feed, set_extra_params
 from standalone_d_dqn import Memory, choose_action
+from shared_rl_tools import DQModel
 
 # pylint: disable=no-value-for-parameter
 
@@ -32,7 +31,7 @@ INTERVAL = 3600
 NOW = dt.datetime.now().strftime('%d%m%Y%H%M')
 
 def linear_decay(steps, v_1, v_2, delay, min_iter):
-    """linearly reduce or increase something
+    """linear reduce or increase an hyperparameter
     for the eps value, v_1 is a max and v_2 is a min"""
     val = v_1
     if steps > delay:
@@ -47,41 +46,6 @@ def update_network(primary_network, target_network, coeff=TAU):
     for t_tv, p_tv in zip(target_network.trainable_variables,
                           primary_network.trainable_variables):
         t_tv.assign(t_tv * (1 - coeff) + p_tv * coeff)
-
-
-class MeanSubstraction(keras.layers.Layer):
-    """mean substraction layer"""
-    def call(self, inputs):  # pylint: disable=W0221
-        """layer's logic"""
-        return inputs - tf.reduce_mean(inputs)
-
-
-class DQModel(keras.Model):
-    """dueling Q network"""
-    def __init__(self, hidden_size: int, num_actions: int):
-        super().__init__()
-        args = {"activation": "relu", "kernel_initializer": he_normal()}
-        self.dense1 = Dense(hidden_size, **args)
-        self.dense2 = Dense(hidden_size, **args)
-        self.adv_dense = Dense(hidden_size, **args)
-        self.adv_out = Dense(num_actions, kernel_initializer=he_normal())
-        self.v_dense = Dense(hidden_size, **args)
-        self.v_out = Dense(1, kernel_initializer=he_normal())
-        # formula 9 of the original article implementation
-        self.normalized_as_9 = MeanSubstraction()
-        self.combine = keras.layers.Add()
-
-    def call(self, inputs):  # pylint: disable=W0221
-        """model's logic"""
-        x = self.dense1(inputs)
-        x = self.dense2(x)
-        advantage = self.adv_dense(x)
-        advantage = self.adv_out(advantage)
-        value = self.v_dense(x)
-        value = self.v_out(value)
-        norm_advantage = self.normalized_as_9(advantage)
-        combined = self.combine([value, norm_advantage])
-        return combined
 
 
 def train(primary_network, memory, target_network):
@@ -121,6 +85,31 @@ def train(primary_network, memory, target_network):
     loss = primary_network.train_on_batch(states, target_q)
     return loss
 
+
+def gen_random_model_and_reset(env, modelkey, **kwargs):
+    """generate a random model and reset the environment"""
+    tc = kwargs.get("tc", 20)
+    halfrange = kwargs.get("halfrange", 2)
+    rc_min = kwargs.get("rc_min", 50)
+    rc_max = kwargs.get("rc_max", 100)
+    # random model generation
+    newmodel = conf.generate(
+        bank_name=modelkey,
+        rc_min=rc_min,
+        rc_max=rc_max
+    )
+    env.update_model(newmodel)
+    # model visualisation
+    conf.output_model(env.model)
+    max_power = round(env.max_power * 1e-3)
+    print(f'max power : {max_power} kW')
+    # tc for the episode
+    tc_episode = tc + random.randint(-halfrange, halfrange)
+    # reset the environnement
+    state = env.reset(tc_episode=tc_episode)
+    return state
+
+
 @click.command()
 @click.option('--tc', type=int, default=20)
 @click.option('--halfrange', type=int, default=2)
@@ -156,17 +145,14 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
     for i in range(num_episodes):
         cnt = 1
         avg_loss = 0
-        # random model generation
-        newmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
-        env.update_model(newmodel)
-        # model visualisation
-        conf.output_model(env.model)
-        max_power = round(env.max_power * 1e-3)
-        print(f'max power : {max_power} kW')
-        # random tc for the episode
-        tc_episode = tc + random.randint(-halfrange, halfrange)
-        # reset the environnement
-        state = env.reset(tc_episode=tc_episode)
+        state = gen_random_model_and_reset(
+            env,
+            modelkey,
+            tc=tc,
+            halfrange=halfrange,
+            rc_min=rc_min,
+            rc_max=rc_max
+        )
 
         while True:
             action = choose_action(state, primary_network, eps, num_actions)
