@@ -216,7 +216,7 @@ class Memory:
         return result
 
 
-def get_td_error(batch, primary_network, target_network):
+def get_td_error(batch, primary_network, target_network, gamma):
     """returns the q values for the training and the TD errors"""
     states = batch.states
     next_states = batch.next_states
@@ -255,7 +255,7 @@ def get_td_error(batch, primary_network, target_network):
         print(target_qtp1.numpy()[idxs, prim_action_tp1])
         print("*******************************************************")
     updates = rewards
-    updates += (1 - terminal) * GAMMA * target_qtp1.numpy()[idxs, prim_action_tp1]
+    updates += (1 - terminal) * gamma * target_qtp1.numpy()[idxs, prim_action_tp1]
     if DEBUG:
         print("rewards and calculated updates")
         print(rewards)
