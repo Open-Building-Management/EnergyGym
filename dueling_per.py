@@ -69,7 +69,6 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
     """main command"""
     text = get_feed(1, INTERVAL, path=PATH)
     model = MODELS["cells"]
-    modelkey = "synth"
     model = set_extra_params(model, autosize_max_power=True)
     model = set_extra_params(model, action_space=action_space)
     env = getattr(energy_gym, "StepRewardVacancy")(text, MAX_POWER, tc, **model)
@@ -96,7 +95,7 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
 
         state = gen_random_model_and_reset(
             env,
-            modelkey,
+            "synth",
             tc=tc,
             halfrange=halfrange,
             rc_min=rc_min,
@@ -161,9 +160,7 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
             state = next_state
             cnt += 1
 
-    save = input("save ? Y=yes")
-    if save == "Y":
-        primary_network.save(f'{STORE_PATH}_{suffix}')
+    primary_network.save(f'{STORE_PATH}_{suffix}')
 
 
 if __name__ == "__main__":
