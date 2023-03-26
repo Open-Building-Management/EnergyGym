@@ -53,7 +53,7 @@ class Batch:
     terminal : np.ndarray
 
 
-class Node:
+class Node:  #  pylint: disable=R0903
     """tree node"""
     def __init__(self, left, right, is_leaf: bool=False, idx=None):
         self.left = left
@@ -201,8 +201,9 @@ class Memory:
             if samp_node.idx < self.available_samples - 1:
                 if self.curr_write_idx == 0 or samp_node.idx != self.curr_write_idx - 1:
                     sampled_idxs.append(samp_node.idx)
-                    p = samp_node.value / self.base_node.value
-                    is_weights.append(self.available_samples * p)
+                    # probability of choosing the node
+                    prob = samp_node.value / self.base_node.value
+                    is_weights.append(self.available_samples * prob)
                     sample_no += 1
         # apply the beta factor
         is_weights = np.array(is_weights)
