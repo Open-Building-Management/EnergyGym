@@ -7,7 +7,7 @@ from tensorflow import keras
 from tensorflow.keras.initializers import he_normal  # pylint: disable=E0401
 from tensorflow.keras.layers import Dense  # pylint: disable=E0401
 # pylint: disable=R0903
-
+DEBUG = False
 
 class MeanSubstraction(keras.layers.Layer):
     """mean substraction layer"""
@@ -214,3 +214,62 @@ class Memory:
             is_weights = is_weights / np.max(is_weights)
         result = self.sample(sampled_idxs), sampled_idxs, is_weights
         return result
+
+
+def get_td_error(batch, primary_network, target_network):
+    """returns the q values for the training and the TD errors"""
+    states = batch.states
+    next_states = batch.next_states
+    actions = batch.actions
+    rewards = batch.rewards
+    terminal = batch.terminal
+    if DEBUG:
+        print("states, actions, rewards, next_states, terminal? True/False")
+        print(states)
+        print(actions)
+        print(rewards)
+        print(next_states)
+        print(terminal)
+        print("*******************************************************")
+    # predict Q(s,a) given the batch of states
+    prim_qt = primary_network(states)
+    # predict Q(s',a') from the evaluation network
+    prim_qtp1 = primary_network(next_states)
+    # copy the prim_qt tensor into the qt_for_train tensor
+    qt_for_train = prim_qt.numpy()
+    # the action selection from the primary / online network
+    prim_action_tp1 = np.argmax(prim_qtp1.numpy(), axis=1)
+    if DEBUG:
+        print("q values at t, q values at t plus 1 both with primary")
+        print(prim_qt.numpy())
+        print(prim_qtp1.numpy())
+        print("action selected at t plus 1")
+        print(prim_action_tp1)
+        print("*******************************************************")
+    # the q value for the prim_action_tp1 from the target network
+    target_qtp1 = target_network(next_states)
+    idxs = np.arange(states.shape[0])
+    if DEBUG:
+        print("q values at t plus 1 with target network")
+        print(target_qtp1.numpy())
+        print(target_qtp1.numpy()[idxs, prim_action_tp1])
+        print("*******************************************************")
+    updates = rewards
+    updates += (1 - terminal) * GAMMA * target_qtp1.numpy()[idxs, prim_action_tp1]
+    if DEBUG:
+        print("rewards and calculated updates")
+        print(rewards)
+        print(updates)
+        print("*******************************************************")
+    qt_for_train[idxs, actions] = updates
+    # calculate the loss / error to update priorites
+    errors = np.abs(qt_for_train[idxs, actions] - prim_qt.numpy()[idxs, actions])
+    if DEBUG:
+        print("q value from primary, q value as they should be, errors...")
+        print(prim_qt.numpy())
+        print(qt_for_train)
+        print(actions)
+        print(errors)
+        print("*******************************************************")
+        input("press to continue")
+    return qt_for_train, errors
