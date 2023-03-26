@@ -6,7 +6,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-import conf
 from conf import MODELS
 from conf import PATH, MAX_POWER
 import energy_gym
@@ -14,6 +13,8 @@ from energy_gym import get_feed, set_extra_params
 from dueling import linear_decay, update_network, gen_random_model_and_reset
 from standalone_d_dqn import show_episode_stats, add_scalars_to_tensorboard
 from shared_rl_tools import DQModel, Memory, Batch, get_td_error
+
+# pylint: disable=no-value-for-parameter
 
 GAME = "Heat"
 DIR = "TensorBoard/PER_DuelingQ"
@@ -49,8 +50,8 @@ def train(primary_network, memory, target_network):
         target_network,
         GAMMA
     )
-    for i in range(len(idxs)):
-        memory.update(idxs[i], errors[i])
+    for i, idx in enumerate(idxs):
+        memory.update(idx, errors[i])
     loss = primary_network.train_on_batch(
         batch.states, qt_for_train, sample_weight=is_weights)
     return loss
@@ -70,11 +71,11 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
     model = MODELS["cells"]
     modelkey = "synth"
     model = set_extra_params(model, autosize_max_power=True)
+    model = set_extra_params(model, action_space=action_space)
     env = getattr(energy_gym, "StepRewardVacancy")(text, MAX_POWER, tc, **model)
-    num_actions = env.action_space.n
 
-    primary_network = DQModel(hidden_size, num_actions)
-    target_network = DQModel(hidden_size, num_actions)
+    primary_network = DQModel(hidden_size, action_space)
+    target_network = DQModel(hidden_size, action_space)
     primary_network.compile(optimizer=keras.optimizers.Adam(), loss='mse')
     # make target_network = primary_network
     update_network(primary_network, target_network, coeff=1)
@@ -105,8 +106,8 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
         print(f'nombre des samples dans la mémoire : {memory.available_samples}')
         print(f'position du pointeur d\'écriture : {memory.curr_write_idx}')
         while True:
-            action = choose_action(state, primary_network, eps, steps, num_actions)
-            next_state, reward, done, info = env.step(action)
+            action = choose_action(state, primary_network, eps, steps, action_space)
+            next_state, reward, done, _ = env.step(action)
             tot_reward += reward
             loss = -1
             # default priority is 1, used during pre-training
@@ -115,7 +116,7 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
                 loss = train(primary_network, memory, target_network)
                 update_network(primary_network, target_network, coeff=TAU)
                 if next_state is None:
-                    next_state =  np.zeros(state.shape)
+                    next_state = np.zeros(state.shape)
                 batch = Batch(
                     states=np.array([state]),
                     next_states=np.array([next_state]),
