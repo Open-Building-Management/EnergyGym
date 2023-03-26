@@ -90,7 +90,7 @@ def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
         for _ in range(nb_episodes):
             if newmodel_at_each_episode:
                 newmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
-                print(newmodel)
+                conf.output_model(newmodel)
                 agent_box.update_model(newmodel)
                 if concurrent_exists:
                     concurrent_box.update_model(newmodel)
