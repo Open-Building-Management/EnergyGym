@@ -39,7 +39,8 @@ SCENARIOS = ["Hyst",
 
 def show_episode_stats(env):
     """affiche les statistiques de l'épisode en cours pour l'environnement"""
-    message = f'consigne de température intérieure: {env.tc_episode}°C'
+    message = "consigne de température intérieure:"
+    message = f'{message} {env.tc_episode}°C vs {env.tint[-1:]}'
     print(message)
     tint_min = np.amin(env.tint)
     tint_max = np.amax(env.tint)
@@ -53,11 +54,13 @@ def show_episode_stats(env):
     message = f'Tint min {tint_min:.2f} Tint moy {tint_moy:.2f}'
     message = f'{message} Tint max {tint_max:.2f}'
     print(message)
-    print(env.tint[-1:])
     peko = 100 * env.tot_eko // env.wsize
     print(f'{peko}% d\'énergie économisée')
     pmin_eko = 100 * env.min_eko // env.wsize
     print(f'économie si maintien tc durant épisode: {pmin_eko:.2f}%')
+    meko = 100 * env.limit // env.wsize
+    print(f'économie selon solution optimale {meko:.2f}%')
+    print(f'soit un début de chauffe à l\'indice: {int(env.limit)}')
 
 
 def add_scalars_to_tensorboard(train_writer, i, reward, avg_loss, env):
