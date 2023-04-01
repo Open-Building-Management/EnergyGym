@@ -359,8 +359,8 @@ class Env(gym.Env):
         agenda = np.zeros(self.wsize + 1)
         agenda[self.wsize] = 1
         optimal_solution = play_hystnvacancy(self, self.pos, self.wsize,
-                                         self.tint[0], self.tc_episode, 1,
-                                         agenda=agenda)
+                                             self.tint[0], self.tc_episode, 1,
+                                             agenda=agenda)
         self.limit = self.wsize - np.sum(optimal_solution[:, 0])
         return self.state
 
