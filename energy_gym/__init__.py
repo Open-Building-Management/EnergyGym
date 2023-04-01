@@ -5,7 +5,7 @@
 from .heatgym import Hyst, Reduce, Vacancy, StepRewardVacancy, TopLimitVacancy
 from .heatgym import D2Vacancy, Building
 from .heatgym import custom_gym_envs, vars_to_exclude_from_pdoc
-from .evaluation_toolbox import sim, play_hystnvacancy
+from .heatgym import sim, play_hystnvacancy
 from .evaluation_toolbox import EvaluateGym
 from .tools import set_extra_params, load, freeze
 from .tools import pick_name, get_feed

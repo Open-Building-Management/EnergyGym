@@ -44,9 +44,10 @@ def create_sandbox(scenario, text, agenda, model, agent_path, nb_episodes):
 @click.option('--rc_min', type=int, default=50)
 @click.option('--rc_max', type=int, default=100)
 @click.option('--same_tc_ono', type=bool, default=True)
+@click.option('--test_set', type=bool, default=False)
 def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
          action_space, autosize_max_power, newmodel_at_each_episode,
-         nb_episodes, rc_min, rc_max, same_tc_ono):
+         nb_episodes, rc_min, rc_max, same_tc_ono, test_set):
     """main command"""
     defmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
     model = MODELS.get(modelkey, defmodel)
@@ -54,7 +55,8 @@ def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
     model = set_extra_params(model, mean_prev=mean_prev)
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
     model = set_extra_params(model, autosize_max_power=autosize_max_power)
-    text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
+    path = f'{PATH}/test_set' if test_set else PATH
+    text = get_feed(TEXT_FEED, INTERVAL, path=path)
     # demande à l'utilisateur des chemins de réseaux
     agent_path, agent_exists = pick_name()
     question = "chemin agent hystérésis pour les périodes d'occupation ?"

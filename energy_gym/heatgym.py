@@ -94,6 +94,80 @@ def presence(xr, occupation, wsize, tmin, tmax, tc, hh):
     return zones_occ
 
 
+def sim(env, pos, tint0, nbh, action=1):
+    """simulation suivant la méthode des trapèzes
+
+    on est à la position pos dans env.text
+    on veut calculer la température intérieure dans nbh heures
+    soit en chauffant en continu soit sans chauffer
+
+    si on veut prévoir le point suivant seulement, donc à pos+1,
+    on doit donner à nbh la valeur env.text.step/3600
+
+    la fonction retourne le tableau tint des températures simulées
+    la valeur recherchée est tint[-1]
+    """
+    # nombre d'intervalles pour le calcul
+    target = int(nbh * 3600 / env.text.step)
+    # ON VEUT CONNAITRE LA TEMPERATURE INTERIEURE A pos+target
+    text = env.text[pos: pos+target+1]
+    tint = np.zeros(text.shape[0])
+    tint[0] = tint0
+    power = action * env.max_power
+    for j in range(1, text.shape[0]):
+        delta = env.cte * (power / env.model["C"] + text[j-1] / env.tcte)
+        delta += power / env.model["C"] + text[j] / env.tcte
+        tint[j] = tint[j-1] * env.cte + env.text.step * 0.5 * delta
+    return tint
+
+
+def play_hystnvacancy(env, pos, size, tint0, tc, hh, agenda=None):
+    """joue la politique optimale sur un scénario d'intermittence
+    avec un modèle déterministe contenu dans env
+
+    Utilise soit l'agenda fourni en paramètre, soit celui de l'environnement
+
+    Retourne un tableau de 2 colonnes et de size lignes
+    colonne 1 : intensité de chauffage
+    colonne 2 : température intérieure
+    """
+    # how many hour(s) is an interval ?
+    # if text.step is 1800, ith will be 0.5
+    ith = env.text.step / 3600
+    datas = np.zeros((size, 2))
+    datas[0, 1] = tint0
+    if agenda is None:
+        agenda = env.agenda[pos: pos+size+4*24*3600//env.text.step]
+    # doit-on mettre en route le chauffage à l'étape 0 ?
+    if agenda[0] == 0:
+        nbh = get_level_duration(agenda, 0) * ith
+        tint_sim = sim(env, pos, tint0, nbh)
+        action = tint_sim[-1] <= tc
+    else:
+        action = tint0 <= tc
+    datas[0, 0] = action
+    # itération
+    for i in range(1, size):
+        #  calcul de la température à l'étape i
+        tint_sim = sim(env, pos+i-1, datas[i-1, 1], ith, action)
+        datas[i, 1] = tint_sim[-1]
+        if agenda[i] == 0:
+            # hors occupation : simulation à la cible
+            # vu qu'on chauffe tt le temps, on ne précise pas action !
+            nbh = get_level_duration(agenda, i) * ith
+            tint_sim = sim(env, pos+i, datas[i, 1], nbh)
+            action = tint_sim[-1] <= tc
+        else:
+            # hystérésis classique
+            if datas[i, 1] > tc + hh or datas[i, 1] < tc - hh :
+                action = datas[i, 1] <= tc
+            else:
+                # on est dans la fenêtre > on ne change rien :-)
+                action = datas[i-1, 0]
+        datas[i, 0] = action
+    return datas
+
+
 class Env(gym.Env):
     """base environnement"""
     def __init__(self, text, max_power, tc, **model):
@@ -166,6 +240,7 @@ class Env(gym.Env):
         self.tot_eko = 0
         # économie d'énergie pour le maintien de tc_episode pendant tout l'épisode
         self.min_eko = 0
+        self.limit = 0
         self.autosize_max_power = model.get("autosize_max_power", False)
         self.max_power = max_power
         self.tc = tc
@@ -280,6 +355,13 @@ class Env(gym.Env):
         # construction de state
         self.state = self._state(tc=tc_step)
         self.tot_reward = 0
+        # solution optimale
+        agenda = np.zeros(self.wsize + 1)
+        agenda[self.wsize] = 1
+        optimal_solution = play_hystnvacancy(self, self.pos, self.wsize,
+                                         self.tint[0], self.tc_episode, 1,
+                                         agenda=agenda)
+        self.limit = self.wsize - np.sum(optimal_solution[:, 0])
         return self.state
 
     def _render(self, zone_confort=None, zones_occ=None,
@@ -565,23 +647,31 @@ class Vacancy(Env):
         if self.i == self.wsize:
             # l'occupation du bâtiment commence
             reward = - self._p_c * abs(tint - tc)
-            # bonus énergétique si on est dans la zone de confort
+
             vmin = self._vote_interval[0]
             vmax = self._vote_interval[1]
             peko = round(100 * self.tot_eko / self.wsize, 1)
             pmineko = round(100 * self.min_eko / self.wsize, 1)
-            if tint > tc + vmax and peko >= pmineko:
-                reward = self._k * peko
+            #if tint > tc + vmax and peko >= pmineko:
+            #    reward = self._k * peko
             if vmin <= tint - tc <= vmax:
                 #reward += self._k * self.tot_eko * self._interval / 3600
-                reward = self._k * peko
+                #reward = self._k * peko
+                # vu qu'on est dans la zone de confort
+                # on ramène reward à zéro
+                # pour à minima annuler la pénalité hystérésis
+                reward = 0
+                # si on a mieux bossé que la baseline
+                # on rajoute un bonus énergétique
+                if peko >= pmineko:
+                    reward = self._k * 100 * (peko - pmineko) / (100 - pmineko)
         else:
             self.tot_eko += self._eko(action)
             text = self.text[self.pos + self.i]
             self.min_eko += 1
             if text < tc:
                 self.min_eko -= (tc - text) / ( self.max_power * self.model["R"])
-        return reward
+        return float(reward)
 
 
 class D2Vacancy(Vacancy):
@@ -631,9 +721,11 @@ class TopLimitVacancy(Vacancy):
     """do not overheat trial 2"""
     def reward(self, action):
         reward = super().reward(action)
-        if self.tint[self.i] > self.tc_episode + 1:
-            reward -= (self.tint[self.i] - self.tc_episode - 1) * self._interval / 3600
-        return reward
+        if self.i < self.wsize:
+            reward = -1 if action else 1
+            if self.i >= self.limit :
+                reward = 0
+        return float(reward)
 
 
 class Building(Vacancy):
