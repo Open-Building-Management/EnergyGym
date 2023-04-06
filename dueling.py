@@ -133,7 +133,7 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
     model = MODELS.get(modelkey, defmodel)
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, autosize_max_power=True)
-    model = set_extra_params(model, mean_prev=True)
+    model = set_extra_params(model, mean_prev=False)
     model = set_extra_params(model, text_min_treshold=text_min_treshold)
     model = set_extra_params(model, text_max_treshold=text_max_treshold)
     #model = set_extra_params(model, p_c=10)
@@ -150,6 +150,12 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
 
     memory = Memory(50000)
     suffix = f'{NOW}_{hidden_size}MLP_{scenario}'
+    if text_min_treshold is not None or text_max_treshold is not None:
+        suffix = f'{suffix}_text'
+        if text_min_treshold is not None:
+            suffix = f'{suffix}_>{text_min_treshold}'
+        if text_max_treshold is not None:
+            suffix = f'{suffix}_<{text_max_treshold}'
     tw_path = f'{STORE_PATH}/{suffix}'
     train_writer = tf.summary.create_file_writer(tw_path)
     steps = 0

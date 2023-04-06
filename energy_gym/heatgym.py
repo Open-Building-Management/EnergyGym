@@ -322,12 +322,15 @@ class Env(gym.Env):
                 pos1 = (ts - self._tss) // self._interval
                 pos2 = pos1 + self.wsize + 1
                 mean_text_episode = np.mean(self.text[pos1:pos2])
-                if self.text_min_treshold is None:
+                ptp_text_episode = np.ptp(self.text[pos1:pos2])
+                #std_text_episode = np.std(self.text[pos1:pos2])
+                if ptp_text_episode >= 10:
+                  if self.text_min_treshold is None:
                     if self.text_max_treshold is None:
                         break
                     if mean_text_episode <= self.text_max_treshold:
                         break
-                elif self.text_min_treshold <= mean_text_episode:
+                  elif self.text_min_treshold <= mean_text_episode:
                     if self.text_max_treshold is None:
                         break
                     if mean_text_episode <= self.text_max_treshold:
