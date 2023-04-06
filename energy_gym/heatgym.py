@@ -661,7 +661,7 @@ class Vacancy(Env):
             pmineko = round(100 * self.min_eko / self.wsize, 1)
             popteko = round(100 * self.limit / self.wsize, 1)
             #base_max = max(pmineko, popteko)
-            #base_min = min(pmineko, popteko)
+            base_min = min(pmineko, popteko)
             # on arrondit à l'entier supérieur
             # pour tenir compte de l'imprécision du monitoring
             tint = round(tint)
@@ -676,7 +676,7 @@ class Vacancy(Env):
                 reward = 0
                 # si on a mieux bossé que la baseline
                 # on rajoute un bonus énergétique
-                if peko >= pmineko:
+                if peko >= base_min:
                     reward = self._k * (peko - pmineko)
         else:
             self.tot_eko += self._eko(action)
