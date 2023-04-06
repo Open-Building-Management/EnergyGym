@@ -266,6 +266,7 @@ class Env(gym.Env):
         # agenda d'occupation
         self.agenda = None
         self.mean_prev = model.get("mean_prev", False)
+        self.mean_text_episode = None
 
     def _get_future(self):
         """construit le futur horaire
@@ -362,6 +363,9 @@ class Env(gym.Env):
                                              self.tint[0], self.tc_episode, 1,
                                              agenda=agenda)
         self.limit = self.wsize - np.sum(optimal_solution[:, 0])
+        pos1 = self.pos
+        pos2 = self.pos + self.wsize + 1
+        self.mean_text_episode = np.mean(self.text[pos1:pos2])
         return self.state
 
     def _render(self, zone_confort=None, zones_occ=None,
@@ -379,7 +383,10 @@ class Env(gym.Env):
             self._ax3 = plt.subplot(313, sharex=self._ax1)
             if stepbystep :
                 plt.ion()
-        title = f'{self.tsvrai} - score: {self.tot_reward:.2f} - tc_episode: {self.tc_episode}°C'
+        title = f'{self.tsvrai}'
+        title = f'{title} - text_moy_episode:{self.mean_text_episode:.2f}°C'
+        title = f'{title} - tc_episode: {self.tc_episode}°C'
+        title = f'{title} - score: {self.tot_reward:.2f}'
         if label is not None :
             title = f'{title}\n{label}'
         self._fig.suptitle(title)
@@ -652,6 +659,12 @@ class Vacancy(Env):
             vmax = self._vote_interval[1]
             peko = round(100 * self.tot_eko / self.wsize, 1)
             pmineko = round(100 * self.min_eko / self.wsize, 1)
+            popteko = round(100 * self.limit / self.wsize, 1)
+            #base_max = max(pmineko, popteko)
+            base_min = min(pmineko, popteko)
+            # on arrondit à l'entier supérieur
+            # pour tenir compte de l'imprécision du monitoring
+            tint = round(tint)
             #if tint > tc + vmax and peko >= pmineko:
             #    reward = self._k * peko
             if vmin <= tint - tc <= vmax:
@@ -663,8 +676,8 @@ class Vacancy(Env):
                 reward = 0
                 # si on a mieux bossé que la baseline
                 # on rajoute un bonus énergétique
-                if peko >= pmineko:
-                    reward = self._k * 100 * (peko - pmineko) / (100 - pmineko)
+                if peko >= base_min:
+                    reward = self._k * (peko - pmineko)
         else:
             self.tot_eko += self._eko(action)
             text = self.text[self.pos + self.i]
