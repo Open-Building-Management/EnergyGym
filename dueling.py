@@ -209,9 +209,7 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
             state = next_state
             cnt += 1
 
-    save = input("save ? Y=yes")
-    if save == "Y":
-        primary_network.save(f'{STORE_PATH}_{suffix}')
+    primary_network.save(f'{STORE_PATH}_{suffix}')
 
 
 if __name__ == "__main__":
