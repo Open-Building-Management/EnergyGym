@@ -16,6 +16,7 @@ from standalone_d_dqn import show_episode_stats, add_scalars_to_tensorboard
 from shared_rl_tools import DQModel, Memory, Batch, get_td_error
 
 # pylint: disable=no-value-for-parameter
+# pylint: disable=R0801
 
 GAME = "Heat"
 DIR = "TensorBoard/PER_DuelingQ"

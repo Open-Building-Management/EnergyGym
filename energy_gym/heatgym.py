@@ -330,7 +330,7 @@ class Env(gym.Env):
                 elif self.text_min_treshold <= mean_text_episode:
                     if self.text_max_treshold is None:
                         break
-                    elif mean_text_episode <= self.text_max_treshold:
+                    if mean_text_episode <= self.text_max_treshold:
                         break
         self.i = 0
         self.pos = (ts - self._tss) // self._interval
