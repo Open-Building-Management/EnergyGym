@@ -100,10 +100,13 @@ NAMES = [*conf.NAMES, "synth_static"]
 @click.option('--autosize_max_power', type=bool, default=False)
 @click.option('--rc_min', type=int, default=50)
 @click.option('--rc_max', type=int, default=100)
+@click.option('--text_min_treshold', type=int, default=None)
+@click.option('--text_max_treshold', type=int, default=None)
 def main(agent_type, random_ts, scenario, size, modelkey,
          stepbystep, mirrorplay, tc, halfrange, power_factor, mean_prev,
          k, k_step, p_c, vote_interval, nbh, nbh_forecast, action_space,
-         autosize_max_power, rc_min, rc_max):
+         autosize_max_power, rc_min, rc_max,
+         text_min_treshold, text_max_treshold):
     """main command"""
     defmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
     model = MODELS.get(modelkey, defmodel)
@@ -112,6 +115,8 @@ def main(agent_type, random_ts, scenario, size, modelkey,
     model = set_extra_params(model, k=k, k_step=k_step, p_c=p_c, vote_interval=vote_interval)
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
     model = set_extra_params(model, autosize_max_power=autosize_max_power)
+    model = set_extra_params(model, text_min_treshold=text_min_treshold)
+    model = set_extra_params(model, text_max_treshold=text_max_treshold)
 
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
     bat = getattr(energy_gym, scenario)(text, power_factor * MAX_POWER, tc, **model)

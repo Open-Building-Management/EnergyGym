@@ -15,7 +15,8 @@ def set_extra_params(model, **kwargs):
     """définit d'éventuels paramètres additionnels dans le modèle"""
     fields = ["action_space", "mean_prev", "autosize_max_power",
               "k", "k_step", "p_c", "vote_interval",
-              "nbh", "nbh_forecast"]
+              "nbh", "nbh_forecast",
+              "text_min_treshold", "text_max_treshold"]
     for field in fields:
         if field in kwargs and kwargs[field]:
             model[field] = kwargs[field]

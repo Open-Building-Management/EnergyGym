@@ -267,6 +267,8 @@ class Env(gym.Env):
         self.agenda = None
         self.mean_prev = model.get("mean_prev", False)
         self.mean_text_episode = None
+        self.text_min_treshold = model.get("text_min_treshold", None)
+        self.text_max_treshold = model.get("text_max_treshold", None)
 
     def _get_future(self):
         """construit le futur horaire
@@ -314,12 +316,28 @@ class Env(gym.Env):
             start = self._tss + self.pastsize * self._interval
             tse = self._tse
             end = tse - self.wsize * self._interval - 4*24*3600
-            # on tire un timestamp avant fin mai OU après début octobre
-            ts = get_random_start(start, end, 10, 5)
+            while True:
+                # on tire un timestamp avant fin mai OU après début octobre
+                ts = get_random_start(start, end, 10, 5)
+                pos1 = (ts - self._tss) // self._interval
+                pos2 = pos1 + self.wsize + 1
+                mean_text_episode = np.mean(self.text[pos1:pos2])
+                if self.text_min_treshold is None:
+                    if self.text_max_treshold is None:
+                        break
+                    if mean_text_episode <= self.text_max_treshold:
+                        break
+                elif self.text_min_treshold <= mean_text_episode:
+                    if self.text_max_treshold is None:
+                        break
+                    elif mean_text_episode <= self.text_max_treshold:
+                        break
         self.i = 0
         self.pos = (ts - self._tss) // self._interval
         self.tsvrai = self._tss + self.pos * self._interval
+        self.mean_text_episode = mean_text_episode
         #print("episode timestamp : {}".format(self.tsvrai))
+
         # on fixe la température de consigne de notre épisode,
         # c'est-à-dire la température qu'il doit faire quant le bâtiment est occupé
         # si on veut fonctionner/entrainer à consigne variable,
@@ -363,9 +381,6 @@ class Env(gym.Env):
                                              self.tint[0], self.tc_episode, 1,
                                              agenda=agenda)
         self.limit = self.wsize - np.sum(optimal_solution[:, 0])
-        pos1 = self.pos
-        pos2 = self.pos + self.wsize + 1
-        self.mean_text_episode = np.mean(self.text[pos1:pos2])
         return self.state
 
     def _render(self, zone_confort=None, zones_occ=None,
@@ -660,13 +675,14 @@ class Vacancy(Env):
             peko = round(100 * self.tot_eko / self.wsize, 1)
             pmineko = round(100 * self.min_eko / self.wsize, 1)
             popteko = round(100 * self.limit / self.wsize, 1)
-            #base_max = max(pmineko, popteko)
+            base_max = max(pmineko, popteko)
             base_min = min(pmineko, popteko)
             # on arrondit à l'entier supérieur
             # pour tenir compte de l'imprécision du monitoring
             tint = round(tint)
-            #if tint > tc + vmax and peko >= pmineko:
-            #    reward = self._k * peko
+            # s'il fait très très doux :-)
+            if tint > tc + vmax and peko >= base_max:
+                reward = self._k * (peko - base_max)
             if vmin <= tint - tc <= vmax:
                 #reward += self._k * self.tot_eko * self._interval / 3600
                 #reward = self._k * peko
@@ -677,7 +693,7 @@ class Vacancy(Env):
                 # si on a mieux bossé que la baseline
                 # on rajoute un bonus énergétique
                 if peko >= base_min:
-                    reward = self._k * (peko - pmineko)
+                    reward = self._k * (peko - base_min)
         else:
             self.tot_eko += self._eko(action)
             text = self.text[self.pos + self.i]

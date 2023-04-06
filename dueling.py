@@ -122,7 +122,10 @@ def gen_random_model_and_reset(env, modelkey, **kwargs):
 @click.option('--num_episodes', type=int, default=3000)
 @click.option('--rc_min', type=int, default=50)
 @click.option('--rc_max', type=int, default=100)
-def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max):
+@click.option('--text_min_treshold', type=int, default=None)
+@click.option('--text_max_treshold', type=int, default=None)
+def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max,
+         text_min_treshold, text_max_treshold):
     """main command"""
     text = get_feed(1, INTERVAL, path=PATH)
     modelkey = "synth"
@@ -131,6 +134,8 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, autosize_max_power=True)
     model = set_extra_params(model, mean_prev=True)
+    model = set_extra_params(model, text_min_treshold=text_min_treshold)
+    model = set_extra_params(model, text_max_treshold=text_max_treshold)
     #model = set_extra_params(model, p_c=10)
     env = getattr(energy_gym, scenario)(text, MAX_POWER, tc, **model)
 
@@ -189,8 +194,8 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
                     pwon = won / i
                     avg_loss /= cnt
                     message = f'Episode: {i}, Reward: {reward:.2f}'
+                    message = f'{message}, text moy episode: {env.mean_text_episode:.2f}'
                     message = f'{message}, avg loss: {avg_loss:.5f}, eps: {eps:.3f}'
-                    message = f'{message}, text moy episode: {env.mean_text_episode}'
                     print(message)
                     show_episode_stats(env)
                     add_scalars_to_tensorboard(train_writer, i, reward, avg_loss, env)

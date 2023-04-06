@@ -11,6 +11,7 @@ from conf import PATH, MAX_POWER
 import energy_gym
 from energy_gym import get_feed, set_extra_params
 from dueling import linear_decay, update_network, gen_random_model_and_reset
+from dueling import SCENARIOS
 from standalone_d_dqn import show_episode_stats, add_scalars_to_tensorboard
 from shared_rl_tools import DQModel, Memory, Batch, get_td_error
 
@@ -58,6 +59,7 @@ def train(primary_network, memory, target_network):
 
 
 @click.command()
+@click.option('--scenario', type=click.Choice(SCENARIOS), default="TopLimitVacancy", prompt='scénario ?')
 @click.option('--tc', type=int, default=20)
 @click.option('--halfrange', type=int, default=2)
 @click.option('--hidden_size', type=int, default=50)
@@ -65,13 +67,18 @@ def train(primary_network, memory, target_network):
 @click.option('--num_episodes', type=int, default=2000)
 @click.option('--rc_min', type=int, default=50)
 @click.option('--rc_max', type=int, default=100)
-def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max):
+@click.option('--text_min_treshold', type=int, default=None)
+@click.option('--text_max_treshold', type=int, default=None)
+def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max,
+         text_min_treshold, text_max_treshold):
     """main command"""
     text = get_feed(1, INTERVAL, path=PATH)
     model = MODELS["cells"]
     model = set_extra_params(model, autosize_max_power=True)
     model = set_extra_params(model, action_space=action_space)
-    env = getattr(energy_gym, "StepRewardVacancy")(text, MAX_POWER, tc, **model)
+    model = set_extra_params(model, text_min_treshold=text_min_treshold)
+    model = set_extra_params(model, text_max_treshold=text_max_treshold)
+    env = getattr(energy_gym, scenario)(text, MAX_POWER, tc, **model)
 
     primary_network = DQModel(hidden_size, action_space)
     target_network = DQModel(hidden_size, action_space)
@@ -85,9 +92,10 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
     #memory.normalize_is_weights = False
 
     eps = MAX_EPS
-    suffix = f'{NOW}_{hidden_size}MLP'
+    suffix = f'{NOW}_{hidden_size}MLP_{scenario}'
     train_writer = tf.summary.create_file_writer(f'{STORE_PATH}/{suffix}')
     steps = 0
+    won = 0
     for i in range(num_episodes):
         cnt = 1
         avg_loss = 0
@@ -130,6 +138,8 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
                     GAMMA
                 )
                 priority = error[0]
+                with train_writer.as_default():
+                    tf.summary.scalar('td_error', priority, step=steps)
             # store experience in memory
             memory.append((state, action, reward, done), priority)
             avg_loss += loss
@@ -143,8 +153,12 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
 
             if done:
                 if steps > DELAY_TRAINING:
+                    if reward >= 0:
+                        won += 1
+                    pwon = won / i
                     avg_loss /= cnt
                     message = f'Episode: {i}, Reward: {reward:.2f}'
+                    message = f'{message}, text moy episode: {env.mean_text_episode:.2f}'
                     message = f'{message}, Total reward {tot_reward:.2f}'
                     message = f'{message}, avg loss: {avg_loss:.5f}, eps: {eps:.3f}'
                     print(message)
@@ -153,6 +167,7 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
                     with train_writer.as_default():
                         tf.summary.scalar('beta', memory.beta, step=i)
                         tf.summary.scalar('eps', eps, step=i)
+                        tf.summary.scalar('pwon', pwon, step=i)
                 else:
                     print(f'Pre-training...Episode: {i}')
                 break
