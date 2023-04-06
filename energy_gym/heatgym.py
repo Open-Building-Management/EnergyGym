@@ -660,8 +660,8 @@ class Vacancy(Env):
             peko = round(100 * self.tot_eko / self.wsize, 1)
             pmineko = round(100 * self.min_eko / self.wsize, 1)
             popteko = round(100 * self.limit / self.wsize, 1)
-            base_max = max(pmineko, popteko)
-            base_min = min(pmineko, popteko)
+            #base_max = max(pmineko, popteko)
+            #base_min = min(pmineko, popteko)
             # on arrondit à l'entier supérieur
             # pour tenir compte de l'imprécision du monitoring
             tint = round(tint)
