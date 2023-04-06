@@ -12,6 +12,7 @@ from conf import PATH, MAX_POWER
 import energy_gym
 from energy_gym import get_feed, set_extra_params
 from standalone_d_dqn import Memory, choose_action
+from standalone_d_dqn import show_episode_stats, add_scalars_to_tensorboard
 from shared_rl_tools import DQModel
 
 # pylint: disable=no-value-for-parameter
@@ -29,6 +30,8 @@ TAU = 0.08
 
 INTERVAL = 3600
 NOW = dt.datetime.now().strftime('%d%m%Y%H%M')
+
+SCENARIOS = ["Vacancy", "StepRewardVacancy", "TopLimitVacancy"]
 
 def linear_decay(steps, v_1, v_2, delay, min_iter):
     """linear reduce or increase an hyperparameter
@@ -99,18 +102,19 @@ def gen_random_model_and_reset(env, modelkey, **kwargs):
         rc_max=rc_max
     )
     env.update_model(newmodel)
-    # model visualisation
-    conf.output_model(env.model)
-    max_power = round(env.max_power * 1e-3)
-    print(f'max power : {max_power} kW')
     # tc for the episode
     tc_episode = tc + random.randint(-halfrange, halfrange)
     # reset the environnement
     state = env.reset(tc_episode=tc_episode)
+    # model visualisation
+    conf.output_model(env.model)
+    max_power = round(env.max_power * 1e-3)
+    print(f'max power : {max_power} kW')
     return state
 
 
 @click.command()
+@click.option('--scenario', type=click.Choice(SCENARIOS), default="TopLimitVacancy", prompt='scénario ?')
 @click.option('--tc', type=int, default=20)
 @click.option('--halfrange', type=int, default=2)
 @click.option('--hidden_size', type=int, default=50)
@@ -118,7 +122,7 @@ def gen_random_model_and_reset(env, modelkey, **kwargs):
 @click.option('--num_episodes', type=int, default=3000)
 @click.option('--rc_min', type=int, default=50)
 @click.option('--rc_max', type=int, default=100)
-def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max):
+def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max):
     """main command"""
     text = get_feed(1, INTERVAL, path=PATH)
     modelkey = "synth"
@@ -126,7 +130,9 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
     model = MODELS.get(modelkey, defmodel)
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, autosize_max_power=True)
-    env = getattr(energy_gym, "StepRewardVacancy")(text, MAX_POWER, tc, **model)
+    model = set_extra_params(model, mean_prev=True)
+    #model = set_extra_params(model, p_c=10)
+    env = getattr(energy_gym, scenario)(text, MAX_POWER, tc, **model)
 
     num_actions = env.action_space.n
     eps = MAX_EPS
@@ -138,10 +144,11 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
     update_network(primary_network, target_network, coeff=1)
 
     memory = Memory(50000)
-    suffix = f'DuelingQ_{NOW}_{hidden_size}MLP'
+    suffix = f'{NOW}_{hidden_size}MLP_{scenario}'
     tw_path = f'{STORE_PATH}/{suffix}'
     train_writer = tf.summary.create_file_writer(tw_path)
     steps = 0
+    won = 0
     for i in range(num_episodes):
         cnt = 1
         avg_loss = 0
@@ -174,15 +181,24 @@ def main(tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max)
 
             if done:
                 if steps > DELAY_TRAINING:
+                    # si notre final reward est au dessus de 0,
+                    # on est dans la zone de confort
+                    # on considère l'épisode gagné
+                    if reward >= 0:
+                        won += 1
+                    pwon = won / i
                     avg_loss /= cnt
-                    message = f'Episode: {i}, Reward: {reward}'
+                    message = f'Episode: {i}, Reward: {reward:.2f}'
                     message = f'{message}, avg loss: {avg_loss:.5f}, eps: {eps:.3f}'
+                    message = f'{message}, text moy episode: {env.mean_text_episode}'
                     print(message)
+                    show_episode_stats(env)
+                    add_scalars_to_tensorboard(train_writer, i, reward, avg_loss, env)
                     with train_writer.as_default():
-                        tf.summary.scalar('reward', reward, step=i)
-                        tf.summary.scalar('avg loss', avg_loss, step=i)
+                        tf.summary.scalar('pwon', pwon, step=i)
                 else:
                     print(f"Pre-training...Episode: {i}")
+                print("*********************************************************")
                 break
 
             state = next_state
