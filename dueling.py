@@ -24,7 +24,7 @@ MAX_EPS = 1
 MIN_EPS = 0.01
 EPS_MIN_ITER = 5000
 DELAY_TRAINING = 300
-GAMMA = 0.95
+GAMMA = 0.99
 BATCH_SIZE = 50
 TAU = 0.08
 
@@ -153,9 +153,13 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
     if text_min_treshold is not None or text_max_treshold is not None:
         suffix = f'{suffix}_text'
         if text_min_treshold is not None:
-            suffix = f'{suffix}_>{text_min_treshold}'
+            suffix = f'{suffix}_over{text_min_treshold}'
         if text_max_treshold is not None:
-            suffix = f'{suffix}_<{text_max_treshold}'
+            suffix = f'{suffix}_under{text_max_treshold}'
+    suffix = f'{suffix}_GAMMA{GAMMA}'
+    suffix = f'{suffix}_{action_space}actions'
+    if model.get("mean_prev"):
+        suffix = f'{suffix}_mean_prev'
     tw_path = f'{STORE_PATH}/{suffix}'
     train_writer = tf.summary.create_file_writer(tw_path)
     steps = 0
