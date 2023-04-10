@@ -290,10 +290,12 @@ class EvaluateGym:
             text = self._env.text[self._env.pos + i]
             if text < tc:
                 max_conso += (tc - text) / (self._env.max_power * self._env.model["R"])
+        # on convertit les conso en heures à puissance max
+        # en multipliant par interval / 3600
         line = np.array([self._env.tsvrai,
                          atocc_moy, anbluxe, anbinc, aconso * interval / 3600,
                          mtocc_moy, mnbluxe, mnbinc, mconso * interval / 3600,
-                         max_conso * interval / 3600,
+                         round(max_conso * interval / 3600),
                          self._env.model["R"], self._env.model["C"]])
         self._stats[self.nb_episode, :] = line
         return optimal_solution, max_conso
@@ -312,7 +314,7 @@ class EvaluateGym:
         print("agent eko", self._env.tot_eko)
         peko = 100 * self._env.tot_eko / (self._env.wsize + 1)
         popteko = 100 * (1 - np.mean(optimal_solution[:, 0]))
-        min_eko = self._env.wsize + 1 - max_conso
+        min_eko = self._env.wsize + 1 - max_conso * 3600 // self._env.text.step
         pmineko = 100 * min_eko / (self._env.wsize + 1)
         label = f'EKO - modèle : {popteko:.2f}%'
         label = f'{label} - agent : {peko:.2f}%'
@@ -367,35 +369,41 @@ class EvaluateGym:
                 max_power = round(self._env.max_power * 1e-3)
                 title = f'modèle {self._modlabel} max power {max_power} kW'
             title = f'{title} Conso moyenne agent : {stats_moy[4]}'
-            title = f'{title} / Conso moyenne modèle : {stats_moy[8]}\n'
+            title = f'{title} / Conso moyenne modèle : {stats_moy[8]}'
+            title = f'{title} / Conso maintien à tc : {stats_moy[9]}\n'
 
-            pct = round(100*(stats_moy[8]-stats_moy[4])/stats_moy[8], 2)
-            title = f'{title} Pourcentage de gain agent : {pct} %'
+            pcta = round(100*(stats_moy[9]-stats_moy[4])/stats_moy[9], 2)
+            title = f'{title} Pourcentage de gain agent : {pcta} %'
+            pctm = round(100*(stats_moy[9]-stats_moy[8])/stats_moy[9], 2)
+            title = f'{title} Pourcentage de gain modèle : {pctm} %'
 
             plt.figure(figsize=(20, 10))
-            ax1 = plt.subplot(411)
+            ax1 = plt.subplot(511)
             plt.title(title)
             label = "température moyenne occupation"
             plt.plot(self._stats[:, 1], color="blue", label=f'{label} agent')
             plt.plot(self._stats[:, 5], color="red", label=f'{label} modèle')
             plt.legend()
 
-            plt.subplot(412, sharex=ax1)
+            plt.subplot(512, sharex=ax1)
             label = f'nb heures > {self._env.tc + 1}°C'
             plt.plot(self._stats[:, 2], color="blue", label=f'{label} agent')
             plt.plot(self._stats[:, 6], color="red", label=f'{label} modèle')
             plt.legend()
 
-            plt.subplot(413, sharex=ax1)
+            plt.subplot(513, sharex=ax1)
             label = f'nb heures < {self._env.tc - 1}°C'
             plt.plot(self._stats[:, 3], color="blue", label=f'{label} agent')
             plt.plot(self._stats[:, 7], color="red", label=f'{label} modèle')
             plt.legend()
 
-            plt.subplot(414, sharex=ax1)
-            label = "conso (nb heures à puissance max)"
-            plt.plot(self._stats[:, 4], color="blue", label=f'{label} agent')
-            plt.plot(self._stats[:, 8], color="red", label=f'{label} modèle')
+            plt.subplot(514, sharex=ax1)
+            label = "heures à puissance max gagnées sur maintien à tc"
+            plt.plot(self._stats[:, 9] - self._stats[:, 4], color="blue", label=f'agent - {label}')
+            plt.legend()
+
+            plt.subplot(515, sharex=ax1)
+            plt.plot(self._stats[:, 9] - self._stats[:, 8], color="red", label=f'modèle - {label}')
             plt.legend()
 
             ts = time.time()
@@ -413,7 +421,7 @@ class EvaluateGym:
             for player in ["agent", "modèle"]:
                 header = f'{header},{player}_Tintmoy,{player}_nbpts_luxe'
                 header = f'{header},{player}_nbpts_inconfort,{player}_conso'
-            header = f'{header},R_K/W,C_J/K'
+            header = f'{header},baseline_conso,R_K/W,C_J/K'
             np.savetxt(f'{name}.csv', self._stats, delimiter=',', header=header)
         plt.close()
         return stats_moy
