@@ -124,8 +124,10 @@ def gen_random_model_and_reset(env, modelkey, **kwargs):
 @click.option('--rc_max', type=int, default=100)
 @click.option('--text_min_treshold', type=int, default=None)
 @click.option('--text_max_treshold', type=int, default=None)
+@click.option('--k', type=float, default=1)
+@click.option('--mean_prev', type=bool, default=False)
 def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max,
-         text_min_treshold, text_max_treshold):
+         text_min_treshold, text_max_treshold, k, mean_prev):
     """main command"""
     text = get_feed(1, INTERVAL, path=PATH)
     modelkey = "synth"
@@ -133,10 +135,10 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
     model = MODELS.get(modelkey, defmodel)
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, autosize_max_power=True)
-    model = set_extra_params(model, mean_prev=False)
+    model = set_extra_params(model, mean_prev=mean_prev)
     model = set_extra_params(model, text_min_treshold=text_min_treshold)
     model = set_extra_params(model, text_max_treshold=text_max_treshold)
-    #model = set_extra_params(model, p_c=10)
+    model = set_extra_params(model, k=k)
     env = getattr(energy_gym, scenario)(text, MAX_POWER, tc, **model)
 
     num_actions = env.action_space.n
@@ -158,6 +160,7 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
             suffix = f'{suffix}_under{text_max_treshold}'
     suffix = f'{suffix}_GAMMA{GAMMA}'
     suffix = f'{suffix}_{action_space}actions'
+    suffix = f'{suffix}_k={k:.0e}'
     if model.get("mean_prev"):
         suffix = f'{suffix}_mean_prev'
     tw_path = f'{STORE_PATH}/{suffix}'
@@ -196,10 +199,10 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
 
             if done:
                 if steps > DELAY_TRAINING:
-                    # si notre final reward est au dessus de 0,
-                    # on est dans la zone de confort
+                    # si on est dans la zone de confort
                     # on considère l'épisode gagné
-                    if reward >= 0:
+                    delta_to_tc = env.tint[-1] - env.tc_episode
+                    if -1 <= delta_to_tc <= 1:
                         won += 1
                     pwon = won / i
                     avg_loss /= cnt

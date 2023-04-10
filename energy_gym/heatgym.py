@@ -266,6 +266,8 @@ class Env(gym.Env):
         # agenda d'occupation
         self.agenda = None
         self.mean_prev = model.get("mean_prev", False)
+        if self.mean_prev:
+            self.nbh_forecast = 0
         self.mean_text_episode = None
         self.text_min_treshold = model.get("text_min_treshold", None)
         self.text_max_treshold = model.get("text_max_treshold", None)
@@ -377,7 +379,7 @@ class Env(gym.Env):
         # construction de state
         self.state = self._state(tc=tc_step)
         self.tot_reward = 0
-        # solution optimale
+        # solution optimale pour les cas de type Vacancy !!!!
         agenda = np.zeros(self.wsize + 1)
         agenda[self.wsize] = 1
         optimal_solution = play_hystnvacancy(self, self.pos, self.wsize,
@@ -470,6 +472,13 @@ class Env(gym.Env):
             tc=self.tc_episode
         text_future_horaire = self._get_future()
         text_past_horaire, tint_past_horaire, q_c_past_horaire = self._get_past()
+        if self.mean_prev:
+            # si mean_prev est True, on remplace text à l'instant présent
+            # par la moyenne de text à la cible
+            pos1 = self.pos + self.i
+            pos2 = self.pos + self.wsize + 1
+            mean_text_to_target = np.mean(self.text[pos1:pos2])
+            text_past_horaire[-1] = mean_text_to_target
         return np.array([*text_past_horaire,
                          *text_future_horaire,
                          *tint_past_horaire,
@@ -642,9 +651,7 @@ class Vacancy(Env):
         """**ready to use gym environment**"""
         super().__init__(text, max_power, tc, **model)
         high = np.finfo(np.float32).max
-        if self.mean_prev:
-            self.nbh_forecast = 0
-        nb_observations = 3*self.nbh+2+self.nbh_forecast+2+self.mean_prev
+        nb_observations = 3*self.nbh+2+self.nbh_forecast+2
         self.observation_space = spaces.Box(-high, high,
                                             (nb_observations,),
                                             dtype=np.float32)
@@ -656,11 +663,6 @@ class Vacancy(Env):
         # Note that 1h30 has to be coded as 1.5
         nbh = (self.wsize - self.i) * self._interval / 3600
         result = super()._state(tc=tc)[:-1]
-        if self.mean_prev:
-            pos1 = self.pos + self.i
-            pos2 = self.pos + self.wsize + 1
-            mean_text_to_target = np.mean(self.text[pos1:pos2])
-            result = np.array([*result, mean_text_to_target], dtype=np.float32)
         result = np.array([*result, tc, nbh], dtype=np.float32)
         return result
 
@@ -671,7 +673,6 @@ class Vacancy(Env):
         tint = self.tint[self.i]
         if self.i == self.wsize:
             # l'occupation du bâtiment commence
-            reward = - self._p_c * abs(tint - tc)
 
             vmin = self._vote_interval[0]
             vmax = self._vote_interval[1]
@@ -680,23 +681,22 @@ class Vacancy(Env):
             popteko = round(100 * self.limit / self.wsize, 1)
             base_max = max(pmineko, popteko)
             base_min = min(pmineko, popteko)
+            reward = - self._p_c * abs(tint - tc) + peko - (1 - self._k) * base_min
             # on arrondit à l'entier supérieur
             # pour tenir compte de l'imprécision du monitoring
-            tint = round(tint)
+            #tint = round(tint)
             # s'il fait très très doux :-)
             if tint > tc + vmax and peko >= base_max:
-                reward = self._k * (peko - base_max)
+                reward = peko - (1 - self._k) * base_max
             if vmin <= tint - tc <= vmax:
-                #reward += self._k * self.tot_eko * self._interval / 3600
-                #reward = self._k * peko
-                # vu qu'on est dans la zone de confort
-                # on ramène reward à zéro
-                # pour à minima annuler la pénalité hystérésis
-                reward = 0
-                # si on a mieux bossé que la baseline
-                # on rajoute un bonus énergétique
-                if peko >= base_min:
-                    reward = self._k * (peko - base_min)
+                # on est dans la zone de confort
+                # si _k est nul, ramène reward à zéro et annule la pénalité hystérésis
+                # sauf si on a a mieux bossé que la baseline
+                # si _k vaut 1, donne toujours un bonus égal au pourcentage d'énergie
+                # économisé par rapport à un chauffage permanent à la puissance max
+                reward = peko - (1 - self._k) * base_min
+                #if peko < base_min:
+                #    reward = self._k * peko
         else:
             self.tot_eko += self._eko(action)
             text = self.text[self.pos + self.i]

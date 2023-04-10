@@ -70,8 +70,9 @@ def train(primary_network, memory, target_network):
 @click.option('--rc_max', type=int, default=100)
 @click.option('--text_min_treshold', type=int, default=None)
 @click.option('--text_max_treshold', type=int, default=None)
+@click.option('--k', type=float, default=1)
 def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max,
-         text_min_treshold, text_max_treshold):
+         text_min_treshold, text_max_treshold, k):
     """main command"""
     text = get_feed(1, INTERVAL, path=PATH)
     model = MODELS["cells"]
@@ -79,6 +80,7 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
     model = set_extra_params(model, action_space=action_space)
     model = set_extra_params(model, text_min_treshold=text_min_treshold)
     model = set_extra_params(model, text_max_treshold=text_max_treshold)
+    model = set_extra_params(model, k=k)
     env = getattr(energy_gym, scenario)(text, MAX_POWER, tc, **model)
 
     primary_network = DQModel(hidden_size, action_space)
@@ -94,6 +96,9 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
 
     eps = MAX_EPS
     suffix = f'{NOW}_{hidden_size}MLP_{scenario}'
+    suffix = f'{suffix}_GAMMA{GAMMA}'
+    suffix = f'{suffix}_{action_space}actions'
+    suffix = f'{suffix}_k={k:.0e}'
     train_writer = tf.summary.create_file_writer(f'{STORE_PATH}/{suffix}')
     steps = 0
     won = 0

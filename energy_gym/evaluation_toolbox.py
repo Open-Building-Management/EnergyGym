@@ -206,7 +206,7 @@ class EvaluateGym:
         self._exit = False
         # numéro de l'épisode
         self.nb_episode = 0
-        self._stats = np.zeros((self._n, 11))
+        self._stats = np.zeros((self._n, 12))
         self._multi_agent = False
 
     def _gen_mod_label(self):
@@ -251,6 +251,10 @@ class EvaluateGym:
         tc = self._env.tc
         tc_step = tc if same_tc_ono else None
         state = self._env.reset(ts=ts, tc_step=tc_step, tint=tint, wsize=wsize)
+        # vu qu'on a une baseline qui maintient en permanence à tc
+        # pour pouvoir comparer et ne pas pénaliser le modèle ou l'agent
+        # il faut que la condition initiale en temp intérieure soit tc
+        self._env.tint[0] = tc
         while True:
             pos1 = self._env.i
             pos2 = self._env.pos + pos1
@@ -279,12 +283,20 @@ class EvaluateGym:
         mtocc_moy, mnbinc, mnbluxe = stats(tc, optimal_solution[:, 1], occ, interval)
         aconso = self._env.wsize + 1 - self._env.tot_eko
         mconso = np.sum(optimal_solution[:, 0])
+        # BASELINE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # conso dite "max" correspondant au maintien de tc en permanence
+        max_conso = 0
+        for i in range(self._env.wsize + 1):
+            text = self._env.text[self._env.pos + i]
+            if text < tc:
+                max_conso += (tc - text) / (self._env.max_power * self._env.model["R"])
         line = np.array([self._env.tsvrai,
                          atocc_moy, anbluxe, anbinc, aconso * interval / 3600,
                          mtocc_moy, mnbluxe, mnbinc, mconso * interval / 3600,
+                         max_conso * interval / 3600,
                          self._env.model["R"], self._env.model["C"]])
         self._stats[self.nb_episode, :] = line
-        return optimal_solution
+        return optimal_solution, max_conso
 
     def play_gym(self, ts=None, snapshot=False, tint=None, wsize=None, same_tc_ono=True):
         """
@@ -293,12 +305,18 @@ class EvaluateGym:
         snapshot : si True, le replay est construit mais pas affiché.
         Un fichier tiers utilisant la classe peut donc l'enregistrer
         """
-        optimal_solution = self.play_base(ts=ts, tint=tint, wsize=wsize,
-                                          same_tc_ono=same_tc_ono)
+        optimal_solution, max_conso = self.play_base(ts=ts,
+                                                     tint=tint,
+                                                     wsize=wsize,
+                                                     same_tc_ono=same_tc_ono)
         print("agent eko", self._env.tot_eko)
-        aeko = 100 * self._env.tot_eko / (self._env.wsize + 1)
-        meko = 100 * (1 - np.mean(optimal_solution[:, 0]))
-        label = f'EKO - modèle : {meko:.2f}% - agent : {aeko:.2f}%'
+        peko = 100 * self._env.tot_eko / (self._env.wsize + 1)
+        popteko = 100 * (1 - np.mean(optimal_solution[:, 0]))
+        min_eko = self._env.wsize + 1 - max_conso
+        pmineko = 100 * min_eko / (self._env.wsize + 1)
+        label = f'EKO - modèle : {popteko:.2f}%'
+        label = f'{label} - agent : {peko:.2f}%'
+        label = f'{label} - baseline {pmineko:.2f}%'
         max_power = round(self._env.max_power * 1e-3)
         label = f'{label} {self._modlabel} max power {max_power} kW'
         label = f'{label}\n Tocc moyenne'
