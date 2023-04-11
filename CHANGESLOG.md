@@ -6,22 +6,27 @@ Amélioration de la pertinence des récompenses pour Vacancy et StepRewardVacanc
 Intégration dans l'environnement d'une baseline énergétique, correspondant au maintien de la température de consigne en permanence, et aussi de l'optimum énergétique, correspondant au jeu du modèle qui sait parfaitement quant rallumer le chauffage.
 Cet optimum n'a pas vocation à être utilisé dans le calcul de la récompense mais la baseline si...
 
-
 - pmineko : économie d'énergie minimale, correspondant au maintien à tc en permanence
 - popteko : économie d'énergie optimale, correspondant au jeu du modèle qui connait parfaitement son environnement
 - peko : économie d'énergie qui sera réalisée par l'agent qui pour avoir un intérêt doit être entre pmineko et popteko
 
+Ajout dans l'environnement : 
+- d'une variable mean_text_episode, égale à la température extérieure moyenne sur l'épisode, après avoir appelé reset() - utile pour repérer dans les stats les épisodes froids sans avoir besoin de les rejouer
+- d'un threshold min et/ou max sur la température extérieure, par exemple pour n'entrainer que sur des températures clémentes, ou au contraire que sur une sélection des plus froides **[n'a pas donné grand chose]**
+
+Ajout des méthodes :
+- set_extra_params, pour ajouter des paramètres au dictionnaire du modèle d'environnement
+- load, pour charger un réseau, cette méthode étant auparavant dans basicplay.py
+- freeze, pour générer des jours fériés à intégrer à un agenda
+
+Ajout d'un générateur de modèles et d'un mode autosize_max_power pour dimensionner la puissance maximale disponible en fonction de l'isolation
+Ce générateur est dans [conf.py](conf.py)
 
 Module de statistiques compatible avec les environnements gym, capable de jouer sur un parc de bâtiments, mais aussi un couple R/C bien défini et un timestamp particulier cf [stats.py](stats.py)
 
 Implémentation de D2Vacancy pour retourner des states prenant la forme de matrices 2D (axe 0 : le temps, axe 1 : les paramètres)
 
 Ajout de [supervised_rc_guess.py](supervised_rc_guess.py) pour l'apprentissage supervisé des paramètres RC par un réseau LSTM
-
-Ajout d'un générateur de modèles et d'un mode autosize_max_power pour dimensionner la puissance maximale disponible en fonction de l'isolation
-Ce générateur est dans [conf.py](conf.py)
-
-Possibilité d'ajouter un threshold min et/ou max sur la température extérieure, par exemple pour n'entrainer que sur des températures clémentes, ou au contraire que sur une sélection des plus froides **[n'a pas donné grand chose]**
 
 Ajout de 2 algorithmes :
 - l'un introduisant l'architecture dueling
@@ -30,10 +35,5 @@ Ajout de 2 algorithmes :
 Ajout de 2 méthodes show_episode_stats et add_scalars_to_tensorboard dans [standalone_d_dqn.py](standalone_d_dqn.py) : A UTILISER DANS TOUS LES ALGORITHMES!
 
 Ajout de [view_tensorboard_graph.py](view_tensorboard_graph.py) pour visualiser l'architecture dueling sous tensorboard
-
-Ajout dans la bibliothèque des méthodes :
-- set_extra_params, pour ajouter des paramètres au dictionnaire du modèle d'environnement
-- load, pour charger un réseau, cette méthode étant auparavant dans basicplay.py
-- freeze, pour générer des jours fériés à intégrer à un agenda
 
 
