@@ -21,7 +21,7 @@ Ajout de [supervised_rc_guess.py](supervised_rc_guess.py) pour l'apprentissage s
 Ajout d'un générateur de modèles et d'un mode autosize_max_power pour dimensionner la puissance maximale disponible en fonction de l'isolation
 Ce générateur est dans [conf.py](conf.py)
 
-Possibilité d'ajouter un threshold min et/ou max sur la température extérieure, par exemple pour n'entrainer que sur des températures clémentes, ou au contraire que sur une sélection des plus froide **[n'a pas donné grand chose]**
+Possibilité d'ajouter un threshold min et/ou max sur la température extérieure, par exemple pour n'entrainer que sur des températures clémentes, ou au contraire que sur une sélection des plus froides **[n'a pas donné grand chose]**
 
 Ajout de 2 algorithmes :
 - l'un introduisant l'architecture dueling
