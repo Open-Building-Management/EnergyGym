@@ -258,6 +258,11 @@ class EvaluateGym:
         while True:
             pos1 = self._env.i
             pos2 = self._env.pos + pos1
+            # coeff sert pour faire cohabiter :
+            # - un agent gérant les périodes de non-occupation avec plus de 2 actions
+            # - un hystérésis gérant les périodes d'occupation avec seulement 2 actions
+            # dans ce cas, on crée un environnement pour l'agent hors-occupation, et on doit
+            # ajuster les choses pour l'agent hystérésis, avant d'avancer dans l'environnement
             coeff = 1
             if self._env.agenda[pos2] != 0 and self._multi_agent:
                 hyststate = np.array([
