@@ -3,6 +3,15 @@
 
 Amélioration de la pertinence des récompenses pour Vacancy et StepRewardVacancy et modulation des paramètres de la récompense désormais possible via la ligne de commande
 
+Intégration dans l'environnement d'une baseline énergétique, correspondant au maintien de la température de consigne en permanence, et aussi de l'optimum énergétique, correspondant au jeu du modèle qui sait parfaitement quant rallumer le chauffage.
+Cet optimum n'a pas vocation à être utilisé dans le calcul de la récompense mais la baseline si...
+
+
+- pmineko : économie d'énergie minimale, correspondant au maintien à tc en permanence
+- popteko : économie d'énergie optimale, correspondant au jeu du modèle qui connait parfaitement son environnement
+- peko : économie d'énergie qui sera réalisée par l'agent qui pour avoir un intérêt doit être entre pmineko et popteko
+
+
 Module de statistiques compatible avec les environnements gym, capable de jouer sur un parc de bâtiments, mais aussi un couple R/C bien défini et un timestamp particulier cf [stats.py](stats.py)
 
 Implémentation de D2Vacancy pour retourner des states prenant la forme de matrices 2D (axe 0 : le temps, axe 1 : les paramètres)
