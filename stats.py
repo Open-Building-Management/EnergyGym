@@ -45,9 +45,12 @@ def create_sandbox(scenario, text, agenda, model, agent_path, nb_episodes):
 @click.option('--rc_max', type=int, default=100)
 @click.option('--same_tc_ono', type=bool, default=True)
 @click.option('--test_set', type=bool, default=False)
+@click.option('--ask_ts', type=bool, default=False)
+@click.option('--ask_rc', type=bool, default=False)
 def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
          action_space, autosize_max_power, newmodel_at_each_episode,
-         nb_episodes, rc_min, rc_max, same_tc_ono, test_set):
+         nb_episodes, rc_min, rc_max, same_tc_ono, test_set,
+         ask_ts, ask_rc):
     """main command"""
     defmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
     model = MODELS.get(modelkey, defmodel)
@@ -99,7 +102,15 @@ def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
             # on passe en paramètre la taille de l'épisode
             # nécessaire si on veut jouer un hystérésis sur toute une semaine
             if not generate_stats:
-                agent_box.play_gym(wsize=WSIZE, same_tc_ono=same_tc_ono)
+                ts = None
+                if ask_ts:
+                    ts = int(input("timestamp?"))
+                if ask_rc:
+                    _r_ = float(input("R?"))
+                    _c_ = float(input("C?"))
+                    usermodel = {"R": _r_, "C": _c_}
+                    agent_box.update_model(usermodel)
+                agent_box.play_gym(wsize=WSIZE, ts=ts, same_tc_ono=same_tc_ono)
             else:
                 agent_box.play_base(wsize=WSIZE, same_tc_ono=same_tc_ono)
             agent_box.nb_episode += 1

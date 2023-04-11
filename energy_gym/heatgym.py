@@ -339,8 +339,9 @@ class Env(gym.Env):
                         break
         self.i = 0
         self.pos = (ts - self._tss) // self._interval
+        pos2 = self.pos + self.wsize + 1
         self.tsvrai = self._tss + self.pos * self._interval
-        self.mean_text_episode = mean_text_episode
+        self.mean_text_episode = np.mean(self.text[self.pos:pos2])
         #print("episode timestamp : {}".format(self.tsvrai))
 
         # on fixe la température de consigne de notre épisode,

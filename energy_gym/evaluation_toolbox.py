@@ -383,32 +383,39 @@ class EvaluateGym:
             title = f'{title} Pourcentage de gain modèle : {pctm} %'
 
             plt.figure(figsize=(20, 10))
-            ax1 = plt.subplot(511)
+            ax1 = plt.subplot(411)
             plt.title(title)
             label = "température moyenne occupation"
             plt.plot(self._stats[:, 1], color="blue", label=f'{label} agent')
             plt.plot(self._stats[:, 5], color="red", label=f'{label} modèle')
             plt.legend()
 
-            plt.subplot(512, sharex=ax1)
+            plt.subplot(412, sharex=ax1)
             label = f'nb heures > {self._env.tc + 1}°C'
             plt.plot(self._stats[:, 2], color="blue", label=f'{label} agent')
             plt.plot(self._stats[:, 6], color="red", label=f'{label} modèle')
             plt.legend()
 
-            plt.subplot(513, sharex=ax1)
+            plt.subplot(413, sharex=ax1)
             label = f'nb heures < {self._env.tc - 1}°C'
             plt.plot(self._stats[:, 3], color="blue", label=f'{label} agent')
             plt.plot(self._stats[:, 7], color="red", label=f'{label} modèle')
             plt.legend()
 
-            plt.subplot(514, sharex=ax1)
-            label = "heures à puissance max gagnées sur maintien à tc"
-            plt.plot(self._stats[:, 9] - self._stats[:, 4], color="blue", label=f'agent - {label}')
-            plt.legend()
-
-            plt.subplot(515, sharex=ax1)
-            plt.plot(self._stats[:, 9] - self._stats[:, 8], color="red", label=f'modèle - {label}')
+            ax2 = plt.subplot(414, sharex=ax1)
+            label = "ECONOMIES sur maintien à tc (en heures à puiss. max)"
+            xr = np.arange(0, self._n)
+            ypos = np.zeros(self._n)
+            ax2.fill_between(xr, ypos,
+                             ypos + self._stats[:, 9] - self._stats[:, 4],
+                             color="blue", alpha=0.6,
+                             label=f'agent - {label}')
+            #plt.plot(self._stats[:, 9] - self._stats[:, 4], color="blue")
+            ax2.fill_between(xr, ypos,
+                             ypos + self._stats[:, 9] - self._stats[:, 8],
+                             color="red", alpha=0.6,
+                             label=f'modèle - {label}')
+            #plt.plot(self._stats[:, 9] - self._stats[:, 8], color="red")
             plt.legend()
 
             ts = time.time()
