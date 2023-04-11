@@ -674,7 +674,6 @@ class Vacancy(Env):
         tint = self.tint[self.i]
         if self.i == self.wsize:
             # l'occupation du bâtiment commence
-
             vmin = self._vote_interval[0]
             vmax = self._vote_interval[1]
             peko = round(100 * self.tot_eko / self.wsize, 1)
@@ -682,7 +681,7 @@ class Vacancy(Env):
             popteko = round(100 * self.limit / self.wsize, 1)
             base_max = max(pmineko, popteko)
             base_min = min(pmineko, popteko)
-            reward = - self._p_c * abs(tint - tc) + peko - (1 - self._k) * base_min
+            reward = - self._p_c * abs(tint - tc)
             # on arrondit à l'entier supérieur
             # pour tenir compte de l'imprécision du monitoring
             #tint = round(tint)
@@ -690,12 +689,7 @@ class Vacancy(Env):
             if tint > tc + vmax and peko >= base_max:
                 reward = peko - (1 - self._k) * base_max
             if vmin <= tint - tc <= vmax:
-                # on est dans la zone de confort
-                # si _k est nul, ramène reward à zéro et annule la pénalité hystérésis
-                # sauf si on a a mieux bossé que la baseline
-                # si _k vaut 1, donne toujours un bonus égal au pourcentage d'énergie
-                # économisé par rapport à un chauffage permanent à la puissance max
-                reward = peko - (1 - self._k) * base_min
+                reward = max(self._p_c * vmin, peko - (1 - self._k) * base_min)
                 #if peko < base_min:
                 #    reward = self._k * peko
         else:
