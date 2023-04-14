@@ -125,9 +125,11 @@ def gen_random_model_and_reset(env, modelkey, **kwargs):
 @click.option('--text_min_treshold', type=int, default=None)
 @click.option('--text_max_treshold', type=int, default=None)
 @click.option('--k', type=float, default=1)
+@click.option('--p_c', type=float, default=15)
+@click.option('--vote_interval', type=float, nargs=2, default=(-1, 1))
 @click.option('--mean_prev', type=bool, default=False)
 def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_min, rc_max,
-         text_min_treshold, text_max_treshold, k, mean_prev):
+         text_min_treshold, text_max_treshold, k, p_c, vote_interval, mean_prev):
     """main command"""
     text = get_feed(1, INTERVAL, path=PATH)
     modelkey = "synth"
@@ -138,7 +140,7 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
     model = set_extra_params(model, mean_prev=mean_prev)
     model = set_extra_params(model, text_min_treshold=text_min_treshold)
     model = set_extra_params(model, text_max_treshold=text_max_treshold)
-    model = set_extra_params(model, k=k)
+    model = set_extra_params(model, k=k, p_c=p_c, vote_interval=vote_interval)
     env = getattr(energy_gym, scenario)(text, MAX_POWER, tc, **model)
 
     num_actions = env.action_space.n
@@ -160,9 +162,17 @@ def main(scenario, tc, halfrange, hidden_size, action_space, num_episodes, rc_mi
             suffix = f'{suffix}_under{text_max_treshold}'
     suffix = f'{suffix}_GAMMA{GAMMA}'
     suffix = f'{suffix}_{action_space}actions'
-    suffix = f'{suffix}_k={k:.0e}'
+    suffix = f'{suffix}_k{k:.0e}'
+    if p_c != 15:
+        suffix = f'{suffix}_p_c{p_c}'
+    if vote_interval != (-1, 1):
+        suffix = f'{suffix}_vote_interval={vote_interval[0]}A{vote_interval[1]}'
     if model.get("mean_prev"):
         suffix = f'{suffix}_mean_prev'
+    if rc_min != 50:
+        suffix = f'{suffix}_rc_min{rc_min}'
+    if rc_max != 100:
+        suffix = f'{suffix}_rc_max{rc_max}'
     tw_path = f'{STORE_PATH}/{suffix}'
     train_writer = tf.summary.create_file_writer(tw_path)
     steps = 0

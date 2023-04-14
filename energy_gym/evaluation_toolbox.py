@@ -319,7 +319,7 @@ class EvaluateGym:
         print("agent eko", self._env.tot_eko)
         peko = 100 * self._env.tot_eko / (self._env.wsize + 1)
         popteko = 100 * (1 - np.mean(optimal_solution[:, 0]))
-        min_eko = self._env.wsize + 1 - max_conso * 3600 // self._env.text.step
+        min_eko = self._env.wsize + 1 - max_conso
         pmineko = 100 * min_eko / (self._env.wsize + 1)
         label = f'EKO - modèle : {popteko:.2f}%'
         label = f'{label} - agent : {peko:.2f}%'

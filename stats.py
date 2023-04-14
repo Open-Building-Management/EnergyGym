@@ -9,9 +9,6 @@ import conf
 from conf import MODELS
 from conf import PATH, SCHEDULE, MAX_POWER, TEXT_FEED
 
-INTERVAL = 3600
-WSIZE = 8*24*3600 // INTERVAL
-
 NAMES = [*MODELS.keys(), "synth"]
 
 def sig_handler(signum, frame):  # pylint: disable=unused-argument
@@ -47,11 +44,13 @@ def create_sandbox(scenario, text, agenda, model, agent_path, nb_episodes):
 @click.option('--test_set', type=bool, default=False)
 @click.option('--ask_ts', type=bool, default=False)
 @click.option('--ask_rc', type=bool, default=False)
+@click.option('--interval', type=int, default=3600)
 def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
          action_space, autosize_max_power, newmodel_at_each_episode,
          nb_episodes, rc_min, rc_max, same_tc_ono, test_set,
-         ask_ts, ask_rc):
+         ask_ts, ask_rc, interval):
     """main command"""
+    wsize = 8*24*3600 // interval
     defmodel = conf.generate(bank_name=modelkey, rc_min=rc_min, rc_max=rc_max)
     model = MODELS.get(modelkey, defmodel)
     model = set_extra_params(model, action_space=action_space)
@@ -59,7 +58,7 @@ def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
     model = set_extra_params(model, nbh_forecast=nbh_forecast, nbh=nbh)
     model = set_extra_params(model, autosize_max_power=autosize_max_power)
     path = f'{PATH}/test_set' if test_set else PATH
-    text = get_feed(TEXT_FEED, INTERVAL, path=path)
+    text = get_feed(TEXT_FEED, interval, path=path)
     # demande à l'utilisateur des chemins de réseaux
     agent_path, agent_exists = pick_name()
     question = "chemin agent hystérésis pour les périodes d'occupation ?"
@@ -73,7 +72,7 @@ def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
             for i in freeze(nb_off):
                 SCHEDULE[i] = [-1, -1]
         # génération de l'agenda
-        agenda = biosAgenda(text.shape[0], INTERVAL, text.start, [], schedule=SCHEDULE)
+        agenda = biosAgenda(text.shape[0], interval, text.start, [], schedule=SCHEDULE)
         agent_box = create_sandbox(scenario, text, agenda,
                                    model, agent_path,
                                    nb_episodes)
@@ -110,16 +109,16 @@ def main(modelkey, nbh, nbh_forecast, mean_prev, generate_stats, nb_off,
                     _c_ = float(input("C?"))
                     usermodel = {"R": _r_, "C": _c_}
                     agent_box.update_model(usermodel)
-                agent_box.play_gym(wsize=WSIZE, ts=ts, same_tc_ono=same_tc_ono)
+                agent_box.play_gym(wsize=wsize, ts=ts, same_tc_ono=same_tc_ono)
             else:
-                agent_box.play_base(wsize=WSIZE, same_tc_ono=same_tc_ono)
+                agent_box.play_base(wsize=wsize, same_tc_ono=same_tc_ono)
             agent_box.nb_episode += 1
             if concurrent_exists:
                 tint0, ts = agent_box.get_episode_params()
                 if not generate_stats:
-                    concurrent_box.play_gym(wsize=WSIZE, ts=ts, tint=tint0)
+                    concurrent_box.play_gym(wsize=wsize, ts=ts, tint=tint0)
                 else:
-                    concurrent_box.play_base(wsize=WSIZE, ts=ts, tint=tint0)
+                    concurrent_box.play_base(wsize=wsize, ts=ts, tint=tint0)
                 concurrent_box.nb_episode += 1
 
         # close and record stats
