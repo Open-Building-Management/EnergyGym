@@ -14,7 +14,7 @@ On enregitre alors (text, tint, qc) dans une matrice 2D qu'on peut envoyer
 """
 import sys
 import argparse
-import random
+#import random
 import numpy as np
 from tensorflow import keras
 import matplotlib.pyplot as plt
