@@ -22,7 +22,6 @@ import energy_gym
 from energy_gym import get_feed, set_extra_params, load, pick_name
 from conf import MODELS
 from conf import PATH, MAX_POWER, TEXT_FEED
-import conf
 
 
 # ne pas changer ce pas de temps
@@ -31,7 +30,7 @@ INTERVAL = 3600
 NBH = 48
 # caractéristiques des entrainements
 BATCH_SIZE = 50
-MAX_EPOCHS = 50
+MAX_EPOCHS = 100
 STEPS_PER_EPOCH = 50
 # poids pour normaliser les paramètres électriques qui servent de labels
 P_R = 1e4
@@ -40,13 +39,16 @@ P_C = 1e-8
 
 class BatchGenerator:  # pylint: disable=R0903
     """generateur de batches"""
-    def __init__(self, env, size):
+    def __init__(self, env, models, size):
         """
         env : environnement gym
+
+        models : banque de modèles R1C1
 
         size : nombre d'heures de chaque épisode
         """
         self.env = env
+        self.models = models
         self.size = size
 
     def generate(self):
@@ -55,13 +57,8 @@ class BatchGenerator:  # pylint: disable=R0903
             x = np.zeros((BATCH_SIZE, self.size, 3))
             y = np.zeros((BATCH_SIZE, 2))
             for i in range(BATCH_SIZE):
-                newmodel = conf.generate(
-                    verbose=False,
-                    bank_name="synth",
-                    rc_min=50,
-                    rc_max=100
-                )
-                self.env.update_model(newmodel)
+                modelkey = random.choice(list(self.models.keys()))
+                self.env.update_model(self.models[modelkey])
                 self.env.reset()
                 for _ in range(self.size):
                     action = self.env.action_space.sample()
@@ -71,9 +68,7 @@ class BatchGenerator:  # pylint: disable=R0903
                     self.env.tint[0:self.size],
                     self.env.action[0:self.size] * self.env.max_power
                 ]).transpose()
-                y[i, :] = np.array([
-                    self.env.model["R"] * self.env.model["C"] / 3600
-                ])
+                y[i, :] = np.array([self.env.model["R"] * P_R, self.env.model["C"] * P_C])
             #print(x.shape)
             #print(x,y)
             yield x, y
@@ -83,10 +78,10 @@ def train(env):
     """train the lstm agent"""
     agent = keras.models.Sequential()
     agent.add(keras.layers.LSTM(512))
-    agent.add(keras.layers.Dense(1))
+    agent.add(keras.layers.Dense(2))
     agent.compile(optimizer=keras.optimizers.Adam(), loss='mse')
 
-    train_data_generator = BatchGenerator(env, NBH)
+    train_data_generator = BatchGenerator(env, MODELS, NBH)
     agent.fit(train_data_generator.generate(), steps_per_epoch=STEPS_PER_EPOCH, epochs=MAX_EPOCHS)
 
     save = input("save ? Y=yes")
@@ -103,9 +98,9 @@ def play(env):
     models = {}
     models = MODELS
     models["never_met"] = {"R": 2.5e-3, "C": 8.7e8}
-    test_data_generator = BatchGenerator(env, NBH)
+    test_data_generator = BatchGenerator(env, models, NBH)
     data = next(test_data_generator.generate())
-    prediction = agent(data[0]).numpy()
+    prediction = agent(data[0])
     for j in range(data[0].shape[0]):
         plt.subplot(311)
         original = {"R": data[1][j][0] / P_R, "C": data[1][j][1] / P_C}
@@ -153,7 +148,6 @@ if __name__ == "__main__":
     text = get_feed(TEXT_FEED, INTERVAL, path=PATH)
     model = MODELS["cells"]
     model = set_extra_params(model, action_space=action_space)
-    model = set_extra_params(model, autosize_max_power=True)
     # on part sur un environnement Vacancy mais peu importe
     # on a fixé la température de consigne à 20 mais c'est factice et ne sert pas
     bat = getattr(energy_gym, "Vacancy")(text, MAX_POWER, 20, **model)
