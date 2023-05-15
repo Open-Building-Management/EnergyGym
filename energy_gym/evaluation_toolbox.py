@@ -473,7 +473,7 @@ class EvaluateGisement(EvaluateGym):
                 waterlaw_conso += (tc - text) / self._env.model["R"]
         line = np.array([self._env.tsvrai,
                          optimal_conso * interval / 3600,
-                         waterlaw_conso * interval / 3600),
+                         waterlaw_conso * interval / 3600,
                          self._env.model["R"], self._env.model["C"]])
         self._stats[self.nb_episode, :] = line
         
@@ -493,8 +493,8 @@ class EvaluateGisement(EvaluateGym):
             xr = np.arange(0, self._n)
             ypos = np.zeros(self._n)
             ax.fill_between(xr, 0, self._stats[:, 2] - self._stats[:, 1],
-                            color="blue", alpha=0.6, label=label))
-            plt.show()                            
+                            color="blue", alpha=0.6, label=label)
+            plt.show()
             plt.close()
 
 class Evaluate(EvaluateGym):
