@@ -438,6 +438,65 @@ class EvaluateGym:
         plt.close()
         return stats_moy
 
+class EvaluateGisement(EvaluateGym):
+    """évalue le gisement d'économies d'énergie
+    joue loi d'eau versus solution optimale
+    """
+    def __init__(self, name, env, **params):
+        """initialisation"""
+        self._n = params.get("N", MAX_EPISODES)
+        print(f'on va jouer {self._n} épisodes')
+        self._name = name
+        self._env = env
+        self._modlabel = self._gen_mod_label()
+        self._exit = False
+        # numéro de l'épisode
+        self.nb_episode = 0
+        self._stats = np.zeros((self._n, 5))
+        
+    def play_base(self, ts=None, tint=None, wsize=None):
+        """joue un épisode"""
+        tc = self._env.tc
+        interval = self._env.text.step
+        state = self._env.reset(ts=ts, tint=tint, wsize=wsize)
+        self._env.tint[0] = tc
+        optimal_solution = play_hystnvacancy(self._env,
+                                             self._env.pos,
+                                             self._env.wsize,
+                                             self._env.tint[0],
+                                             tc, 1)
+        optimal_conso = np.sum(optimal_solution[:, 0]) * self._env.max_power
+        waterlaw_conso = 0
+        for i in range(self._env.wsize + 1):
+            text = self._env.text[self._env.pos + i]
+            if text < tc:
+                waterlaw_conso += (tc - text) / self._env.model["R"]
+        line = np.array([self._env.tsvrai,
+                         optimal_conso * interval / 3600,
+                         waterlaw_conso * interval / 3600),
+                         self._env.model["R"], self._env.model["C"]])
+        self._stats[self.nb_episode, :] = line
+        
+    def close(self, suffix=None, random_model=False):
+        """production du graphique"""
+        stats_moy = np.mean(self._stats, axis=0).round(1)
+        print("leaving the game")
+        if self.nb_episode == self._n :
+            title = f'Conso solution optimale : {stats_moy[1]}'
+            title = f'{title} / Conso loi d\'eau maintien à tc : {stats_moy[2]}\n'
+            gain = round(100*(stats_moy[2]-stats_moy[1])/stats_moy[2], 2)
+            title = f'{title} Pourcentage de gain : {gain} %'
+            plt.figure(figsize=(20, 10))
+            plt.title(title)
+            ax = plt.subplot(111)
+            label = "ECONOMIES sur maintien à tc en W"
+            xr = np.arange(0, self._n)
+            ypos = np.zeros(self._n)
+            ax.fill_between(xr, 0, self._stats[:, 2] - self._stats[:, 1],
+                            color="blue", alpha=0.6, label=label))
+            plt.show()                            
+            plt.close()
+
 class Evaluate(EvaluateGym):
     """evaluation class"""
     def __init__(self, name, env, agent, **params):
