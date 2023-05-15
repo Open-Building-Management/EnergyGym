@@ -183,7 +183,6 @@ class EvaluateGisement:
         print(f'on va jouer {self._n} épisodes')
         self._name = name
         self._env = env
-        self._modlabel = self._gen_mod_label()
         self._exit = False
         # numéro de l'épisode
         self.nb_episode = 0
@@ -216,7 +215,7 @@ class EvaluateGisement:
             self._stats[self.nb_episode, :] = line
             self.nb_episode += 1
 
-    def close(self, suffix=None, random_model=False):
+    def close(self):
         """production du graphique de statistique"""
         stats_moy = np.mean(self._stats, axis=0).round(1)
         print("leaving the game")
