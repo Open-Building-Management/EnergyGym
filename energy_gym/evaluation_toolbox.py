@@ -173,7 +173,7 @@ class Environnement:
         retourne le tenseur de données sources complété par le scénario de chauffage et la température intérieure simulée
         """
 
-class EvaluateGisement(EvaluateGym):
+class EvaluateGisement:
     """évalue le gisement d'économies d'énergie
     joue loi d'eau versus solution optimale
     """
@@ -189,10 +189,8 @@ class EvaluateGisement(EvaluateGym):
         self.nb_episode = 0
         self._stats = np.zeros((self._n, 5))
 
-    def play_base(self, ts=None, tint=None, wsize=None):
+    def play(self, ts=None, tint=None, wsize=None):
         """joue les épisodes"""
-        signal.signal(signal.SIGINT, self._sig_handler)
-        signal.signal(signal.SIGTERM, self._sig_handler)
         while not self._exit:
             if self.nb_episode >= self._n - 1:
                 self._exit = True
