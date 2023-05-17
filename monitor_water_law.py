@@ -15,41 +15,41 @@ def reg_lin_water_law(ts, nb_dep, nb_ret, nb_pump, **params):
     view_plot = params.get("view_plot", True)
     wsize = 8 * 24 * 3600 // interval
 
-    def window_feed(nb, ts, verbose=False):
+    def window_feed(nb_feed, ts, verbose=False):
 
-        T_mes = get_feed(nb, interval, path=f'{PATH}/mesures')
+        t_mes = get_feed(nb_feed, interval, path=f'{PATH}/mesures')
         if verbose:
-            print(T_mes.start)
-        tse_mes = T_mes.start + T_mes.shape[0] * T_mes.step
+            print(t_mes.start)
+        tse_mes = t_mes.start + t_mes.shape[0] * t_mes.step
         if verbose:
             print(tse_mes)
-        pos = (ts - T_mes.start) // interval
-        return T_mes[pos:pos+wsize+1]
+        pos = (ts - t_mes.start) // interval
+        return t_mes[pos:pos+wsize+1]
 
-    T_eau_dep_mes = window_feed(nb_dep, ts)
-    T_eau_ret_mes = window_feed(nb_ret, ts)
+    t_eau_dep_mes = window_feed(nb_dep, ts)
+    t_eau_ret_mes = window_feed(nb_ret, ts)
     pump = window_feed(nb_pump, ts)
 
     # régression linéaire
-    coeffs = np.polyfit(T_eau_dep_mes[pump[:]>0], T_eau_ret_mes[pump[:]>0], 1)
-    T_eau_ret_mes_affine = coeffs[0] * T_eau_dep_mes + coeffs[1]
+    coeffs = np.polyfit(t_eau_dep_mes[pump[:]>0], t_eau_ret_mes[pump[:]>0], 1)
+    t_eau_ret_mes_affine = coeffs[0] * t_eau_dep_mes + coeffs[1]
 
     if view_plot:
         label = f'T_eau_retour={coeffs[0]:.2f} * T_eau_départ + {coeffs[1]:.2f}'
         plt.figure(figsize=(20,10))
         ax1 = plt.subplot(211)
         plt.title("températures d'eau chaude mesurées")
-        plt.plot(T_eau_dep_mes, color="red", label="T_départ_eau °C")
-        plt.plot(T_eau_ret_mes, color="purple", label="T_retour_eau °C")
+        plt.plot(t_eau_dep_mes, color="red", label="T_départ_eau °C")
+        plt.plot(t_eau_ret_mes, color="purple", label="T_retour_eau °C")
         plt.legend()
-        ax2 = ax1.twinx()
+        ax1.twinx()
         plt.plot(pump, label="pompe ON/OFF")
         plt.legend()
         ax3 = plt.subplot(212)
         ax3.set_ylabel("T eau retour °C")
         ax3.set_xlabel("T eau départ °C")
-        plt.plot(T_eau_dep_mes[pump>0], T_eau_ret_mes[pump>0], '*')
-        plt.plot(T_eau_dep_mes, T_eau_ret_mes_affine, label=label)
+        plt.plot(t_eau_dep_mes[pump>0], t_eau_ret_mes[pump>0], '*')
+        plt.plot(t_eau_dep_mes, t_eau_ret_mes_affine, label=label)
         plt.legend()
         plt.show()
 
