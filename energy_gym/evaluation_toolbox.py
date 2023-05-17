@@ -222,7 +222,6 @@ class EvaluateGisement:
         self._stats = self._stats[self._stats[:,5].argsort()]
         stats_moy = np.mean(self._stats, axis=0).round(1)
         stats_moy_m1 = np.mean(self._stats[:self._n//2,:], axis=0).round(1)
-        print("leaving the game")
         title = f'Conso solution optimale : {stats_moy[1]}'
         title = f'{title} / Conso loi d\'eau maintien à tc : {stats_moy[2]}\n'
         gain = round(100*(stats_moy[2]-stats_moy[1])/stats_moy[2], 2)
