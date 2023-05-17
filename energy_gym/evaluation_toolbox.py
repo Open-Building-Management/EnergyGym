@@ -177,62 +177,75 @@ class EvaluateGisement:
     """évalue le gisement d'économies d'énergie
     joue loi d'eau versus solution optimale
     """
-    def __init__(self, name, env, **params):
+    def __init__(self, env, **params):
         """initialisation"""
         self._n = params.get("N", MAX_EPISODES)
         print(f'on va jouer {self._n} épisodes')
-        self._name = name
         self._env = env
-        self._exit = False
         # numéro de l'épisode
         self.nb_episode = 0
-        self._stats = np.zeros((self._n, 5))
+        self._stats = np.zeros((self._n, 6))
+
+    def update_model(self, model):
+        """model live update"""
+        self._env.update_model(model)
 
     def play(self, ts=None, tint=None, wsize=None):
-        """joue les épisodes"""
-        while not self._exit:
-            if self.nb_episode >= self._n - 1:
-                self._exit = True
-            tc = self._env.tc
-            interval = self._env.text.step
-            self._env.reset(ts=ts, tint=tint, wsize=wsize)
-            self._env.tint[0] = tc
-            optimal_solution = play_hystnvacancy(self._env,
-                                                 self._env.pos,
-                                                 self._env.wsize,
-                                                 self._env.tint[0],
-                                                 tc, 1)
-            optimal_conso = np.sum(optimal_solution[:, 0]) * self._env.max_power
-            waterlaw_conso = 0
-            for i in range(self._env.wsize + 1):
-                text = self._env.text[self._env.pos + i]
-                if text < tc:
-                    waterlaw_conso += (tc - text) / self._env.model["R"]
-            line = np.array([self._env.tsvrai,
-                             optimal_conso * interval / 3600,
-                             waterlaw_conso * interval / 3600,
-                             self._env.model["R"], self._env.model["C"]])
-            self._stats[self.nb_episode, :] = line
-            self.nb_episode += 1
+        """joue un épisode"""
+        if self.nb_episode >= self._n - 1:
+            self._exit = True
+        tc = self._env.tc
+        interval = self._env.text.step
+        self._env.reset(ts=ts, tint=tint, wsize=wsize)
+        self._env.tint[0] = tc
+        optimal_solution = play_hystnvacancy(self._env,
+                                             self._env.pos,
+                                             self._env.wsize,
+                                             self._env.tint[0],
+                                             tc, 1)
+        optimal_conso = np.sum(optimal_solution[:, 0]) * self._env.max_power
+        waterlaw_conso = 0
+        for i in range(self._env.wsize + 1):
+            text = self._env.text[self._env.pos + i]
+            if text < tc:
+                waterlaw_conso += (tc - text) / self._env.model["R"]
+        line = np.array([self._env.tsvrai,
+                         optimal_conso * interval / 3600,
+                         waterlaw_conso * interval / 3600,
+                         self._env.model["R"], self._env.model["C"],
+                         (waterlaw_conso - optimal_conso) * interval / 3600])
+        self._stats[self.nb_episode, :] = line
+        self.nb_episode += 1
+        return optimal_solution
 
     def close(self):
         """production du graphique de statistique"""
+        # on réordonne le tableau avec un tri croissant sur les économies d'énergie
+        self._stats = self._stats[self._stats[:,5].argsort()]
         stats_moy = np.mean(self._stats, axis=0).round(1)
+        stats_moy_m1 = np.mean(self._stats[:self._n//2,:], axis=0).round(1)
         print("leaving the game")
-        if self.nb_episode == self._n :
-            title = f'Conso solution optimale : {stats_moy[1]}'
-            title = f'{title} / Conso loi d\'eau maintien à tc : {stats_moy[2]}\n'
-            gain = round(100*(stats_moy[2]-stats_moy[1])/stats_moy[2], 2)
-            title = f'{title} Pourcentage de gain : {gain} %'
-            plt.figure(figsize=(20, 10))
-            plt.title(title)
-            ax1 = plt.subplot(111)
-            label = "ECONOMIES sur maintien à tc en W"
-            xr = np.arange(0, self._n)
-            ax1.fill_between(xr, 0, self._stats[:, 2] - self._stats[:, 1],
-                            color="blue", alpha=0.6, label=label)
-            plt.show()
-            plt.close()
+        title = f'Conso solution optimale : {stats_moy[1]}'
+        title = f'{title} / Conso loi d\'eau maintien à tc : {stats_moy[2]}\n'
+        gain = round(100*(stats_moy[2]-stats_moy[1])/stats_moy[2], 2)
+        title = f'{title} Pourcentage de gain : {gain} %'
+        gain_m1 = round(100*(stats_moy_m1[2]-stats_moy_m1[1])/stats_moy_m1[2], 2)
+        title = f'{title} Pourcentage de gain première moitié : {gain_m1} %'
+        xr = np.arange(0, self._n)
+        plt.figure(figsize=(20, 10))
+        plt.subplot(311)
+        plt.title(title)
+        plt.plot(xr, self._stats[:,3]*1e4, label = "R * 1e4 K/W")
+        plt.legend()
+        plt.subplot(312)
+        plt.plot(xr, self._stats[:,4]*1e-9, label = "C * 1e-9 J/K")
+        plt.legend()
+        plt.subplot(313)
+        label = "ECONOMIES sur maintien à tc en W"
+        plt.fill_between(xr, 0, self._stats[:, 2] - self._stats[:, 1],
+                         color="blue", alpha=0.6, label=label)
+        plt.show()
+        plt.close()
 
 class EvaluateGym:
     """base evaluation class

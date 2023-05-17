@@ -486,14 +486,16 @@ class Env(gym.Env):
                          *q_c_past_horaire/self.max_power,
                          tc], dtype=np.float32)
 
-    def _covering(self):
+    def _covering(self, tmin=None, tmax=None):
         """retourne la zone de confort
         et les éventuelles zones d'occupation si un agenda est en place"""
         zone_confort = confort(self._xr, self.tc_episode, 1)
         zones_occ = None
         if self.agenda is not None:
-            tmin = np.min(self.tint[0: self.i])
-            tmax = np.max(self.tint[0: self.i])
+            if tmin is None:
+                tmin = np.min(self.tint[0: self.i])
+            if tmax is None:
+                tmax = np.max(self.tint[0: self.i])
             occupation = self.agenda[self.pos:self.pos+self.wsize+4*24*3600//self._interval]
             zones_occ = presence(self._xr, occupation, self.wsize,
                                  tmin, tmax, self.tc_episode, 1)
