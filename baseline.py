@@ -1,3 +1,4 @@
+"""baseline de type loi d'eau sur température extérieure"""
 import math
 import matplotlib.pyplot as plt
 import numpy as np

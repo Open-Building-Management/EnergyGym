@@ -192,8 +192,6 @@ class EvaluateGisement:
 
     def play(self, ts=None, tint=None, wsize=None):
         """joue un épisode"""
-        if self.nb_episode >= self._n - 1:
-            self._exit = True
         tc = self._env.tc
         interval = self._env.text.step
         self._env.reset(ts=ts, tint=tint, wsize=wsize)

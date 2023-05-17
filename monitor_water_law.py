@@ -1,3 +1,4 @@
+"""relation entre températures de retour et de départ"""
 import matplotlib.pyplot as plt
 import numpy as np
 
