@@ -180,7 +180,6 @@ class EvaluateGisement:
     def __init__(self, env, **params):
         """initialisation"""
         self._n = params.get("N", MAX_EPISODES)
-        print(f'on va jouer {self._n} épisodes')
         self._env = env
         # numéro de l'épisode
         self.nb_episode = 0
@@ -222,8 +221,10 @@ class EvaluateGisement:
         self._stats = self._stats[self._stats[:,5].argsort()]
         stats_moy = np.mean(self._stats, axis=0).round(1)
         stats_moy_m1 = np.mean(self._stats[:self._n//2,:], axis=0).round(1)
-        title = f'Conso solution optimale : {stats_moy[1]}'
-        title = f'{title} / Conso loi d\'eau maintien à tc : {stats_moy[2]}\n'
+        title = f'Conso hebdomadaire moyenne solution optimale :'
+        title = f'{title} {int(stats_moy[1]/1000)} kWh'
+        title = f'{title} / Conso hebdomadaire moyenne loi d\'eau maintien à tc :'
+        title = f'{title} {int(stats_moy[2]/1000)} kWh\n'
         gain = round(100*(stats_moy[2]-stats_moy[1])/stats_moy[2], 2)
         title = f'{title} Pourcentage de gain : {gain} %'
         gain_m1 = round(100*(stats_moy_m1[2]-stats_moy_m1[1])/stats_moy_m1[2], 2)
@@ -238,9 +239,10 @@ class EvaluateGisement:
         plt.plot(xr, self._stats[:,4]*1e-9, label = "C * 1e-9 J/K")
         plt.legend()
         plt.subplot(313)
-        label = "ECONOMIES sur maintien à tc en W"
-        plt.fill_between(xr, 0, self._stats[:, 2] - self._stats[:, 1],
+        label = "ECONOMIES sur maintien à tc en kWh"
+        plt.fill_between(xr, 0, (self._stats[:, 2] - self._stats[:, 1])/1000,
                          color="blue", alpha=0.6, label=label)
+        plt.legend()
         plt.show()
         plt.close()
 

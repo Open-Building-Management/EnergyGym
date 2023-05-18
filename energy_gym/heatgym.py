@@ -414,14 +414,21 @@ class Env(gym.Env):
         self._ax1.clear()
         self._ax2.clear()
         self._ax3.clear()
-        self._ax1.plot(self._xr, self.text[self.pos:self.pos+self.wsize+1])
-        self._ax2.plot(self._xr[0:self.i], self.tint[0:self.i])
-        self._ax3.plot(self._xr[0:self.i], self.action[0:self.i])
+        self._ax1.plot(self._xr, self.text[self.pos:self.pos+self.wsize+1], label="Text °C")
+        if (self.tint == np.zeros(self.tint.shape[0])).all():
+            self._ax2.plot(self._xr[0:self.i], self.tint[0:self.i], label="Tint agent °C")
+            self._ax3.plot(self._xr[0:self.i], self.action[0:self.i], label="action agent")
         # données externes
         if extra_datas is not None and not stepbystep:
-            self._ax2.plot(self._xr[0:self.wsize], extra_datas[:,1], color="orange")
+            self._ax2.plot(self._xr[0:self.wsize],
+                           extra_datas[:,1],
+                           color="orange",
+                           label="Tint solution optimale °C")
             energy = extra_datas[:,0] * (self.action_space.n - 1)
-            self._ax3.plot(self._xr[0:self.wsize], energy, color="orange")
+            self._ax3.plot(self._xr[0:self.wsize],
+                           energy,
+                           color="orange",
+                           label="action solution optimale")
         if self.i :
             if zone_confort is not None :
                 self._ax2.add_patch(zone_confort)
@@ -430,6 +437,9 @@ class Env(gym.Env):
                     self._ax2.add_patch(occ)
         # si stepbystep est True, on affiche l'image et le mode snapshot est sans effet
         # si snapshot est False, qu'on soit en mode stepbystep ou pas, on affiche l'image
+        self._ax1.legend()
+        self._ax2.legend()
+        self._ax3.legend()
         if stepbystep or not snapshot:
             plt.show()
         if stepbystep:

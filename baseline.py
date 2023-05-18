@@ -55,18 +55,18 @@ def play_baseline(text, debit, t_c, **params):
     label_eau = f'T_eau_retour={coeffs[0]:.2f} * T_eau_départ + {coeffs[1]:.2f}'
 
     title = f'BASELINE ENERGETIQUE pour un débit de {debit} m3/h'
-    title = f'{title}et pour R = {_r_:.2e} K/W'
+    title = f'{title} et pour R = {_r_:.2e} K/W'
+    title = f'{title} ts={ts}'
 
     label_power = "puissance en W pour maintien à 20 °C"
 
-    print(ts)
     plt.figure(figsize=(20,10))
     ax1 = plt.subplot(311)
     plt.title(title)
     plt.plot(xr, t_ext_week, label="Text °C")
     plt.legend(loc="upper left")
     ax2 = ax1.twinx()
-    ax2.set_ylim([t_c-1, t_c+1])
+    ax2.set_ylim([t_c-0.05, t_c+0.05])
     plt.plot(xr, t_int, label="Tint °C", color="green")
     plt.legend()
 
