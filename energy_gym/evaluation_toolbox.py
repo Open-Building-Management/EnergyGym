@@ -221,7 +221,7 @@ class EvaluateGisement:
         self._stats = self._stats[self._stats[:,5].argsort()]
         stats_moy = np.mean(self._stats, axis=0).round(1)
         stats_moy_m1 = np.mean(self._stats[:self._n//2,:], axis=0).round(1)
-        title = f'Conso hebdomadaire moyenne solution optimale :'
+        title = "Conso hebdomadaire moyenne solution optimale :"
         title = f'{title} {int(stats_moy[1]/1000)} kWh'
         title = f'{title} / Conso hebdomadaire moyenne loi d\'eau maintien à tc :'
         title = f'{title} {int(stats_moy[2]/1000)} kWh\n'
