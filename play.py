@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""joue des épisodes et produit des stats"""
+"""joue des épisodes et produit des stats
+DEPRECATED
+DEPRECATED
+USE stats.py
+"""
 import os
 from collections import defaultdict
 import matplotlib.pyplot as plt
