@@ -392,7 +392,8 @@ class Env(gym.Env):
     def _render(self, zone_confort=None, zones_occ=None,
                 stepbystep=True,
                 label=None, extra_datas=None,
-                snapshot=False):
+                snapshot=False,
+                show_agent=True):
         """generic render method"""
         # si stepbystep est True, on ne crée la figure que si i vaut 0
         # si stepbystep est False, on la crée quel que soit i
@@ -415,7 +416,7 @@ class Env(gym.Env):
         self._ax2.clear()
         self._ax3.clear()
         self._ax1.plot(self._xr, self.text[self.pos:self.pos+self.wsize+1], label="Text °C")
-        if (self.tint == np.zeros(self.tint.shape[0])).all():
+        if show_agent:
             self._ax2.plot(self._xr[0:self.i], self.tint[0:self.i], label="Tint agent °C")
             self._ax3.plot(self._xr[0:self.i], self.action[0:self.i], label="action agent")
         # données externes
