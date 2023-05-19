@@ -16,8 +16,6 @@ from .heatgym import confort, presence, MODELRC, sim, play_hystnvacancy
 MAX_EPISODES = 900
 PRIMO_AGENT_LAYERS = ['states', 'dense', 'dense_1']
 
-
-
 def stats(tc, tint, occ, interval):
     """basic stats on temperature datas"""
     idx = occ != 0
@@ -30,148 +28,6 @@ def stats(tc, tint, occ, interval):
     nbluxe = luxe.shape[0] * interval / 3600
     return tocc_moy, nbinc, nbluxe
 
-def get_config(agent):
-    """
-    DEPRECATED
-
-    extrait la configuration du réseau
-
-    - lnames : liste des noms des couches
-    - insize : taille de l'input
-    - outsize : taille de la sortie
-    """
-    lnames = []
-    for layer in agent.layers:
-        lnames.append(layer.name)
-    print(lnames)
-    if lnames == PRIMO_AGENT_LAYERS:
-        print("agent issu des expérimentations primitives")
-    outlayer = agent.get_layer(name="output") if "output" in lnames else agent.get_layer(name=lnames[-1])
-    inlayer = agent.get_layer(name="states") if "states" in lnames else agent.get_layer(name=lnames[0])
-    outsize = outlayer.get_config()['units']
-    try:
-        insize = inlayer.get_config()["batch_input_shape"][1]
-    except Exception :
-        print("no input layer")
-        insize = 4
-    print(f'network input size {insize} output size {outsize}')
-    return lnames, insize, outsize
-
-
-class Environnement:
-    """
-    DEPRECATED : UTILISER L'ENVIRONNEMENT GYM
-
-    stocke les données décrivant l'environnement
-    et offre des méthodes pour le caractériser
-
-    - text : objet PyFina, vecteur numpy de température extérieure
-             échantillonné selon le pas de discrétisation (interval)
-    - agenda : vecteur numpy de l'agenda d'occupation échantillonné selon
-             le même pas de discrétisation que text et de même taille que text
-    - wsize : nombre d'intervalles constituant un épisode, l'épisode étant
-              la métrique de base utilisé pour les entrainements et les replays.
-    - tc : température de consigne / confort temperature set point (°C)
-    - hh : demi-intervalle (en °C) pour le contrôle hysteresys
-    - model : paramètres du modèle d'environnement - exemple : R=2e-4, C=2e8
-    """
-    def __init__(self, text, agenda, wsize, max_power, tc, hh, **model):
-        self.text = text
-        self.agenda = agenda
-        self._tss = text.start
-        self._tse = text.start + text.step * text.shape[0]
-        self.interval = text.step
-        self.wsize = wsize
-        self.max_power = max_power
-        self.tc = tc
-        self.hh = hh
-        print(f'environnement initialisé avec Tc={self.tc}, hh={self.hh}')
-        self.model = model if model else MODELRC
-        self.tcte = self.model["R"] * self.model["C"]
-        self.cte = math.exp(-self.interval / self.tcte)
-        self.pos = None
-        self.tsvrai = None
-
-    def set_start(self, ts=None):
-        """
-        1) tire un timestamp aléatoirement avant fin mai OU après début octobre
-
-        2) fixe le timestamp à une valeur donnée, si ts est fourni,
-           pour rejouer un épisode (ex : 1588701000)
-
-        ts : unix timestamp (non requis)
-
-        retourne la position dans la timeserie text et le timestamp correspondant
-        """
-        if ts is None:
-            start = self._tss
-            tse = self._tse
-            end = tse - self.wsize * self.interval - 4*24*3600
-            #print(tsToHuman(start),tsToHuman(end))
-            # on tire un timestamp avant fin mai OU après début octobre
-            ts = get_random_start(start, end, 10, 5)
-        self.pos = (ts - self._tss) // self.interval
-        self.tsvrai = self._tss + self.pos * self.interval
-        print("*************************************")
-        print(f'{ts} - {tsToHuman(ts)}')
-        print(f'vrai={self.tsvrai} - {tsToHuman(self.tsvrai)}')
-
-    def build_env(self, tint=None):
-        """
-        retourne le tenseur des données de l'épisode
-
-        tint : valeur initiale de température intérieure
-        Fournir un entier pour tint permet de fixer la température intérieure du premier point de l'épisode
-        Si tint vaut None, un tirage aléatoire entre 17 et 20 est réalisé
-
-        caractéristiques du tenseur de sortie
-
-        - axe 0 = le temps
-        - axe 1 = les paramètres pour décrire l'environnement
-
-        3 paramètres physiques : qc, text et tint
-
-        2 paramètres organisationnels :
-
-        - temperature de consigne * occupation - si > 0 : bâtiment occupé,
-        - nombre d'heures d'ici le changement d 'occupation
-        """
-        datas = np.zeros((self.wsize, 5))
-        # condition initiale en température
-        if isinstance(tint, (int, float)):
-            datas[0, 2] = tint
-        else:
-            datas[0, 2] = random.randint(17, 20)
-        # on connait Text (vérité terrain) sur toute la longueur de l'épisode
-        datas[:, 1] = self.text[self.pos:self.pos+self.wsize]
-        occupation = self.agenda[self.pos:self.pos+self.wsize+4*24*3600//self.interval]
-        for i in range(self.wsize):
-            datas[i, 4] = get_level_duration(occupation, i) * self.interval / 3600
-        # consigne
-        datas[:, 3] = self.tc * occupation[0:self.wsize]
-        print(f'condition initiale : Text {datas[0, 1]:.2f} Tint {datas[0, 2]:.2f}')
-        return datas
-
-    def sim(self, datas, i):
-        """calcule la température à l'étape i"""
-        result = sim(self, self.pos+i-1, datas[i-1, 2],
-                     self.text.step/3600, action=datas[i-1, 0]/self.max_power)
-        return result[-1]
-
-
-    def sim2target(self, datas, i):
-        """
-        on est à l'étape i et on veut calculer la température à l'ouverture des locaux,
-        en chauffant dès à présent en permanence
-        """
-        return sim(self, self.pos+i, datas[i, 2], datas[i, 4])
-
-    def play(self, datas):
-        """
-        à définir dans la classe fille pour jouer une stratégie de chauffe
-
-        retourne le tenseur de données sources complété par le scénario de chauffage et la température intérieure simulée
-        """
 
 class EvaluateGisement:
     """évalue le gisement d'économies d'énergie
@@ -510,6 +366,157 @@ class EvaluateGym:
             np.savetxt(f'{name}.csv', self._stats, delimiter=',', header=header)
         plt.close()
         return stats_moy
+
+"""
+********************************************************************************
+***************************DEPRECATED*******************************************
+********************************************************************************
+********************************************************************************
+********************************************************************************
+"""
+
+def get_config(agent):
+    """
+    DEPRECATED
+
+    extrait la configuration du réseau
+
+    - lnames : liste des noms des couches
+    - insize : taille de l'input
+    - outsize : taille de la sortie
+    """
+    lnames = []
+    for layer in agent.layers:
+        lnames.append(layer.name)
+    print(lnames)
+    if lnames == PRIMO_AGENT_LAYERS:
+        print("agent issu des expérimentations primitives")
+    outlayer = agent.get_layer(name="output") if "output" in lnames else agent.get_layer(name=lnames[-1])
+    inlayer = agent.get_layer(name="states") if "states" in lnames else agent.get_layer(name=lnames[0])
+    outsize = outlayer.get_config()['units']
+    try:
+        insize = inlayer.get_config()["batch_input_shape"][1]
+    except Exception :
+        print("no input layer")
+        insize = 4
+    print(f'network input size {insize} output size {outsize}')
+    return lnames, insize, outsize
+
+
+class Environnement:
+    """
+    DEPRECATED : UTILISER L'ENVIRONNEMENT GYM
+
+    stocke les données décrivant l'environnement
+    et offre des méthodes pour le caractériser
+
+    - text : objet PyFina, vecteur numpy de température extérieure
+             échantillonné selon le pas de discrétisation (interval)
+    - agenda : vecteur numpy de l'agenda d'occupation échantillonné selon
+             le même pas de discrétisation que text et de même taille que text
+    - wsize : nombre d'intervalles constituant un épisode, l'épisode étant
+              la métrique de base utilisé pour les entrainements et les replays.
+    - tc : température de consigne / confort temperature set point (°C)
+    - hh : demi-intervalle (en °C) pour le contrôle hysteresys
+    - model : paramètres du modèle d'environnement - exemple : R=2e-4, C=2e8
+    """
+    def __init__(self, text, agenda, wsize, max_power, tc, hh, **model):
+        self.text = text
+        self.agenda = agenda
+        self._tss = text.start
+        self._tse = text.start + text.step * text.shape[0]
+        self.interval = text.step
+        self.wsize = wsize
+        self.max_power = max_power
+        self.tc = tc
+        self.hh = hh
+        print(f'environnement initialisé avec Tc={self.tc}, hh={self.hh}')
+        self.model = model if model else MODELRC
+        self.tcte = self.model["R"] * self.model["C"]
+        self.cte = math.exp(-self.interval / self.tcte)
+        self.pos = None
+        self.tsvrai = None
+
+    def set_start(self, ts=None):
+        """
+        1) tire un timestamp aléatoirement avant fin mai OU après début octobre
+
+        2) fixe le timestamp à une valeur donnée, si ts est fourni,
+           pour rejouer un épisode (ex : 1588701000)
+
+        ts : unix timestamp (non requis)
+
+        retourne la position dans la timeserie text et le timestamp correspondant
+        """
+        if ts is None:
+            start = self._tss
+            tse = self._tse
+            end = tse - self.wsize * self.interval - 4*24*3600
+            #print(tsToHuman(start),tsToHuman(end))
+            # on tire un timestamp avant fin mai OU après début octobre
+            ts = get_random_start(start, end, 10, 5)
+        self.pos = (ts - self._tss) // self.interval
+        self.tsvrai = self._tss + self.pos * self.interval
+        print("*************************************")
+        print(f'{ts} - {tsToHuman(ts)}')
+        print(f'vrai={self.tsvrai} - {tsToHuman(self.tsvrai)}')
+
+    def build_env(self, tint=None):
+        """
+        retourne le tenseur des données de l'épisode
+
+        tint : valeur initiale de température intérieure
+        Fournir un entier pour tint permet de fixer la température intérieure du premier point de l'épisode
+        Si tint vaut None, un tirage aléatoire entre 17 et 20 est réalisé
+
+        caractéristiques du tenseur de sortie
+
+        - axe 0 = le temps
+        - axe 1 = les paramètres pour décrire l'environnement
+
+        3 paramètres physiques : qc, text et tint
+
+        2 paramètres organisationnels :
+
+        - temperature de consigne * occupation - si > 0 : bâtiment occupé,
+        - nombre d'heures d'ici le changement d 'occupation
+        """
+        datas = np.zeros((self.wsize, 5))
+        # condition initiale en température
+        if isinstance(tint, (int, float)):
+            datas[0, 2] = tint
+        else:
+            datas[0, 2] = random.randint(17, 20)
+        # on connait Text (vérité terrain) sur toute la longueur de l'épisode
+        datas[:, 1] = self.text[self.pos:self.pos+self.wsize]
+        occupation = self.agenda[self.pos:self.pos+self.wsize+4*24*3600//self.interval]
+        for i in range(self.wsize):
+            datas[i, 4] = get_level_duration(occupation, i) * self.interval / 3600
+        # consigne
+        datas[:, 3] = self.tc * occupation[0:self.wsize]
+        print(f'condition initiale : Text {datas[0, 1]:.2f} Tint {datas[0, 2]:.2f}')
+        return datas
+
+    def sim(self, datas, i):
+        """calcule la température à l'étape i"""
+        result = sim(self, self.pos+i-1, datas[i-1, 2],
+                     self.text.step/3600, action=datas[i-1, 0]/self.max_power)
+        return result[-1]
+
+
+    def sim2target(self, datas, i):
+        """
+        on est à l'étape i et on veut calculer la température à l'ouverture des locaux,
+        en chauffant dès à présent en permanence
+        """
+        return sim(self, self.pos+i, datas[i, 2], datas[i, 4])
+
+    def play(self, datas):
+        """
+        à définir dans la classe fille pour jouer une stratégie de chauffe
+
+        retourne le tenseur de données sources complété par le scénario de chauffage et la température intérieure simulée
+        """
 
 class Evaluate(EvaluateGym):
     """evaluation class"""
