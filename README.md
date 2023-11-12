@@ -11,11 +11,14 @@ Environnement gym [openAI](https://github.com/openai/gym) pour simuler le compor
 ## requirements
 
 ```
+sudo apt-get update
+sudo apt-get install --upgrade python3-pip
+python3 -m pip install pip --upgrade
 sudo apt-get install -y python3-numpy python3-matplotlib
-pip3 install click
-pip3 install gym
-pip3 install PyFina
-pip3 install --upgrade tensorflow
+python3 -m pip install click
+python3 -m pip install gym
+python3 -m pip install PyFina
+python3 -m pip install --upgrade tensorflow
 ```
 
 Tous les exemples utilisent l'autocomplétion en ligne de commande pour choisir le nom de l'agent
