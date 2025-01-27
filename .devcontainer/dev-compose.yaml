@@ -1,0 +1,8 @@
+services:
+  devcontainer:
+    image: tensorflow/tensorflow
+    ports:
+      - 8888:8888
+    volumes:
+      - ../:/EnergyGym
+    command: sleep infinity

@@ -1,0 +1,15 @@
+{
+  "name": "energygym_dev",
+  "dockerComposeFile": "dev-compose.yaml",
+  "workspaceFolder": "/EnergyGym",
+  "shutdownAction": "stopCompose",
+  "service": "devcontainer",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "charliermarsh.ruff",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}
