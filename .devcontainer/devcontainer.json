@@ -4,6 +4,7 @@
   "workspaceFolder": "/EnergyGym",
   "shutdownAction": "stopCompose",
   "service": "devcontainer",
+  "postCreateCommand": ".devcontainer/setup.sh",
   "customizations": {
     "vscode": {
       "extensions": [
