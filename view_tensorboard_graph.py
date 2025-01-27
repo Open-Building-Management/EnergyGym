@@ -2,7 +2,6 @@
 https://stackoverflow.com/questions/56690089/how-to-graph-tf-keras-model-in-tensorflow-2-0
 """
 import tensorflow as tf
-from tensorflow import keras
 from shared_rl_tools import DQModel
 
 
@@ -14,7 +13,7 @@ def trace(x):
 
 if __name__ == "__main__":
     primary_network = DQModel(50, 2)
-    primary_network.compile(optimizer=keras.optimizers.Adam(), loss='mse')
+    primary_network.compile(optimizer=tf.optimizers.Adam(), loss='mse')
     train_writer = tf.summary.create_file_writer("TensorBoard/graph")
     tf.summary.trace_on(graph=True, profiler=False)
     trace(tf.zeros((1,4)))
