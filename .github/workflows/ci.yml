@@ -26,6 +26,7 @@ jobs:
         python3 -m pip install --upgrade pip
         python3 -m pip install pylint
         sudo apt-get install -y python3-numpy python3-matplotlib
+        python3 -m pip install tf-keras
         python3 -m pip install click
         python3 -m pip install gym
         python3 -m pip install PyFina
