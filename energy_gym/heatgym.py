@@ -9,44 +9,6 @@ import numpy as np
 
 from .planning import get_random_start, get_level_duration
 
-custom_gym_envs = [
-    "Hyst",
-    "Reduce",
-    "Vacancy",
-    "StepRewardVacancy",
-    "Building"
-]
-
-# --------------------------------------------------------------------------- #
-# pdoc related
-# --------------------------------------------------------------------------- #
-_custom_gym_envs = [
-    *custom_gym_envs,
-    "Env",
-    "D2Vacancy",
-    "TopLimitVacancy"
-]
-
-vars_to_exclude_from_pdoc = [
-    "action_space",
-    "observation_space",
-    "metadata",
-    "render_mode",
-    "spec"
-]
-
-__pdoc__ = {}
-for cge in _custom_gym_envs:
-    for excluded in vars_to_exclude_from_pdoc:
-        __pdoc__[f'{cge}.{excluded}'] = False
-
-private = [
-    "_get_future", "_get_past", "_reset", "_render", "_step",
-    "_state", "_covering", "_update_cte_tcte", "_eko"
-]
-
-for method in private:
-    __pdoc__[f'Env.{method}'] = True
 # --------------------------------------------------------------------------- #
 
 # modèle R1C1 par défault obtenu par EDW avec les données de Marc Bloch
