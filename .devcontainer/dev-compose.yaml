@@ -1,6 +1,8 @@
 services:
   devcontainer:
-    image: tensorflow/tensorflow:2.8.0
+    environment:
+      - TF_VERSION=${TF_VERSION}
+    image: tensorflow/tensorflow:${TF_VERSION}
     volumes:
       - ../:/EnergyGym
     command: sleep infinity
