@@ -7,6 +7,7 @@ import readline
 import glob
 import matplotlib.pylab as plt
 import tensorflow as tf
+import tf_keras as keras
 from PyFina import PyFina, getMeta
 from .planning import tsToHuman, biosAgenda
 
@@ -28,10 +29,10 @@ def load(agent_path):
     # custom_objects est nécessaire pour charger certains réseaux
     # cf ceux entrainés sur le cloud, via les github actions
     try:
-        agent = tf.keras.models.load_model(
+        agent = keras.models.load_model(
             agent_path,
             compile=False,
-            custom_objects={'Functional':tf.keras.models.Model}
+            custom_objects={'Functional':keras.models.Model}
         )
     except Exception:
         print("could not load - using tf.saved_model.load() API as a workaround !")

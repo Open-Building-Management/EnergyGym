@@ -5,7 +5,7 @@ import math
 import click
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras
+import tf_keras as keras
 
 
 # on importe les configurations existantes de modèles depuis le fichier conf
@@ -297,7 +297,8 @@ def main(nbtext, modelkey, scenario, tc, halfrange, gamma, num_episodes,
 
     save = input("save ? Y=yes")
     if save == "Y":
-        primary_network.save(f'{STORE_PATH}_{scenario}{num_episodes}_{NOW}_{suffix}')
+        saving_path = f'{STORE_PATH}_{scenario}{num_episodes}_{NOW}_{suffix}'
+        keras.models.save_model(primary_network, saving_path)
 
 
 if __name__ == "__main__":
